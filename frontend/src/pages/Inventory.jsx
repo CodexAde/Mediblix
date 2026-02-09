@@ -1,27 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import productService from '../services/productService';
+import AddProductDrawer from '../components/Inventory/AddProductDrawer';
+import ExportModal from '../components/Inventory/ExportModal';
 
 const Inventory = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isAIMode, setIsAIMode] = useState(false);
+  const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const categories = ['All', 'Electronics', 'Clothing', 'Home & Garden', 'Sports', 'Accessories'];
 
-  const products = [
-    { id: '1', name: 'iPhone 15 Pro Max', category: 'Electronics', sku: 'APL-IP15PM-256', quantity: 145, price: 1199, status: 'In Stock' },
-    { id: '2', name: 'Samsung Galaxy S24 Ultra', category: 'Electronics', sku: 'SAM-GS24U-512', quantity: 89, price: 1299, status: 'In Stock' },
-    { id: '3', name: 'MacBook Pro 14" M3', category: 'Electronics', sku: 'APL-MBP14-M3', quantity: 52, price: 1999, status: 'In Stock' },
-    { id: '4', name: 'AirPods Pro 2nd Gen', category: 'Electronics', sku: 'APL-APP2-WHT', quantity: 234, price: 249, status: 'In Stock' },
-    { id: '5', name: 'Nike Air Max 90', category: 'Clothing', sku: 'NK-AM90-BLK', quantity: 67, price: 130, status: 'In Stock' },
-    { id: '6', name: 'Dyson V15 Detect', category: 'Home & Garden', sku: 'DYS-V15-DET', quantity: 8, price: 749, status: 'Low Stock' },
-    { id: '7', name: 'Sony WH-1000XM5', category: 'Electronics', sku: 'SNY-WH1KXM5', quantity: 0, price: 399, status: 'Out of Stock' },
-    { id: '8', name: 'iPad Air 5th Gen', category: 'Electronics', sku: 'APL-IPA5-64', quantity: 112, price: 599, status: 'In Stock' },
-    { id: '9', name: 'Adidas Ultraboost 23', category: 'Clothing', sku: 'ADI-UB23-WHT', quantity: 23, price: 190, status: 'Low Stock' },
-    { id: '10', name: 'Apple Watch Series 9', category: 'Electronics', sku: 'APL-AWS9-45', quantity: 78, price: 429, status: 'In Stock' },
-  ];
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const data = await productService.getProducts();
+      setProducts(data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Failed to fetch products", error);
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      try {
+        await productService.deleteProduct(id);
+        fetchProducts();
+      } catch (error) {
+        console.error("Failed to delete product", error);
+      }
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -49,15 +69,17 @@ const Inventory = () => {
             <p className="text-[var(--text-secondary)] mt-1">Manage your products and stock levels</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer">
-              <Upload size={18} />
-              Import
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer">
+            <button 
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer"
+              onClick={() => setIsExportModalOpen(true)}
+            >
               <Download size={18} />
               Export
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer">
+            <button 
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer"
+              onClick={() => setIsAddDrawerOpen(true)}
+            >
               <Plus size={18} />
               Add Product
             </button>
@@ -71,7 +93,7 @@ const Inventory = () => {
             <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isAIMode ? 'text-purple-600' : 'text-[var(--text-secondary)]'}`} />
             <input
               type="text"
-              placeholder={isAIMode ? "Ask AI about your inventory (e.g., 'Which products are low on stock?')" : "Search by name or SKU..."}
+              placeholder={isAIMode ? "Ask AI about your inventory..." : "Search by name or SKU..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full pl-10 pr-10 py-2.5 rounded-xl focus:outline-none transition-all duration-300 ${
@@ -80,13 +102,6 @@ const Inventory = () => {
                   : 'bg-[var(--bg-main)] border border-[var(--border-soft)] focus:border-[var(--accent)] text-[var(--text-primary)]'
               }`}
             />
-            <div 
-              className="absolute right-3 top-1/2 -translate-y-1/2 group cursor-pointer p-1 rounded-full hover:bg-gray-100 transition-colors" 
-              title={isAIMode ? "Turn off AI Mode" : "Turn on AI Mode"}
-              onClick={() => setIsAIMode(!isAIMode)}
-            >
-              <Sparkles size={16} className={`${isAIMode ? 'text-purple-600 animate-spin' : 'text-purple-500 group-hover:animate-pulse'}`} />
-            </div>
           </div>
 
           {/* Category Filter */}
@@ -112,97 +127,85 @@ const Inventory = () => {
 
         {/* Products Table */}
         <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[var(--border-soft)] bg-gray-50">
-                <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
-                  <div className="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)]">
-                    Product <ArrowUpDown size={14} />
-                  </div>
-                </th>
-                <th className="text-left p-4 font-semibold text-[var(--text-primary)]">SKU</th>
-                <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Category</th>
-                <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
-                  <div className="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)]">
-                    Quantity <ArrowUpDown size={14} />
-                  </div>
-                </th>
-                <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
-                  <div className="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)]">
-                    Price <ArrowUpDown size={14} />
-                  </div>
-                </th>
-                <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Status</th>
-                <th className="text-center p-4 font-semibold text-[var(--text-primary)]">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.map((product, index) => (
-                <tr
-                  key={product.id}
-                  onClick={() => navigate(`/product/${product.id}`)}
-                  className={`border-b border-[var(--border-soft)] hover:bg-gray-50 transition-colors cursor-pointer ${
-                    index === filteredProducts.length - 1 ? 'border-b-0' : ''
-                  }`}
-                >
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--accent-light)] flex items-center justify-center">
-                        <Package size={20} className="text-[var(--accent)]" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors">{product.name}</p>
-                        <p className="text-xs text-[var(--text-secondary)]">ID: {product.id}</p>
-                      </div>
+          {loading ? (
+            <div className="p-8 text-center text-[var(--text-secondary)]">Loading inventory...</div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--border-soft)] bg-gray-50">
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
+                    <div className="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)]">
+                      Product <ArrowUpDown size={14} />
                     </div>
-                  </td>
-                  <td className="p-4 text-[var(--text-secondary)] font-mono text-sm">{product.sku}</td>
-                  <td className="p-4">
-                    <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">
-                      {product.category}
-                    </span>
-                  </td>
-                  <td className="p-4 font-semibold text-[var(--text-primary)]">{product.quantity}</td>
-                  <td className="p-4 font-semibold text-[var(--text-primary)]">${product.price}</td>
-                  <td className="p-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(product.status)}`}>
-                      {product.status}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <button className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors">
-                        <Eye size={18} />
-                      </button>
-                      <button className="p-2 hover:bg-amber-50 rounded-lg text-amber-600 transition-colors">
-                        <Edit2 size={18} />
-                      </button>
-                      <button className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors">
-                        <Trash2 size={18} />
-                      </button>
+                  </th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">SKU</th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Category</th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
+                    <div className="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)]">
+                      Quantity <ArrowUpDown size={14} />
                     </div>
-                  </td>
+                  </th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
+                    <div className="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)]">
+                      Price <ArrowUpDown size={14} />
+                    </div>
+                  </th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Status</th>
+                  <th className="text-center p-4 font-semibold text-[var(--text-primary)]">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Pagination */}
+              </thead>
+              <tbody>
+                {filteredProducts.map((product, index) => (
+                  <tr
+                    key={product._id}
+                    className={`border-b border-[var(--border-soft)] hover:bg-gray-50 transition-colors ${
+                      index === filteredProducts.length - 1 ? 'border-b-0' : ''
+                    }`}
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[var(--accent-light)] flex items-center justify-center">
+                          <Package size={20} className="text-[var(--accent)]" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-[var(--text-primary)]">{product.name}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 text-[var(--text-secondary)] font-mono text-sm">{product.sku}</td>
+                    <td className="p-4">
+                      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">
+                        {product.category}
+                      </span>
+                    </td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)]">{product.quantity}</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)]">${product.price}</td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(product.status)}`}>
+                        {product.status}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors"
+                          onClick={() => handleDelete(product._id)}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          
+          {/* Pagination (Static for now) */}
           <div className="p-4 border-t border-[var(--border-soft)] flex items-center justify-between bg-gray-50">
             <p className="text-sm text-[var(--text-secondary)]">
-              Showing <span className="font-semibold">{filteredProducts.length}</span> of <span className="font-semibold">{products.length}</span> products
+              Showing <span className="font-semibold">{filteredProducts.length}</span> products
             </p>
-            <div className="flex items-center gap-2">
-              <button className="p-2 bg-[var(--bg-main)] border border-[var(--border-soft)] rounded-lg hover:border-[var(--accent)] transition-colors">
-                <ChevronLeft size={18} className="text-[var(--text-secondary)]" />
-              </button>
-              <button className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium">1</button>
-              <button className="px-4 py-2 bg-[var(--bg-main)] border border-[var(--border-soft)] rounded-lg text-[var(--text-secondary)] hover:border-[var(--accent)]">2</button>
-              <button className="px-4 py-2 bg-[var(--bg-main)] border border-[var(--border-soft)] rounded-lg text-[var(--text-secondary)] hover:border-[var(--accent)]">3</button>
-              <button className="p-2 bg-[var(--bg-main)] border border-[var(--border-soft)] rounded-lg hover:border-[var(--accent)] transition-colors">
-                <ChevronRight size={18} className="text-[var(--text-secondary)]" />
-              </button>
-            </div>
           </div>
         </div>
 
@@ -226,6 +229,18 @@ const Inventory = () => {
           </div>
         </div>
       </div>
+
+      <AddProductDrawer 
+        isOpen={isAddDrawerOpen} 
+        onClose={() => setIsAddDrawerOpen(false)} 
+        onProductAdded={fetchProducts}
+      />
+
+      <ExportModal 
+        isOpen={isExportModalOpen} 
+        onClose={() => setIsExportModalOpen(false)} 
+        data={products} 
+      />
     </div>
   );
 };
