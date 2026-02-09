@@ -1,9 +1,19 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Product from "../models/Product.js";
+import User from "../models/User.js";
 import connectDB from "../config/db.js";
 
 dotenv.config();
+
+const users = [
+  {
+    name: 'Admin User',
+    email: 'admin@spren.com',
+    password: 'admin@crix',
+    isAdmin: true,
+  },
+];
 
 const products = [
   {
@@ -88,12 +98,15 @@ const products = [
   },
 ];
 
-const seedProducts = async () => {
+const seedData = async () => {
   try {
     await connectDB();
 
+    await User.deleteMany();
     await Product.deleteMany();
 
+    // Use create to trigger pre-save hooks (password hashing)
+    await User.create(users);
     await Product.insertMany(products);
 
     console.log("Data Imported!");
@@ -104,4 +117,5 @@ const seedProducts = async () => {
   }
 };
 
-seedProducts();
+seedData();
+

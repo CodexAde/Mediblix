@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Settings as SettingsIcon, User, Bell, Shield, Palette, Globe, CreditCard, HelpCircle, LogOut, ChevronRight, Moon, Sun, Check, Mail, Smartphone } from 'lucide-react';
+import { useAuth } from '../context/AuthStates';
 
 const Settings = () => {
+  const { logout } = useAuth();
   const [activeSection, setActiveSection] = useState('profile');
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState({
@@ -274,7 +276,10 @@ const Settings = () => {
                 );
               })}
               <div className="border-t border-[var(--border-soft)]">
-                <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-all">
+                <button
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-all"
+                >
                   <LogOut size={20} />
                   <span className="font-medium">Logout</span>
                 </button>
