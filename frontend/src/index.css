@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+
+
+:root {
+  --bg-main: #ffffff;        /* Pure white background */
+  --bg-card: #f8faf9;        /* Very light gray-green for cards */
+  --text-primary: #1a1a1a;   /* Near black for primary text */
+  --text-secondary: #6b7280; /* Gray for secondary text */
+  --accent: #166534;         /* Dark green accent */
+  --accent-light: #dcfce7;   /* Light green for highlights */
+  --border-soft: #e5e7eb;    /* Light gray border */
+
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+                 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+
+  --shadow-strong: 0 20px 25px -5px rgba(0, 0, 0, 0.05),
+                   0 10px 10px -5px rgba(0, 0, 0, 0.02);
+
+  --radius: 1rem;
+
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text-primary);
+  background-color: var(--bg-main);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+@keyframes fizzy-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(147, 51, 234, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(147, 51, 234, 0); }
+}
+
+.animate-fizzy {
+  animation: fizzy-pop 0.4s ease-out forwards;
+}
+
+/* AI Gradient Animation */
+@keyframes ai-border {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.ai-mode-active {
+  background: linear-gradient(90deg, #eff6ff, #f5f3ff, #eff6ff);
+  background-size: 200% 200%;
+  animation: ai-border 3s ease infinite;
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15);
+}
+
+.ai-text-gradient {
+  background: linear-gradient(to right, #7c3aed, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
