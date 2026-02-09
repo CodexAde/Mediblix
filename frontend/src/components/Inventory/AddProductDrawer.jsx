@@ -12,9 +12,14 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
     status: "In Stock",
   });
   const [error, setError] = useState("");
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      // Small delay to ensure render happens before transition
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setIsVisible(true));
+      });
       setFormData({
         name: "",
         sku: "",
@@ -24,6 +29,8 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
         status: "In Stock",
       });
       setError("");
+    } else {
+      setIsVisible(false);
     }
   }, [isOpen]);
 
@@ -48,32 +55,48 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
     }
   };
 
-  if (!isOpen) return null;
+  // Keep component mounted during exit animation
+  const [shouldRender, setShouldRender] = useState(false);
+  
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+    } else {
+      // Wait for transition to finish before unmounting
+      const timer = setTimeout(() => setShouldRender(false), 700);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!shouldRender) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-700 ${isVisible && isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-700 ${isVisible && isOpen ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
 
       {/* Drawer */}
-      <div className="relative w-full max-w-md h-full bg-[#111] border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-in-out p-6 flex flex-col">
+      <div 
+        className={`relative w-full max-w-md h-full bg-white shadow-2xl transform transition-transform duration-700 ease-custom p-6 flex flex-col ${isVisible && isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+      >
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold text-gray-900">
             Add New Product
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-900"
           >
             <X size={24} />
           </button>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-600">
             <AlertCircle size={20} />
             <span className="text-sm font-medium">{error}</span>
           </div>
@@ -82,7 +105,7 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Product Name
               </label>
               <input
@@ -91,13 +114,13 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
                 placeholder="e.g. iPhone 15 Pro"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 SKU
               </label>
               <input
@@ -106,13 +129,13 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                 value={formData.sku}
                 onChange={handleChange}
                 required
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all relative z-10"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
                 placeholder="e.g. APL-IP15-BLK"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category
               </label>
               <input
@@ -121,14 +144,14 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                 value={formData.category}
                 onChange={handleChange}
                 required
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
                 placeholder="e.g. Electronics"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Price ($)
                 </label>
                 <input
@@ -139,12 +162,12 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                   required
                   min="0"
                   step="0.01"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Quantity
                 </label>
                 <input
@@ -154,32 +177,32 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                   onChange={handleChange}
                   required
                   min="0"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Status
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all appearance-none cursor-pointer"
               >
-                <option value="In Stock" className="bg-[#111]">In Stock</option>
-                <option value="Low Stock" className="bg-[#111]">Low Stock</option>
-                <option value="Out of Stock" className="bg-[#111]">Out of Stock</option>
+                <option value="In Stock">In Stock</option>
+                <option value="Low Stock">Low Stock</option>
+                <option value="Out of Stock">Out of Stock</option>
               </select>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-white/10 mt-auto">
+          <div className="pt-6 border-t border-gray-100 mt-auto">
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 group"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-xl transition-all duration-300 shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 group cursor-pointer"
             >
               <Save size={20} className="group-hover:scale-110 transition-transform" />
               Add Product
@@ -190,5 +213,6 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
     </div>
   );
 };
+
 
 export default AddProductDrawer;
