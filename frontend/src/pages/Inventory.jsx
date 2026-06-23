@@ -176,7 +176,8 @@ const Inventory = () => {
                 {filteredProducts.map((product, index) => (
                   <tr
                     key={product._id}
-                    className={`border-b border-[var(--border-soft)] hover:bg-gray-50 transition-colors ${
+                    onClick={() => navigate(`/product/${product._id}`)}
+                    className={`border-b border-[var(--border-soft)] hover:bg-gray-50 transition-colors cursor-pointer ${
                       index === filteredProducts.length - 1 ? 'border-b-0' : ''
                     }`}
                   >
@@ -197,7 +198,7 @@ const Inventory = () => {
                       </span>
                     </td>
                     <td className="p-4 font-semibold text-[var(--text-primary)]">{product.quantity}</td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)]">${product.price}</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)]">₹{product.price.toLocaleString('en-IN')}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(product.status)}`}>
                         {product.status}
@@ -207,7 +208,7 @@ const Inventory = () => {
                       <div className="flex items-center justify-center gap-2">
                         <button 
                           className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors"
-                          onClick={() => handleDelete(product._id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(product._id); }}
                         >
                           <Trash2 size={18} />
                         </button>

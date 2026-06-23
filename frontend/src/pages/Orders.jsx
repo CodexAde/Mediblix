@@ -151,7 +151,7 @@ const Orders = () => {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)]">Total Amount:</span>
-                      <span className="font-semibold text-green-600">${order.totalAmount ? order.totalAmount.toLocaleString() : 0}</span>
+                      <span className="font-semibold text-green-600">₹{order.totalAmount ? order.totalAmount.toLocaleString() : 0}</span>
                     </div>
                   </div>
 

@@ -243,16 +243,16 @@ const OrderDetails = () => {
                         <Package size={16} className="text-gray-400" />
                         <div>
                           <p className="font-medium text-gray-900">{item.name}</p>
-                          <p className="text-sm text-gray-500">Qty: {item.quantity} × ${item.price}</p>
+                          <p className="text-sm text-gray-500">Qty: {item.quantity} × ₹{item.price}</p>
                         </div>
                       </div>
-                      <span className="font-semibold text-gray-900">${item.total.toLocaleString()}</span>
+                      <span className="font-semibold text-gray-900">₹{item.total.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between">
                   <span className="font-bold text-gray-900">Total Amount</span>
-                  <span className="font-bold text-green-600 text-lg">${order.total.toLocaleString()}</span>
+                  <span className="font-bold text-green-600 text-lg">₹{order.total.toLocaleString()}</span>
                 </div>
               </div>
 

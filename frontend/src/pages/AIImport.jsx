@@ -545,7 +545,7 @@ const AIImport = () => {
               </div>
               <div className="bg-green-50 border border-green-100 rounded-2xl p-5 shadow-sm">
                 <p className="text-sm font-medium text-green-800">Total Value</p>
-                <p className="text-3xl font-bold text-green-950 mt-1">${summary.totalVal.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-green-950 mt-1">₹{summary.totalVal.toFixed(2)}</p>
               </div>
             </div>
 
@@ -661,7 +661,7 @@ const AIImport = () => {
                           )}
                           <td className="p-3">
                             <div className="relative">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">₹</span>
                               <input
                                 type="number"
                                 step="0.01"

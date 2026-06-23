@@ -1,4 +1,4 @@
-import { Package, TrendingUp, AlertTriangle, Truck, DollarSign, ArrowUp, ArrowDown, Users, ShoppingCart, Sparkles } from 'lucide-react';
+import { Package, TrendingUp, AlertTriangle, Truck, IndianRupee, ArrowUp, ArrowDown, Users, ShoppingCart, Sparkles } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
@@ -63,20 +63,20 @@ const Dashboard = () => {
     },
     {
       title: 'Stock Value',
-      value: '$1.2M',
+      value: '₹1.2M',
       change: 5.2,
       isPositive: true,
-      icon: DollarSign,
+      icon: IndianRupee,
       bgColor: 'bg-purple-50',
       iconBg: 'bg-purple-500',
     },
   ];
 
   const topProducts = [
-    { id: '1', name: 'iPhone 15 Pro', sold: 234, revenue: '$280,800' },
-    { id: '3', name: 'MacBook Pro M3', sold: 156, revenue: '$312,000' },
-    { id: '4', name: 'AirPods Pro', sold: 412, revenue: '$102,588' },
-    { id: '5', name: 'iPad Air', sold: 189, revenue: '$113,400' },
+    { id: '1', name: 'iPhone 15 Pro', sold: 234, revenue: '₹2,80,800' },
+    { id: '3', name: 'MacBook Pro M3', sold: 156, revenue: '₹3,12,000' },
+    { id: '4', name: 'AirPods Pro', sold: 412, revenue: '₹1,02,588' },
+    { id: '5', name: 'iPad Air', sold: 189, revenue: '₹1,13,400' },
   ];
 
   return (

@@ -1,4 +1,4 @@
-import { Package, TrendingUp, AlertTriangle, Truck, DollarSign } from 'lucide-react';
+import { Package, TrendingUp, AlertTriangle, Truck, IndianRupee } from 'lucide-react';
 
 const StatsCards = () => {
   const stockCards = [
@@ -30,9 +30,9 @@ const StatsCards = () => {
       iconColor: '#2563eb',
     },
     {
-      icon: DollarSign,
+      icon: IndianRupee,
       title: 'Stock Value',
-      value: '$1.2M',
+      value: '₹1.2M',
       change: '+5.2%',
       changeType: 'positive',
       color: '#f3e8ff',
