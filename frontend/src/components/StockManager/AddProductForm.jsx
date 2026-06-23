@@ -164,4 +164,7 @@ const AddProductForm = ({ onClose }) => {
         </button>
       </div>
     </form>
-  )}
+  );
+};
+
+export default AddProductForm;

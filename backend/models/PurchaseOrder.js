@@ -44,6 +44,10 @@ const purchaseOrderSchema = mongoose.Schema(
       enum: ["Pending", "In Transit", "Delivered"],
       default: "Pending",
     },
+    expectedDeliveryDate: {
+      type: Date,
+      required: false,
+    },
   },
   {
     timestamps: true,

@@ -92,8 +92,10 @@ const OrderDetails = () => {
           contact: data.supplierEmail || `info@${data.supplierName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
           phone: data.supplierPhone || '+91 98765 43210',
           status: data.status,
-          orderDate: new Date(data.createdAt).toLocaleDateString(),
-          deliveryDate: new Date(new Date(data.createdAt).getTime() + 3*24*60*60*1000).toLocaleDateString(),
+          orderDate: new Date(data.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+          deliveryDate: data.expectedDeliveryDate 
+            ? new Date(data.expectedDeliveryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+            : new Date(new Date(data.createdAt).getTime() + 3*24*60*60*1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
           total: data.totalAmount,
           items: data.items.map(item => ({
             name: item.productName,
@@ -390,7 +392,7 @@ const OrderDetails = () => {
           <div className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-sm shadow-2xl transform transition-all animate-toast">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Delivery</h3>
             <p className="text-sm text-gray-500 mb-6">
-              Are you sure the purchase order has been delivered? This will automatically add the items and their quantities into the inventory stock.
+              Are you sure the purchase order has been delivered?
             </p>
             <div className="flex gap-3">
               <button

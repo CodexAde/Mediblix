@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, Sparkles, History } from 'lucide-react';
+import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import productService from '../services/productService';
 import AddProductDrawer from '../components/Inventory/AddProductDrawer';
@@ -96,13 +96,6 @@ const Inventory = () => {
             >
               <History size={18} />
               Import History
-            </button>
-            <button 
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-purple-500 hover:text-purple-700 transition-all text-[var(--text-primary)] cursor-pointer font-medium"
-              onClick={() => navigate('/ai-import?type=inventory')}
-            >
-              <Sparkles size={18} className="text-purple-600 animate-pulse" />
-              Ai Import
             </button>
             <button 
               className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer"

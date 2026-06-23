@@ -14,6 +14,7 @@ const AddPurchaseOrderDrawer = ({ isOpen, onClose, onOrderCreated }) => {
   const [items, setItems] = useState([
     { productName: "", sku: "", quantity: 1, price: 0 }
   ]);
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState("");
   const [error, setError] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -43,6 +44,7 @@ const AddPurchaseOrderDrawer = ({ isOpen, onClose, onOrderCreated }) => {
       });
       fetchSuppliers();
       setItems([{ productName: "", sku: "", quantity: 1, price: 0 }]);
+      setExpectedDeliveryDate("");
       setError("");
     } else {
       setIsVisible(false);
@@ -111,6 +113,7 @@ const AddPurchaseOrderDrawer = ({ isOpen, onClose, onOrderCreated }) => {
         supplierEmail: formData.supplierEmail,
         supplierPhone: formData.supplierPhone,
         deliveryAddress: formData.deliveryAddress,
+        expectedDeliveryDate: expectedDeliveryDate || undefined,
         items: items
       });
       onOrderCreated();
@@ -218,6 +221,32 @@ const AddPurchaseOrderDrawer = ({ isOpen, onClose, onOrderCreated }) => {
                 className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-500 focus:outline-none cursor-not-allowed text-sm resize-none"
                 placeholder="Delivery Address"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Order Date
+                </label>
+                <input
+                  type="text"
+                  value={new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  disabled
+                  className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Expected Delivery Date
+                </label>
+                <input
+                  type="date"
+                  value={expectedDeliveryDate}
+                  onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 transition-all text-sm"
+                />
+              </div>
             </div>
 
             <div className="border-t border-gray-100 pt-4">

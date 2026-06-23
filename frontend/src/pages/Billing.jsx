@@ -394,7 +394,8 @@ const Billing = () => {
       await fetchProducts();
     } catch (error) {
       console.error('Error creating sale:', error);
-      showToast('Failed to create sale. Please try again.', "error");
+      const msg = error.response?.data?.message || 'Failed to create sale. Please try again.';
+      showToast(msg, "error");
     }
   };
 
@@ -523,6 +524,21 @@ const Billing = () => {
     phoneInputRef.current?.focus();
   }
 
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        setActiveTab('new-bill');
+        setSelectedBill(null);
+        clearAll();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [clearAll]);
+
   const handlePrintInvoice = () => {
     if (!currentSaleId) return;
     window.print();
@@ -566,7 +582,7 @@ const Billing = () => {
           <div className="flex items-center gap-3">
             <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-[var(--border-soft)]">
               {[
-                { id: 'new-bill', label: 'New Bill', icon: ShoppingCart },
+                { id: 'new-bill', label: 'New Bill (F2)', icon: ShoppingCart },
                 { id: 'drafts', label: 'Saved Drafts', icon: FileText, count: drafts.length },
                 { id: 'history', label: 'Bill History', icon: Clock }
               ].map(tab => {
@@ -1030,14 +1046,14 @@ const Billing = () => {
                       <button
                         type="button"
                         onClick={generateInvoice}
-                        disabled={!customer || cart.length === 0}
-                        className={`py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer font-sans ${
+                        disabled={!customer || cart.length === 0 || invoiceGenerated}
+                        className={`py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all font-sans ${
                           !invoiceGenerated ? 'flex-1' : 'w-full'
                         } ${
                           customer && cart.length > 0
                             ? invoiceGenerated 
-                              ? 'bg-green-500 text-white'
-                              : 'bg-[var(--accent)] text-white hover:opacity-90'
+                              ? 'bg-green-500 text-white cursor-not-allowed opacity-90'
+                              : 'bg-[var(--accent)] text-white hover:opacity-90 cursor-pointer'
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         }`}
                       >

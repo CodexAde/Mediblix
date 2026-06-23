@@ -49,8 +49,13 @@ const createSale = async (req, res) => {
     }
 
     let invoiceNumber = req.body.invoiceNumber;
-    if (!invoiceNumber) {
-      const lastSale = await Sale.findOne().sort({ createdAt: -1 });
+    if (invoiceNumber) {
+      const existingSale = await Sale.findOne({ invoiceNumber });
+      if (existingSale) {
+        return res.status(400).json({ message: "Invoice number already exists" });
+      }
+    } else {
+      const lastSale = await Sale.findOne().sort({ invoiceNumber: -1 });
       let nextNum = 1;
       if (lastSale && lastSale.invoiceNumber) {
         const match = lastSale.invoiceNumber.match(/Inv-(\d+)/i);

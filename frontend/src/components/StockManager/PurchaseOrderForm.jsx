@@ -13,6 +13,7 @@ const PurchaseOrderForm = ({ onClose }) => {
   const [items, setItems] = useState([
     { productName: '', sku: '', quantity: 1, price: 0 }
   ]);
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
 
   useEffect(() => {
     const fetchSuppliers = async () => {
@@ -81,6 +82,7 @@ const PurchaseOrderForm = ({ onClose }) => {
         supplierEmail,
         supplierPhone,
         deliveryAddress,
+        expectedDeliveryDate: expectedDeliveryDate || undefined,
         items
       });
       onClose();
@@ -225,6 +227,26 @@ const PurchaseOrderForm = ({ onClose }) => {
             value={deliveryAddress}
             readOnly
             className="w-full px-3 py-2 border border-gray-200 bg-gray-100 text-gray-500 rounded-xl focus:outline-none cursor-not-allowed text-sm resize-none" 
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1.5">Order Date</label>
+          <input 
+            type="text" 
+            value={new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            disabled
+            className="w-full px-3 py-2 border border-gray-200 bg-gray-100 text-gray-500 rounded-xl focus:outline-none cursor-not-allowed text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1.5">Expected Delivery Date</label>
+          <input 
+            type="date" 
+            value={expectedDeliveryDate}
+            onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl focus:outline-none focus:border-green-600 text-sm"
           />
         </div>
       </div>

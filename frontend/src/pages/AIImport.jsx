@@ -27,6 +27,7 @@ const AIImport = () => {
   const [analysisStep, setAnalysisStep] = useState(0);
   const [items, setItems] = useState([]);
   const [supplierName, setSupplierName] = useState("");
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState("");
   const [toast, setToast] = useState(null);
   const [error, setError] = useState(null);
 
@@ -351,6 +352,7 @@ const AIImport = () => {
       } else {
         await purchaseOrderService.createPurchaseOrder({
           supplierName: supplierName,
+          expectedDeliveryDate: expectedDeliveryDate || undefined,
           items: items.map((item) => ({
             productName: item.name,
             sku: item.sku,
@@ -551,28 +553,57 @@ const AIImport = () => {
             </div>
 
             {importType === "purchase-order" && (
-              <div className="bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-2xl p-6 space-y-4">
-                <label className="block text-sm font-medium text-[var(--text-primary)]">
-                  Supplier Name
-                </label>
-                <div className="flex gap-4">
-                  <input
-                    type="text"
-                    value={supplierName}
-                    onChange={(e) => setSupplierName(e.target.value)}
-                    placeholder="Enter or select supplier..."
-                    className="flex-1 bg-white border border-[var(--border-soft)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                  />
-                  <select
-                    onChange={(e) => setSupplierName(e.target.value)}
-                    value=""
-                    className="bg-white border border-[var(--border-soft)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none cursor-pointer"
-                  >
-                    <option value="" disabled>Select Known Supplier</option>
-                    {KNOWN_SUPPLIERS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+              <div className="bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-2xl p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-[var(--text-primary)]">
+                      Supplier Name
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={supplierName}
+                        onChange={(e) => setSupplierName(e.target.value)}
+                        placeholder="Enter or select supplier..."
+                        className="bg-white border border-[var(--border-soft)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                      />
+                      <select
+                        onChange={(e) => setSupplierName(e.target.value)}
+                        value=""
+                        className="bg-white border border-[var(--border-soft)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none cursor-pointer"
+                      >
+                        <option value="" disabled>Select Known Supplier</option>
+                        {KNOWN_SUPPLIERS.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-[var(--text-primary)]">
+                      Order Date
+                    </label>
+                    <input
+                      type="text"
+                      value={new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      disabled
+                      className="w-full bg-gray-50 border border-[var(--border-soft)] rounded-xl px-4 py-2.5 text-sm text-gray-500 cursor-not-allowed focus:outline-none"
+                    />
+                    <p className="text-[10px] text-gray-400 font-medium">Order is being placed today</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-[var(--text-primary)]">
+                      Expected Delivery Date
+                    </label>
+                    <input
+                      type="date"
+                      value={expectedDeliveryDate}
+                      onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+                      className="w-full bg-white border border-[var(--border-soft)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                    />
+                  </div>
                 </div>
               </div>
             )}

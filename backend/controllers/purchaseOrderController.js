@@ -1,5 +1,4 @@
 import PurchaseOrder from "../models/PurchaseOrder.js";
-import Product from "../models/Product.js";
 
 const getPurchaseOrders = async (req, res) => {
   try {
@@ -11,7 +10,7 @@ const getPurchaseOrders = async (req, res) => {
 };
 
 const createPurchaseOrder = async (req, res) => {
-  const { supplierName, supplierEmail, supplierPhone, deliveryAddress, items } = req.body;
+  const { supplierName, supplierEmail, supplierPhone, deliveryAddress, items, expectedDeliveryDate } = req.body;
 
   if (!supplierName || !items || !Array.isArray(items)) {
     return res.status(400).json({ message: "Supplier name and items array are required" });
@@ -31,6 +30,7 @@ const createPurchaseOrder = async (req, res) => {
       items,
       totalAmount,
       status: "Pending",
+      expectedDeliveryDate,
     });
 
     res.status(201).json(order);
@@ -64,24 +64,6 @@ const updatePurchaseOrderStatus = async (req, res) => {
       return res.status(400).json({ message: "Cannot change status of a delivered purchase order" });
     }
 
-    if (status === "Delivered" && order.status !== "Delivered") {
-      for (const item of order.items) {
-        const product = await Product.findOne({ sku: item.sku });
-        if (product) {
-          product.quantity += Number(item.quantity);
-          await product.save();
-        } else {
-          await Product.create({
-            name: item.productName,
-            sku: item.sku,
-            price: item.price,
-            quantity: item.quantity,
-            category: "Vitamins",
-            status: "In Stock"
-          });
-        }
-      }
-    }
 
     order.status = status;
     await order.save();
