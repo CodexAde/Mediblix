@@ -29,6 +29,9 @@ const createImportRecord = async (req, res) => {
       if (product) {
         product.quantity += Number(item.quantity);
         product.price = Number(item.price);
+        if (item.expiryDate) product.expiryDate = item.expiryDate;
+        if (item.packaging) product.packaging = item.packaging;
+        if (item.tabletsPerStrip) product.tabletsPerStrip = Number(item.tabletsPerStrip);
         await product.save();
       } else {
         status = "New";
@@ -38,6 +41,9 @@ const createImportRecord = async (req, res) => {
           category: item.category || "General",
           quantity: Number(item.quantity),
           price: Number(item.price),
+          expiryDate: item.expiryDate || new Date(Date.now() + 365 * 2 * 24 * 60 * 60 * 1000),
+          packaging: item.packaging || "10 Tablets / Strip",
+          tabletsPerStrip: item.tabletsPerStrip !== undefined ? Number(item.tabletsPerStrip) : 10,
         });
       }
 

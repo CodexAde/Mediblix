@@ -1,37 +1,53 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, MapPin, Calendar, ShoppingCart, Sparkles } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import productService from '../services/productService';
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Mock product data
-  const product = {
-    id: id,
-    name: 'iPhone 15 Pro',
-    sku: 'APL-IP15P',
-    category: 'Electronics',
-    price: 134900,
-    stock: 25,
-    minStock: 10,
-    supplier: 'Apple Inc.',
-    description: 'Latest flagship smartphone with A17 Pro chip and titanium design',
-    lastOrdered: '2 days ago',
-    locations: [
-      { name: 'Warehouse A', stock: 15 },
-      { name: 'Warehouse B', stock: 5 },
-      { name: 'Store 1', stock: 3 },
-      { name: 'Store 2', stock: 2 },
-    ],
-    recentOrders: [
-      { id: 'PO-001', date: '2 Dec 2024', quantity: 50, status: 'Received' },
-      { id: 'PO-002', date: '15 Nov 2024', quantity: 30, status: 'Received' },
-      { id: 'PO-003', date: '1 Nov 2024', quantity: 40, status: 'Pending' },
-    ],
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const data = await productService.getProductById(id);
+        setProduct(data);
+      } catch (error) {
+        console.error("Failed to fetch product details", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
+
+  const formatStock = (qty, tabletsPerStrip) => {
+    if (qty <= 0) return '0 Strips';
+    if (!tabletsPerStrip || tabletsPerStrip <= 1) {
+      return `${qty} Strips`;
+    }
+    const totalTablets = Math.round(qty * tabletsPerStrip);
+    const strips = Math.floor(totalTablets / tabletsPerStrip);
+    const tablets = totalTablets % tabletsPerStrip;
+    if (strips > 0 && tablets > 0) {
+      return `${strips} Strips, ${tablets} Tablets`;
+    } else if (strips > 0) {
+      return `${strips} Strips`;
+    } else {
+      return `${tablets} Tablets`;
+    }
   };
 
-  // Chart data - Sales and Stock over months
+  const recentOrders = [
+    { id: 'PO-001', date: '2 Dec 2024', quantity: 50, status: 'Received' },
+    { id: 'PO-002', date: '15 Nov 2024', quantity: 30, status: 'Received' },
+    { id: 'PO-003', date: '1 Nov 2024', quantity: 40, status: 'Pending' },
+  ];
+
   const chartData = [
     { month: 'Jan', sales: 45, stock: 32 },
     { month: 'Feb', sales: 52, stock: 28 },
@@ -41,11 +57,33 @@ const ProductDetails = () => {
     { month: 'Jun', sales: 58, stock: 25 },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-70px)] bg-gray-50 text-gray-500">
+        <div className="w-10 h-10 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-4" />
+        <span className="font-semibold text-lg">Loading Product Details...</span>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-70px)] bg-gray-50 text-gray-500 p-4">
+        <h2 className="text-xl font-bold text-gray-900">Product Not Found</h2>
+        <button
+          onClick={() => navigate('/inventory')}
+          className="mt-4 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-medium cursor-pointer"
+        >
+          Back To Inventory
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-70px)] w-full bg-gray-50 overflow-hidden">
       <div className="h-full overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-4">
-          {/* Header */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate(-1)}
@@ -55,14 +93,12 @@ const ProductDetails = () => {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
-              <p className="text-sm text-gray-500">SKU: {product.sku}</p>
+              <p className="text-sm text-gray-500">Sku: {product.sku}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            {/* Left Column - Product Info */}
             <div className="col-span-2 space-y-4">
-              {/* Basic Info */}
               <div className="bg-white rounded-xl p-5 border border-gray-200">
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Product Information</h2>
                 <div className="grid grid-cols-3 gap-4">
@@ -71,8 +107,8 @@ const ProductDetails = () => {
                     <p className="font-medium text-gray-900">{product.category}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Supplier</p>
-                    <p className="font-medium text-gray-900">{product.supplier}</p>
+                    <p className="text-xs text-gray-500 mb-1">Packaging</p>
+                    <p className="font-medium text-gray-900">{product.packaging || '10 Tablets / Strip'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Price</p>
@@ -80,28 +116,25 @@ const ProductDetails = () => {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Current Stock</p>
-                    <p className="font-medium text-green-600">{product.stock}</p>
+                    <p className="font-medium text-green-600">{formatStock(product.quantity, product.tabletsPerStrip)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Min Stock</p>
-                    <p className="font-medium text-gray-600">{product.minStock}</p>
+                    <p className="text-xs text-gray-500 mb-1">Expiry Date</p>
+                    <p className="font-medium text-red-600">
+                      {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Last Ordered</p>
-                    <p className="font-medium text-gray-900">{product.lastOrdered}</p>
+                    <p className="text-xs text-gray-500 mb-1">Tablets Per Strip</p>
+                    <p className="font-medium text-gray-900">{product.tabletsPerStrip || 10}</p>
                   </div>
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs text-gray-500 mb-1">Description</p>
-                  <p className="text-sm text-gray-900">{product.description}</p>
                 </div>
               </div>
 
-              {/* Recent Orders */}
               <div className="bg-white rounded-xl p-5 border border-gray-200">
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Recent Purchase Orders</h2>
                 <div className="space-y-2">
-                  {product.recentOrders.map((order) => (
+                  {recentOrders.map((order) => (
                     <div key={order.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-all cursor-pointer border border-gray-100">
                       <div className="flex items-center gap-3">
                         <ShoppingCart size={16} className="text-gray-400" />
@@ -173,7 +206,9 @@ const ProductDetails = () => {
               <div className="bg-white rounded-xl p-5 border border-gray-200">
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Stock by Location</h2>
                 <div className="space-y-2">
-                  {product.locations.map((location) => (
+                  {[
+                    { name: 'Main Pharmacy Store', stock: formatStock(product.quantity, product.tabletsPerStrip) }
+                  ].map((location) => (
                     <div key={location.name} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <MapPin size={14} className="text-gray-400" />

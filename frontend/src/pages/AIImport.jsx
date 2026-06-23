@@ -7,12 +7,12 @@ import importHistoryService from "../services/importHistoryService";
 import purchaseOrderService from "../services/purchaseOrderService";
 
 const KNOWN_SUPPLIERS = [
-  "Tech Supplies Inc.",
-  "Apple Inc.",
-  "Samsung Electronics",
-  "Audio World",
-  "Screen Guard Co.",
-  "Case Pro Ltd."
+  "Cipla Pharmaceuticals",
+  "Sun Pharma Industries",
+  "Dr. Reddy's Laboratories",
+  "Lupin Ltd.",
+  "Abbott India",
+  "Torrent Pharmaceuticals"
 ];
 
 const AIImport = () => {
@@ -221,7 +221,8 @@ const AIImport = () => {
         sku: randomSku,
         category: "General",
         price: 0,
-        quantity: 1
+        quantity: 1,
+        expiryDate: new Date(Date.now() + 365 * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       }
     ];
     setItems(updated);
@@ -602,9 +603,12 @@ const AIImport = () => {
                   <thead>
                     <tr className="border-b border-[var(--border-soft)] bg-gray-50/70">
                       <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Product Name</th>
-                      <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">SKU</th>
+                      <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Sku</th>
                       {importType === "inventory" && (
-                        <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Category</th>
+                        <>
+                          <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Category</th>
+                          <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Expiry Date</th>
+                        </>
                       )}
                       <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm w-28">Price</th>
                       <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm w-28">Quantity</th>
@@ -635,7 +639,7 @@ const AIImport = () => {
                             />
                             {nameSuggestion && (
                               <div className="mt-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded inline-block animate-toast">
-                                Matches Existing Catalog Item: {nameSuggestion.name} (SKU: {nameSuggestion.sku})
+                                Matches Existing Catalog Item: {nameSuggestion.name} (Sku: {nameSuggestion.sku})
                               </div>
                             )}
                           </td>
@@ -649,15 +653,26 @@ const AIImport = () => {
                             />
                           </td>
                           {importType === "inventory" && (
-                            <td className="p-3">
-                              <input
-                                type="text"
-                                value={item.category || ""}
-                                onChange={(e) => handleFieldChange(index, "category", e.target.value)}
-                                onBlur={handleFieldBlur}
-                                className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                              />
-                            </td>
+                            <>
+                              <td className="p-3">
+                                <input
+                                  type="text"
+                                  value={item.category || ""}
+                                  onChange={(e) => handleFieldChange(index, "category", e.target.value)}
+                                  onBlur={handleFieldBlur}
+                                  className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="date"
+                                  value={item.expiryDate ? item.expiryDate.split('T')[0] : ''}
+                                  onChange={(e) => handleFieldChange(index, "expiryDate", e.target.value)}
+                                  onBlur={handleFieldBlur}
+                                  className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                                />
+                              </td>
+                            </>
                           )}
                           <td className="p-3">
                             <div className="relative">

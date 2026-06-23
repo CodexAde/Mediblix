@@ -16,11 +16,11 @@ const Dashboard = () => {
   ];
 
   const categoryData = [
-    { name: 'Electronics', value: 35, color: '#166534' },
-    { name: 'Clothing', value: 25, color: '#22c55e' },
-    { name: 'Home & Garden', value: 20, color: '#86efac' },
-    { name: 'Sports', value: 12, color: '#bbf7d0' },
-    { name: 'Others', value: 8, color: '#dcfce7' },
+    { name: 'Analgesics', value: 35, color: '#166534' },
+    { name: 'Antibiotics', value: 25, color: '#22c55e' },
+    { name: 'Diabetes', value: 20, color: '#86efac' },
+    { name: 'Vitamins', value: 12, color: '#bbf7d0' },
+    { name: 'Antacids', value: 8, color: '#dcfce7' },
   ];
 
   const weeklyOrders = [
@@ -73,10 +73,10 @@ const Dashboard = () => {
   ];
 
   const topProducts = [
-    { id: '1', name: 'iPhone 15 Pro', sold: 234, revenue: '₹2,80,800' },
-    { id: '3', name: 'MacBook Pro M3', sold: 156, revenue: '₹3,12,000' },
-    { id: '4', name: 'AirPods Pro', sold: 412, revenue: '₹1,02,588' },
-    { id: '5', name: 'iPad Air', sold: 189, revenue: '₹1,13,400' },
+    { id: '1', name: 'Calpol 650', sold: 234, revenue: '₹7,488' },
+    { id: '3', name: 'Glycomet 500', sold: 156, revenue: '₹13,260' },
+    { id: '4', name: 'Limcee 500', sold: 412, revenue: '₹17,304' },
+    { id: '5', name: 'Mox 500', sold: 189, revenue: '₹21,735' },
   ];
 
   return (

@@ -30,6 +30,18 @@ const productSchema = mongoose.Schema(
       enum: ["In Stock", "Low Stock", "Out of Stock"],
       default: "In Stock",
     },
+    expiryDate: {
+      type: Date,
+      required: false,
+    },
+    packaging: {
+      type: String,
+      default: "10 Tablets / Strip",
+    },
+    tabletsPerStrip: {
+      type: Number,
+      default: 10,
+    },
   },
   {
     timestamps: true,

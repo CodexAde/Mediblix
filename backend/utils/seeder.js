@@ -2,99 +2,179 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import Supplier from "../models/Supplier.js";
+import Customer from "../models/Customer.js";
+import Sale from "../models/Sale.js";
+import PurchaseOrder from "../models/PurchaseOrder.js";
+import ImportHistory from "../models/ImportHistory.js";
 import connectDB from "../config/db.js";
 
 dotenv.config();
 
 const users = [
   {
-    name: 'Admin User',
-    email: 'admin@spren.com',
-    password: 'SprenPassword123',
+    name: "Admin User",
+    email: "admin@spren.com",
+    password: "SprenPassword123",
     isAdmin: true,
+  },
+];
+
+const suppliers = [
+  {
+    name: "Cipla Pharmaceuticals",
+    email: "info@cipla.com",
+    phone: "9876543210",
+    address: "Peninsula Chambers, Ganpatrao Kadam Marg, Lower Parel, Mumbai, Maharashtra 400013",
+  },
+  {
+    name: "Sun Pharma Industries",
+    email: "contact@sunpharma.com",
+    phone: "8765432109",
+    address: "Sun House, CTS No. 201 B/1, Western Express Highway, Goregaon East, Mumbai, Maharashtra 400063",
+  },
+  {
+    name: "Dr. Reddy's Laboratories",
+    email: "support@drreddys.com",
+    phone: "7654321098",
+    address: "8-2-337, Road No. 3, Banjara Hills, Hyderabad, Telangana 500034",
+  },
+  {
+    name: "Lupin Ltd.",
+    email: "contact@lupin.com",
+    phone: "6543210987",
+    address: "Kalpataru Inspire, Off Western Express Highway, Santacruz East, Mumbai, Maharashtra 400055",
+  },
+];
+
+const customers = [
+  {
+    name: "Aarav Sharma",
+    mobile: "9988776655",
+    email: "aarav@gmail.com",
+  },
+  {
+    name: "Priya Patel",
+    mobile: "8877665544",
+    email: "priya@gmail.com",
+  },
+  {
+    name: "Amit Verma",
+    mobile: "7766554433",
+    email: "amit@gmail.com",
   },
 ];
 
 const products = [
   {
-    name: "iPhone 15 Pro Max",
-    sku: "APL-IP15PM-256",
-    category: "Electronics",
-    quantity: 145,
-    price: 1199,
+    name: "Calpol 650",
+    sku: "PHR-CAL650",
+    category: "Analgesics",
+    quantity: 240,
+    price: 32,
     status: "In Stock",
+    expiryDate: new Date("2027-12-31"),
+    packaging: "15 Tablets / Strip",
+    tabletsPerStrip: 15,
   },
   {
-    name: "Samsung Galaxy S24 Ultra",
-    sku: "SAM-GS24U-512",
-    category: "Electronics",
-    quantity: 89,
-    price: 1299,
+    name: "Mox 500",
+    sku: "PHR-MOX500",
+    category: "Antibiotics",
+    quantity: 120,
+    price: 115,
     status: "In Stock",
+    expiryDate: new Date("2027-08-31"),
+    packaging: "10 Tablets / Strip",
+    tabletsPerStrip: 10,
   },
   {
-    name: 'MacBook Pro 14" M3',
-    sku: "APL-MBP14-M3",
-    category: "Electronics",
-    quantity: 52,
-    price: 1999,
+    name: "Glycomet 500",
+    sku: "PHR-GLY500",
+    category: "Diabetes",
+    quantity: 350,
+    price: 85,
     status: "In Stock",
+    expiryDate: new Date("2028-03-31"),
+    packaging: "10 Tablets / Strip",
+    tabletsPerStrip: 10,
   },
   {
-    name: "AirPods Pro 2nd Gen",
-    sku: "APL-APP2-WHT",
-    category: "Electronics",
-    quantity: 234,
-    price: 249,
+    name: "Limcee 500",
+    sku: "PHR-LIMC500",
+    category: "Vitamins",
+    quantity: 500,
+    price: 42,
     status: "In Stock",
+    expiryDate: new Date("2029-01-31"),
+    packaging: "15 Tablets / Strip",
+    tabletsPerStrip: 15,
   },
   {
-    name: "Nike Air Max 90",
-    sku: "NK-AM90-BLK",
-    category: "Clothing",
-    quantity: 67,
-    price: 130,
+    name: "Lipivas 10",
+    sku: "PHR-LIP10",
+    category: "Cardiology",
+    quantity: 180,
+    price: 145,
     status: "In Stock",
+    expiryDate: new Date("2027-10-31"),
+    packaging: "10 Tablets / Strip",
+    tabletsPerStrip: 10,
   },
   {
-    name: "Dyson V15 Detect",
-    sku: "DYS-V15-DET",
-    category: "Home & Garden",
-    quantity: 8,
-    price: 749,
+    name: "Alerid 10",
+    sku: "PHR-ALR10",
+    category: "Antihistamines",
+    quantity: 400,
+    price: 26,
+    status: "In Stock",
+    expiryDate: new Date("2028-06-30"),
+    packaging: "10 Tablets / Strip",
+    tabletsPerStrip: 10,
+  },
+  {
+    name: "Combiflam",
+    sku: "PHR-CMB",
+    category: "Analgesics",
+    quantity: 600,
+    price: 48,
+    status: "In Stock",
+    expiryDate: new Date("2028-05-31"),
+    packaging: "15 Tablets / Strip",
+    tabletsPerStrip: 15,
+  },
+  {
+    name: "Pan 40",
+    sku: "PHR-PAN40",
+    category: "Antacids",
+    quantity: 300,
+    price: 122,
+    status: "In Stock",
+    expiryDate: new Date("2028-11-30"),
+    packaging: "10 Tablets / Strip",
+    tabletsPerStrip: 10,
+  },
+  {
+    name: "Antiflu 75",
+    sku: "PHR-AFLU75",
+    category: "Antivirals",
+    quantity: 9,
+    price: 480,
     status: "Low Stock",
+    expiryDate: new Date("2027-04-30"),
+    packaging: "10 Tablets / Strip",
+    tabletsPerStrip: 10,
   },
   {
-    name: "Sony WH-1000XM5",
-    sku: "SNY-WH1KXM5",
-    category: "Electronics",
+    name: "Digene Gel",
+    sku: "PHR-DIG200",
+    category: "Antacids",
     quantity: 0,
-    price: 399,
+    price: 155,
     status: "Out of Stock",
-  },
-  {
-    name: "iPad Air 5th Gen",
-    sku: "APL-IPA5-64",
-    category: "Electronics",
-    quantity: 112,
-    price: 599,
-    status: "In Stock",
-  },
-  {
-    name: "Adidas Ultraboost 23",
-    sku: "ADI-UB23-WHT",
-    category: "Clothing",
-    quantity: 23,
-    price: 190,
-    status: "Low Stock",
-  },
-  {
-    name: "Apple Watch Series 9",
-    sku: "APL-AWS9-45",
-    category: "Electronics",
-    quantity: 78,
-    price: 429,
-    status: "In Stock",
+    expiryDate: new Date("2028-02-28"),
+    packaging: "Bottle of 200ml",
+    tabletsPerStrip: 1,
   },
 ];
 
@@ -104,9 +184,15 @@ const seedData = async () => {
 
     await User.deleteMany();
     await Product.deleteMany();
+    await Supplier.deleteMany();
+    await Customer.deleteMany();
+    await Sale.deleteMany();
+    await PurchaseOrder.deleteMany();
+    await ImportHistory.deleteMany();
 
-    // Use create to trigger pre-save hooks (password hashing)
     await User.create(users);
+    await Supplier.create(suppliers);
+    await Customer.create(customers);
     await Product.insertMany(products);
 
     console.log("Data Imported!");
@@ -118,4 +204,3 @@ const seedData = async () => {
 };
 
 seedData();
-

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Plus } from 'lucide-react';
 import StockModal from '../components/StockModal';
 import StatsCards from '../components/StockManager/StatsCards';
@@ -6,18 +7,17 @@ import QuickActions from '../components/StockManager/QuickActions';
 import RecentMovements from '../components/StockManager/RecentMovements';
 import LowStockAlerts from '../components/StockManager/LowStockAlerts';
 import AddProductForm from '../components/StockManager/AddProductForm';
-import StockTransferForm from '../components/StockManager/StockTransferForm';
 import PurchaseOrderForm from '../components/StockManager/PurchaseOrderForm';
 import GenerateReportForm from '../components/StockManager/GenerateReportForm';
 import AddProductChoiceModal from '../components/Inventory/AddProductChoiceModal';
 
 const StockManager = () => {
+  const navigate = useNavigate();
   const [activeModal, setActiveModal] = useState(null);
   const [isChoiceOpen, setIsChoiceOpen] = useState(false);
 
   const modalTitles = {
     'add-product': 'Add New Product',
-    'stock-transfer': 'Stock Transfer',
     'purchase-order': 'Create Purchase Order',
     'generate-report': 'Generate Report',
   };
@@ -25,6 +25,8 @@ const StockManager = () => {
   const handleActionClick = (action) => {
     if (action === 'add-product') {
       setIsChoiceOpen(true);
+    } else if (action === 'view-inventory') {
+      navigate('/inventory');
     } else {
       setActiveModal(action);
     }
@@ -34,8 +36,6 @@ const StockManager = () => {
     switch (activeModal) {
       case 'add-product':
         return <AddProductForm onClose={() => setActiveModal(null)} />;
-      case 'stock-transfer':
-        return <StockTransferForm onClose={() => setActiveModal(null)} />;
       case 'purchase-order':
         return <PurchaseOrderForm onClose={() => setActiveModal(null)} />;
       case 'generate-report':

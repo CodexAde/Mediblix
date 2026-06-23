@@ -7,16 +7,18 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
     name: "",
     sku: "",
     category: "",
-    quantity: 0,
-    price: 0,
+    quantity: "",
+    price: "",
     status: "In Stock",
+    expiryDate: "",
+    packaging: "10 Tablets / Strip",
+    tabletsPerStrip: 10,
   });
   const [error, setError] = useState("");
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      // Small delay to ensure render happens before transition
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setIsVisible(true));
       });
@@ -24,9 +26,12 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
         name: "",
         sku: "",
         category: "",
-        quantity: 0,
-        price: 0,
+        quantity: "",
+        price: "",
         status: "In Stock",
+        expiryDate: "",
+        packaging: "10 Tablets / Strip",
+        tabletsPerStrip: 10,
       });
       setError("");
     } else {
@@ -38,7 +43,7 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "quantity" || name === "price" ? Number(value) : value,
+      [name]: (name === "quantity" || name === "price" || name === "tabletsPerStrip") && value !== "" ? Number(value) : value,
     }));
   };
 
@@ -55,14 +60,12 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
     }
   };
 
-  // Keep component mounted during exit animation
   const [shouldRender, setShouldRender] = useState(false);
   
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
     } else {
-      // Wait for transition to finish before unmounting
       const timer = setTimeout(() => setShouldRender(false), 700);
       return () => clearTimeout(timer);
     }
@@ -72,13 +75,11 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
 
   return (
     <div className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-700 ${isVisible && isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-700 ${isVisible && isOpen ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
 
-      {/* Drawer */}
       <div 
         className={`relative w-full max-w-md h-full bg-white shadow-2xl transform transition-transform duration-700 ease-custom p-6 flex flex-col ${isVisible && isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
@@ -115,13 +116,13 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                 onChange={handleChange}
                 required
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
-                placeholder="e.g. iPhone 15 Pro"
+                placeholder="e.g. Paracetamol 650mg"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                SKU
+                Sku
               </label>
               <input
                 type="text"
@@ -130,7 +131,7 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                 onChange={handleChange}
                 required
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
-                placeholder="e.g. APL-IP15-BLK"
+                placeholder="e.g. PHR-CAL650"
               />
             </div>
 
@@ -145,14 +146,14 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                 onChange={handleChange}
                 required
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
-                placeholder="e.g. Electronics"
+                placeholder="e.g. Analgesics"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price ($)
+                  Price (₹)
                 </label>
                 <input
                   type="number"
@@ -168,7 +169,7 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quantity
+                  Quantity (Strips)
                 </label>
                 <input
                   type="number"
@@ -180,6 +181,52 @@ const AddProductDrawer = ({ isOpen, onClose, onProductAdded }) => {
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Packaging
+                </label>
+                <input
+                  type="text"
+                  name="packaging"
+                  value={formData.packaging}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
+                  placeholder="e.g. 10 Tablets / Strip"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tablets Per Strip
+                </label>
+                <input
+                  type="number"
+                  name="tabletsPerStrip"
+                  value={formData.tabletsPerStrip}
+                  onChange={handleChange}
+                  required
+                  min="1"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Expiry Date
+              </label>
+              <input
+                type="date"
+                name="expiryDate"
+                value={formData.expiryDate}
+                onChange={handleChange}
+                required
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder-gray-400"
+              />
             </div>
 
             <div>

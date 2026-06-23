@@ -130,7 +130,7 @@ const ImportHistoryDrawer = ({ isOpen, onClose }) => {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-gray-900">
-                          ${record.totalValue.toFixed(2)}
+                          ₹{record.totalValue.toFixed(2)}
                         </span>
                         <button
                           onClick={(e) => handleDelete(record._id, e)}
@@ -158,7 +158,7 @@ const ImportHistoryDrawer = ({ isOpen, onClose }) => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-green-950">
-                    Total Value: ${selectedRecord.totalValue.toFixed(2)}
+                    Total Value: ₹{selectedRecord.totalValue.toFixed(2)}
                   </p>
                   <p className="text-xs text-green-700 mt-0.5">
                     {selectedRecord.totalProducts} Items • {selectedRecord.totalQuantity} Units
@@ -171,7 +171,7 @@ const ImportHistoryDrawer = ({ isOpen, onClose }) => {
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100 text-left">
                       <th className="p-3 text-xs font-semibold text-gray-700">Product Name</th>
-                      <th className="p-3 text-xs font-semibold text-gray-700">SKU</th>
+                      <th className="p-3 text-xs font-semibold text-gray-700">Sku</th>
                       <th className="p-3 text-xs font-semibold text-gray-700">Price</th>
                       <th className="p-3 text-xs font-semibold text-gray-700">Qty</th>
                       <th className="p-3 text-xs font-semibold text-gray-700">Status</th>
@@ -182,7 +182,7 @@ const ImportHistoryDrawer = ({ isOpen, onClose }) => {
                       <tr key={i} className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/30">
                         <td className="p-3 text-sm text-gray-900 font-medium">{item.name}</td>
                         <td className="p-3 text-sm text-gray-500 font-mono">{item.sku}</td>
-                        <td className="p-3 text-sm text-gray-900">${item.price.toFixed(2)}</td>
+                        <td className="p-3 text-sm text-gray-900">₹{item.price.toFixed(2)}</td>
                         <td className="p-3 text-sm text-gray-900">{item.quantity}</td>
                         <td className="p-3 text-sm">
                           <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${

@@ -8,7 +8,7 @@ const parseInvoice = async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ message: "Gemini API Key is not configured" });
+      return res.status(500).json({ message: "Gemini Api Key is not configured" });
     }
 
     const response = await fetch(
@@ -29,7 +29,7 @@ const parseInvoice = async (req, res) => {
                   },
                 },
                 {
-                  text: "You are an expert invoice and purchase sheet parser. Extract all product items listed in this document. Output a JSON array of items, where each item contains exactly these fields: name (string), sku (string), category (string), quantity (number), price (number). Generate clean SKUs if they are missing or invalid (prefix with product type, e.g. ELEC-101). Categorize them logically (e.g., Electronics, Clothing, Home & Garden, Sports, Accessories). Only return a raw JSON array inside the text block. If no products can be found, return an empty JSON array: []. Do not include markdown code block characters or any explaining text.",
+                  text: "You are an expert pharmaceutical invoice and purchase sheet parser. Extract all medicine product items listed in this document. Output a JSON array of items, where each item contains exactly these fields: name (string), sku (string), category (string), quantity (number), price (number), expiryDate (string, YYYY-MM-DD or null), packaging (string), tabletsPerStrip (number). Generate clean SKUs if they are missing or invalid (prefix with PHR-, e.g. PHR-101). Categorize them logically (e.g., Analgesics, Antibiotics, Diabetes, Cardiology, Vitamins, Antacids, Antivirals). Only return a raw JSON array inside the text block. If no products can be found, return an empty JSON array: []. Do not include markdown code block characters or any explaining text.",
                 },
               ],
             },
@@ -45,7 +45,7 @@ const parseInvoice = async (req, res) => {
 
     let textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!textResponse) {
-      return res.status(500).json({ message: "No data could be extracted by AI" });
+      return res.status(500).json({ message: "No data could be extracted by Ai" });
     }
 
     const startIdx = textResponse.indexOf('[');
@@ -61,7 +61,7 @@ const parseInvoice = async (req, res) => {
       const items = JSON.parse(textResponse);
       res.json(items);
     } catch (parseError) {
-      res.status(422).json({ message: "AI response was not in a valid format. Please ensure the document contains a clear product list." });
+      res.status(422).json({ message: "Ai response was not in a valid format. Please ensure the document contains a clear product list." });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -78,7 +78,7 @@ const parseBill = async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ message: "Gemini API Key is not configured" });
+      return res.status(500).json({ message: "Gemini Api Key is not configured" });
     }
 
     const response = await fetch(
@@ -99,7 +99,7 @@ const parseBill = async (req, res) => {
                   },
                 },
                 {
-                  text: "You are an expert sales bill and customer invoice parser. Extract the customer information and the product items listed in this document. Output a JSON object containing exactly these keys: customerName (string or null), customerMobile (string containing 10-digit mobile number or null), items (array of objects where each object has: name (string), sku (string), quantity (number), price (number)). Generate clean SKUs if they are missing or invalid. Only return a raw JSON object. Do not include markdown code block characters or any explaining text.",
+                  text: "You are an expert sales bill and customer invoice parser. Extract the customer information and the pharmaceutical product items listed in this document. Output a JSON object containing exactly these keys: customerName (string or null), customerMobile (string containing 10-digit mobile number or null), items (array of objects where each object has: name (string), sku (string), quantity (number), price (number), unit (string, either 'Strip' or 'Tablet', default 'Strip')). Generate clean SKUs if they are missing or invalid. Only return a raw JSON object. Do not include markdown code block characters or any explaining text.",
                 },
               ],
             },
@@ -115,7 +115,7 @@ const parseBill = async (req, res) => {
 
     let textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!textResponse) {
-      return res.status(500).json({ message: "No data could be extracted by AI" });
+      return res.status(500).json({ message: "No data could be extracted by Ai" });
     }
 
     const startIdx = textResponse.indexOf('{');
@@ -131,7 +131,7 @@ const parseBill = async (req, res) => {
       const parsed = JSON.parse(textResponse);
       res.json(parsed);
     } catch (parseError) {
-      res.status(422).json({ message: "AI response was not in a valid format. Please ensure the document is a readable bill." });
+      res.status(422).json({ message: "Ai response was not in a valid format. Please ensure the document is a readable bill." });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

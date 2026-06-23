@@ -22,6 +22,11 @@ const saleSchema = mongoose.Schema(
           type: Number,
           required: true,
         },
+        unit: {
+          type: String,
+          enum: ["Strip", "Tablet"],
+          default: "Strip",
+        },
       },
     ],
     totalAmount: {

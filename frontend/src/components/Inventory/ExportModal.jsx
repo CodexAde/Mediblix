@@ -29,7 +29,7 @@ const ExportModal = ({ isOpen, onClose, data }) => {
       doc.setFontSize(10);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 40);
   
-      const tableColumn = ["SKU", "Name", "Category", "Qty", "Price", "Status"];
+      const tableColumn = ["Sku", "Name", "Category", "Qty", "Price", "Status"];
       const tableRows = [];
   
       data.forEach((item) => {

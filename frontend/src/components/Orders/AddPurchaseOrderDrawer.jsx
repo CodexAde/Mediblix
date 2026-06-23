@@ -101,7 +101,7 @@ const AddPurchaseOrderDrawer = ({ isOpen, onClose, onOrderCreated }) => {
     e.preventDefault();
     const invalidItem = items.some(it => !it.productName.trim() || !it.sku.trim());
     if (invalidItem) {
-      setError("Please fill out all product names and SKUs");
+      setError("Please fill out all product names and Skus");
       return;
     }
 
@@ -237,7 +237,7 @@ const AddPurchaseOrderDrawer = ({ isOpen, onClose, onOrderCreated }) => {
                 <div className="grid grid-cols-12 gap-2 mb-1 px-1">
                   <div className="col-span-4 text-[10px] font-bold text-gray-500 uppercase">Product Name</div>
                   <div className="col-span-3 text-[10px] font-bold text-gray-500 uppercase">Sku</div>
-                  <div className="col-span-2 text-[10px] font-bold text-gray-500 uppercase">Price ($)</div>
+                  <div className="col-span-2 text-[10px] font-bold text-gray-500 uppercase">Price (₹)</div>
                   <div className="col-span-2 text-[10px] font-bold text-gray-500 uppercase">Qty</div>
                   <div className="col-span-1"></div>
                 </div>

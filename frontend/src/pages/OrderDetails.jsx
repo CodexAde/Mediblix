@@ -11,66 +11,65 @@ const OrderDetails = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState('');
 
   const mockOrders = {
     '1': {
       id: '1',
-      supplier: 'Tech Supplies Inc.',
-      contact: 'contact@techsupplies.com',
-      phone: '+1 (555) 123-4567',
+      supplier: 'Cipla Pharmaceuticals',
+      contact: 'info@cipla.com',
+      phone: '+91 98765 43210',
       status: 'Delivered',
       orderDate: '2024-12-01',
       deliveryDate: '2024-12-04',
-      total: 45000,
+      total: 4500,
       items: [
-        { name: 'USB-C Cables', quantity: 200, price: 50, total: 10000 },
-        { name: 'Power Adapters', quantity: 100, price: 150, total: 15000 },
-        { name: 'Phone Cases', quantity: 300, price: 50, total: 15000 },
-        { name: 'Screen Protectors', quantity: 100, price: 50, total: 5000 },
+        { name: 'Calpol 650', quantity: 100, price: 32, total: 3200 },
+        { name: 'Combiflam', quantity: 27, price: 48, total: 1300 },
       ],
       shipping: {
-        address: '123 Supplier Street, Tech City, NY 10001',
-        carrier: 'FedEx Express',
-        tracking: 'FX1234567890',
+        address: 'Peninsula Chambers, Ganpatrao Kadam Marg, Lower Parel, Mumbai, Maharashtra 400013',
+        carrier: 'BlueDart Express',
+        tracking: 'BD1234567890',
       },
     },
     '2': {
       id: '2',
-      supplier: 'Apple Inc.',
-      contact: 'contact@apple.com',
-      phone: '+1 (555) 234-5678',
+      supplier: 'Sun Pharma Industries',
+      contact: 'contact@sunpharma.com',
+      phone: '+91 87654 32109',
       status: 'In Transit',
       orderDate: '2024-12-03',
       deliveryDate: '2024-12-08',
-      total: 185000,
+      total: 18500,
       items: [
-        { name: 'iPhone 15 Pro', quantity: 100, price: 999, total: 99900 },
-        { name: 'AirPods Pro', quantity: 200, price: 249, total: 49800 },
-        { name: 'MacBook Pro', quantity: 20, price: 1765, total: 35300 },
+        { name: 'Mox 500', quantity: 100, price: 115, total: 11500 },
+        { name: 'Limcee 500', quantity: 166, price: 42, total: 7000 },
       ],
       shipping: {
-        address: 'One Apple Park Way, Cupertino, CA 95014',
-        carrier: 'UPS Ground',
-        tracking: 'UP987654321',
+        address: 'Sun House, Western Express Highway, Goregaon East, Mumbai, Maharashtra 400063',
+        carrier: 'Delhivery',
+        tracking: 'DV987654321',
       },
     },
     '3': {
       id: '3',
-      supplier: 'Samsung Electronics',
-      contact: 'contact@samsung.com',
-      phone: '+1 (555) 345-6789',
+      supplier: 'Dr. Reddy\'s Laboratories',
+      contact: 'support@drreddys.com',
+      phone: '+91 76543 21098',
       status: 'Processing',
       orderDate: '2024-12-04',
       deliveryDate: '2024-12-11',
-      total: 65000,
+      total: 6500,
       items: [
-        { name: 'Galaxy S24', quantity: 50, price: 799, total: 39950 },
-        { name: 'Galaxy Watch', quantity: 100, price: 250, total: 25050 },
+        { name: 'Glycomet 500', quantity: 50, price: 85, total: 4250 },
+        { name: 'Pan 40', quantity: 18, price: 122, total: 2250 },
       ],
       shipping: {
-        address: 'Samsung Highway, Electronics District, KR 12345',
-        carrier: 'DHL Express',
-        tracking: 'DH456789123',
+        address: '8-2-337, Road No. 3, Banjara Hills, Hyderabad, Telangana 500034',
+        carrier: 'BlueDart Express',
+        tracking: 'BD456789123',
       },
     }
   };
@@ -91,7 +90,7 @@ const OrderDetails = () => {
           id: data._id,
           supplier: data.supplierName,
           contact: data.supplierEmail || `info@${data.supplierName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-          phone: data.supplierPhone || '+1 (555) 000-1122',
+          phone: data.supplierPhone || '+91 98765 43210',
           status: data.status,
           orderDate: new Date(data.createdAt).toLocaleDateString(),
           deliveryDate: new Date(new Date(data.createdAt).getTime() + 3*24*60*60*1000).toLocaleDateString(),
@@ -103,9 +102,9 @@ const OrderDetails = () => {
             total: item.quantity * item.price
           })),
           shipping: {
-            address: data.deliveryAddress || '123 Supplier Street, Tech City, NY 10001',
-            carrier: 'FedEx Express',
-            tracking: 'FX' + data._id.substring(data._id.length - 10).toUpperCase(),
+            address: data.deliveryAddress || 'Peninsula Chambers, Ganpatrao Kadam Marg, Lower Parel, Mumbai, Maharashtra 400013',
+            carrier: 'BlueDart Express',
+            tracking: 'BD' + data._id.substring(data._id.length - 10).toUpperCase(),
           }
         };
         setOrder(mappedOrder);
@@ -133,6 +132,26 @@ const OrderDetails = () => {
     } finally {
       setUpdatingStatus(false);
     }
+  };
+
+  const onSelectStatus = (newStatus) => {
+    if (newStatus === 'Delivered') {
+      setPendingStatusChange(newStatus);
+      setShowConfirmModal(true);
+    } else {
+      handleStatusChange(newStatus);
+    }
+  };
+
+  const confirmStatusChange = () => {
+    handleStatusChange(pendingStatusChange);
+    setShowConfirmModal(false);
+    setPendingStatusChange('');
+  };
+
+  const cancelStatusChange = () => {
+    setShowConfirmModal(false);
+    setPendingStatusChange('');
   };
 
   const performanceData = [
@@ -193,19 +212,25 @@ const OrderDetails = () => {
               <h1 className="text-2xl font-bold text-gray-900">Order #{order.id}</h1>
               <p className="text-sm text-gray-500">Placed on {order.orderDate}</p>
             </div>
-            <div className="relative">
-              <select
-                value={order.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                disabled={updatingStatus}
-                className={`appearance-none pr-8 pl-4 py-1.5 rounded-full text-sm font-semibold cursor-pointer border-0 outline-none ${getStatusColor(order.status)}`}
-              >
-                <option value="Pending">Pending</option>
-                <option value="In Transit">In Transit</option>
-                <option value="Delivered">Delivered</option>
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600" />
-            </div>
+            {order.status === 'Delivered' ? (
+              <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
+                Delivered
+              </span>
+            ) : (
+              <div className="relative">
+                <select
+                  value={order.status}
+                  onChange={(e) => onSelectStatus(e.target.value)}
+                  disabled={updatingStatus}
+                  className={`appearance-none pr-8 pl-4 py-1.5 rounded-full text-sm font-semibold cursor-pointer border-0 outline-none ${getStatusColor(order.status)}`}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Transit">In Transit</option>
+                  <option value="Delivered">Delivered</option>
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600" />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -355,6 +380,37 @@ const OrderDetails = () => {
           </div>
         </div>
       </div>
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
+            onClick={cancelStatusChange}
+          />
+          <div className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-sm shadow-2xl transform transition-all animate-toast">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Delivery</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure the purchase order has been delivered? This will automatically add the items and their quantities into the inventory stock.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={confirmStatusChange}
+                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-all cursor-pointer"
+              >
+                Yes, Delivered
+              </button>
+              <button
+                type="button"
+                onClick={cancelStatusChange}
+                className="flex-1 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

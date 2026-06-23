@@ -55,7 +55,7 @@ const searchProducts = async (req, res) => {
 // @route   POST /api/products
 // @access  Public
 const createProduct = async (req, res) => {
-  const { name, sku, category, price, quantity, status } = req.body;
+  const { name, sku, category, price, quantity, status, expiryDate, packaging, tabletsPerStrip } = req.body;
 
   try {
     const productExists = await Product.findOne({ sku });
@@ -72,6 +72,9 @@ const createProduct = async (req, res) => {
       price,
       quantity,
       status,
+      expiryDate,
+      packaging,
+      tabletsPerStrip,
     });
 
     if (product) {
@@ -89,7 +92,7 @@ const createProduct = async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Public
 const updateProduct = async (req, res) => {
-  const { name, sku, category, price, quantity, status } = req.body;
+  const { name, sku, category, price, quantity, status, expiryDate, packaging, tabletsPerStrip } = req.body;
 
   try {
     const product = await Product.findById(req.params.id);
@@ -101,6 +104,9 @@ const updateProduct = async (req, res) => {
       product.price = price || product.price;
       product.quantity = quantity !== undefined ? quantity : product.quantity;
       product.status = status || product.status;
+      product.expiryDate = expiryDate || product.expiryDate;
+      product.packaging = packaging || product.packaging;
+      product.tabletsPerStrip = tabletsPerStrip !== undefined ? tabletsPerStrip : product.tabletsPerStrip;
 
       const updatedProduct = await product.save();
       res.json(updatedProduct);

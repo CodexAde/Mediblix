@@ -8,14 +8,14 @@ const RecentMovements = () => {
   const navigate = useNavigate();
 
   const allMovements = [
-    { id: 1, product: 'iPhone 15 Pro', productId: '1', type: 'IN', quantity: 50, time: '2 hours ago', location: 'Warehouse A', user: 'John Doe', reference: 'PO-2024-001' },
-    { id: 2, product: 'Samsung Galaxy S24', productId: '2', type: 'OUT', quantity: 25, time: '4 hours ago', location: 'Store 1', user: 'Jane Smith', reference: 'SO-2024-123' },
-    { id: 3, product: 'MacBook Pro M3', productId: '3', type: 'IN', quantity: 30, time: '6 hours ago', location: 'Warehouse B', user: 'Mike Johnson', reference: 'PO-2024-002' },
-    { id: 4, product: 'AirPods Pro', productId: '4', type: 'OUT', quantity: 100, time: '8 hours ago', location: 'Store 2', user: 'Sarah Lee', reference: 'SO-2024-124' },
-    { id: 5, product: 'iPad Air', productId: '5', type: 'IN', quantity: 45, time: '1 day ago', location: 'Warehouse A', user: 'Tom Brown', reference: 'PO-2024-003' },
-    { id: 6, product: 'Apple Watch S9', productId: '6', type: 'OUT', quantity: 15, time: '1 day ago', location: 'Store 1', user: 'Emily Davis', reference: 'SO-2024-125' },
-    { id: 7, product: 'Sony WH-1000XM5', productId: '7', type: 'IN', quantity: 20, time: '2 days ago', location: 'Warehouse B', user: 'John Doe', reference: 'PO-2024-004' },
-    { id: 8, product: 'USB-C Cable', productId: '8', type: 'OUT', quantity: 200, time: '2 days ago', location: 'Store 2', user: 'Jane Smith', reference: 'SO-2024-126' },
+    { id: 1, product: 'Calpol 650', productId: '1', type: 'IN', quantity: 500, time: '2 hours ago', location: 'Warehouse A', user: 'John Doe', reference: 'PO-2024-001' },
+    { id: 2, product: 'Mox 500', productId: '2', type: 'OUT', quantity: 20, time: '4 hours ago', location: 'Store 1', user: 'Jane Smith', reference: 'SO-2024-123' },
+    { id: 3, product: 'Glycomet 500', productId: '3', type: 'IN', quantity: 300, time: '6 hours ago', location: 'Warehouse B', user: 'Mike Johnson', reference: 'PO-2024-002' },
+    { id: 4, product: 'Limcee 500', productId: '4', type: 'OUT', quantity: 45, time: '8 hours ago', location: 'Store 2', user: 'Sarah Lee', reference: 'SO-2024-124' },
+    { id: 5, product: 'Lipivas 10', productId: '5', type: 'IN', quantity: 150, time: '1 day ago', location: 'Warehouse A', user: 'Tom Brown', reference: 'PO-2024-003' },
+    { id: 6, product: 'Alerid 10', productId: '6', type: 'OUT', quantity: 30, time: '1 day ago', location: 'Store 1', user: 'Emily Davis', reference: 'SO-2024-125' },
+    { id: 7, product: 'Combiflam', productId: '7', type: 'IN', quantity: 400, time: '2 days ago', location: 'Warehouse B', user: 'John Doe', reference: 'PO-2024-004' },
+    { id: 8, product: 'Pan 40', productId: '8', type: 'OUT', quantity: 15, time: '2 days ago', location: 'Store 2', user: 'Jane Smith', reference: 'SO-2024-126' },
   ];
 
   const filteredMovements = allMovements.filter(movement =>

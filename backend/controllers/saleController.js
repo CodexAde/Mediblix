@@ -12,7 +12,6 @@ const createSale = async (req, res) => {
   const { customerId, items, paymentMethod } = req.body;
 
   try {
-    // 1. Calculate total and verify stock
     let totalAmount = 0;
     const saleItems = [];
 
@@ -24,26 +23,44 @@ const createSale = async (req, res) => {
           .json({ message: `Product not found: ${item.product}` });
       }
 
-      if (product.quantity < item.quantity) {
+      const orderQty = item.unit === "Tablet" 
+        ? item.quantity / (product.tabletsPerStrip || 10)
+        : item.quantity;
+
+      if (product.quantity < orderQty) {
         return res
           .status(400)
           .json({ message: `Insufficient stock for ${product.name}` });
       }
 
-      // Update product stock
-      product.quantity -= item.quantity;
+      product.quantity -= orderQty;
       await product.save();
+
+      const itemPrice = item.price || product.price;
 
       saleItems.push({
         product: product._id,
         quantity: item.quantity,
-        price: product.price,
+        price: itemPrice,
+        unit: item.unit || "Strip",
       });
 
-      totalAmount += product.price * item.quantity;
+      totalAmount += itemPrice * item.quantity;
     }
 
-    const invoiceNumber = req.body.invoiceNumber || `INV-${Date.now()}`;
+    let invoiceNumber = req.body.invoiceNumber;
+    if (!invoiceNumber) {
+      const lastSale = await Sale.findOne().sort({ createdAt: -1 });
+      let nextNum = 1;
+      if (lastSale && lastSale.invoiceNumber) {
+        const match = lastSale.invoiceNumber.match(/Inv-(\d+)/i);
+        if (match) {
+          nextNum = parseInt(match[1], 10) + 1;
+        }
+      }
+      invoiceNumber = `Inv-${String(nextNum).padStart(4, '0')}`;
+    }
+
     const sale = await Sale.create({
       customer: customerId,
       items: saleItems,
@@ -52,7 +69,6 @@ const createSale = async (req, res) => {
       invoiceNumber,
     });
 
-    // 3. Update Customer Purchase History
     await Customer.findByIdAndUpdate(customerId, {
       $push: { purchaseHistory: sale._id },
     });
@@ -78,7 +94,7 @@ const getSales = async (req, res) => {
     }
     const sales = await Sale.find(query)
       .populate("customer", "name email mobile")
-      .populate("items.product", "name price")
+      .populate("items.product", "name price packaging tabletsPerStrip")
       .sort({ createdAt: -1 });
     res.json(sales);
   } catch (error) {
@@ -109,7 +125,6 @@ const generateInvoice = async (req, res) => {
 
     doc.pipe(res);
 
-    // Header
     doc
       .fillColor("#444444")
       .fontSize(20)
@@ -119,7 +134,6 @@ const generateInvoice = async (req, res) => {
       .text("New York, NY, 10025", 200, 80, { align: "right" })
       .moveDown();
 
-    // Invoice Info
     doc.fillColor("#000000").fontSize(20).text("Invoice", 50, 160);
 
     doc
@@ -130,16 +144,14 @@ const generateInvoice = async (req, res) => {
         50,
         215
       )
-      .text(`Balance Due: $${sale.totalAmount}`, 50, 130, { align: "right" });
+      .text(`Balance Due: Rs. ${sale.totalAmount}`, 50, 130, { align: "right" });
 
-    // Customer Info
     doc
       .text(`Bill To: ${sale.customer.name}`, 300, 200)
       .text(`Mobile: ${sale.customer.mobile}`, 300, 215)
       .text(`Email: ${sale.customer.email || "N/A"}`, 300, 230)
       .moveDown();
 
-    // Table Header
     let i,
       invoiceTableTop = 330;
     doc.font("Helvetica-Bold");
@@ -156,30 +168,29 @@ const generateInvoice = async (req, res) => {
       .lineTo(550, invoiceTableTop + 20)
       .stroke();
 
-    // Table Rows
     doc.font("Helvetica");
     let position = invoiceTableTop + 30;
 
     sale.items.forEach((item) => {
       const positionY = position;
+      const unitLabel = item.unit === "Tablet" ? " Tablet" : " Strip";
       doc
         .fontSize(10)
-        .text(item.product.name, 50, positionY)
-        .text(`$${item.price}`, 280, positionY, { width: 90, align: "right" })
-        .text(item.quantity, 370, positionY, { width: 90, align: "right" })
-        .text(`$${item.price * item.quantity}`, 0, positionY, {
+        .text(`${item.product.name} (${item.unit || "Strip"})`, 50, positionY)
+        .text(`Rs. ${item.price}`, 280, positionY, { width: 90, align: "right" })
+        .text(`${item.quantity}${unitLabel}`, 370, positionY, { width: 90, align: "right" })
+        .text(`Rs. ${item.price * item.quantity}`, 0, positionY, {
           align: "right",
         });
 
       position += 20;
     });
 
-    // Total
     const subtotalPosition = position + 20;
     doc.font("Helvetica-Bold");
     doc
       .text("Subtotal", 370, subtotalPosition, { width: 90, align: "right" })
-      .text(`$${sale.totalAmount}`, 0, subtotalPosition, { align: "right" });
+      .text(`Rs. ${sale.totalAmount}`, 0, subtotalPosition, { align: "right" });
 
     doc.end();
   } catch (error) {

@@ -19,7 +19,7 @@ const Inventory = () => {
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  const categories = ['All', 'Electronics', 'Clothing', 'Home & Garden', 'Sports', 'Accessories'];
+  const categories = ['All', 'Analgesics', 'Antibiotics', 'Diabetes', 'Vitamins', 'Cardiology', 'Antihistamines', 'Antacids', 'Antivirals'];
 
   useEffect(() => {
     fetchProducts();
@@ -44,6 +44,23 @@ const Inventory = () => {
       } catch (error) {
         console.error("Failed to delete product", error);
       }
+    }
+  };
+
+  const formatStock = (qty, tabletsPerStrip) => {
+    if (qty <= 0) return '0 Strips';
+    if (!tabletsPerStrip || tabletsPerStrip <= 1) {
+      return `${qty} Strips`;
+    }
+    const totalTablets = Math.round(qty * tabletsPerStrip);
+    const strips = Math.floor(totalTablets / tabletsPerStrip);
+    const tablets = totalTablets % tabletsPerStrip;
+    if (strips > 0 && tablets > 0) {
+      return `${strips} Strips, ${tablets} Tablets`;
+    } else if (strips > 0) {
+      return `${strips} Strips`;
+    } else {
+      return `${tablets} Tablets`;
     }
   };
 
@@ -85,7 +102,7 @@ const Inventory = () => {
               onClick={() => navigate('/ai-import?type=inventory')}
             >
               <Sparkles size={18} className="text-purple-600 animate-pulse" />
-              AI Import
+              Ai Import
             </button>
             <button 
               className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer"
@@ -111,7 +128,7 @@ const Inventory = () => {
             <Search size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isAIMode ? 'text-purple-600' : 'text-[var(--text-secondary)]'}`} />
             <input
               type="text"
-              placeholder={isAIMode ? "Ask AI about your inventory..." : "Search by name or SKU..."}
+              placeholder={isAIMode ? "Ask Ai about your inventory..." : "Search by name or Sku..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full pl-10 pr-10 py-2.5 rounded-xl focus:outline-none transition-all duration-300 ${
@@ -128,7 +145,7 @@ const Inventory = () => {
             <div className="flex items-center gap-2">
               {categories.map((category) => (
                 <button
-                  key={category}
+                   key={category}
                   onClick={() => setSelectedCategory(category)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                     selectedCategory === category
@@ -156,8 +173,10 @@ const Inventory = () => {
                       Product <ArrowUpDown size={14} />
                     </div>
                   </th>
-                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">SKU</th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Sku</th>
                   <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Category</th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Packaging</th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Expiry Date</th>
                   <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
                     <div className="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)]">
                       Quantity <ArrowUpDown size={14} />
@@ -197,7 +216,11 @@ const Inventory = () => {
                         {product.category}
                       </span>
                     </td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)]">{product.quantity}</td>
+                    <td className="p-4 text-[var(--text-secondary)] text-sm">{product.packaging || '10 Tablets / Strip'}</td>
+                    <td className="p-4 text-[var(--text-secondary)] text-sm font-sans">
+                      {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                    </td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)]">{formatStock(product.quantity, product.tabletsPerStrip)}</td>
                     <td className="p-4 font-semibold text-[var(--text-primary)]">₹{product.price.toLocaleString('en-IN')}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(product.status)}`}>

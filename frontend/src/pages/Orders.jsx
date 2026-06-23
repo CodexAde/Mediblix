@@ -61,9 +61,9 @@ const Orders = () => {
   };
 
   const mockOrders = [
-    { _id: '1', supplierName: 'Tech Supplies Inc.', items: [{ productName: 'USB-C Cables' }, { productName: 'Power Adapters' }, { productName: 'Phone Cases' }], totalAmount: 45000, status: 'Delivered', createdAt: '2024-12-01T12:00:00.000Z' },
-    { _id: '2', supplierName: 'Apple Inc.', items: [{ productName: 'iPhone 15 Pro' }, { productName: 'AirPods Pro' }, { productName: 'MacBook Pro' }], totalAmount: 185000, status: 'In Transit', createdAt: '2024-12-03T12:00:00.000Z' },
-    { _id: '3', supplierName: 'Samsung Electronics', items: [{ productName: 'Galaxy S24' }, { productName: 'Galaxy Watch' }], totalAmount: 65000, status: 'Processing', createdAt: '2024-12-04T12:00:00.000Z' }
+    { _id: '1', supplierName: 'Cipla Pharmaceuticals', items: [{ productName: 'Calpol 650' }, { productName: 'Combiflam' }], totalAmount: 4500, status: 'Delivered', createdAt: '2024-12-01T12:00:00.000Z' },
+    { _id: '2', supplierName: 'Sun Pharma Industries', items: [{ productName: 'Mox 500' }, { productName: 'Limcee 500' }], totalAmount: 18500, status: 'In Transit', createdAt: '2024-12-03T12:00:00.000Z' },
+    { _id: '3', supplierName: 'Dr. Reddy\'s Laboratories', items: [{ productName: 'Glycomet 500' }, { productName: 'Pan 40' }], totalAmount: 6500, status: 'Processing', createdAt: '2024-12-04T12:00:00.000Z' }
   ];
 
   const displayedOrders = orders.length > 0 ? orders : mockOrders;

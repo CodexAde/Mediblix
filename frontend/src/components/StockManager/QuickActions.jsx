@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Plus, ArrowUpDown, ShoppingCart, BarChart3, Sparkles } from 'lucide-react';
+import { Plus, ClipboardList, ShoppingCart, Sparkles } from 'lucide-react';
 
 const QuickActions = ({ onActionClick }) => {
   const [fizzyId, setFizzyId] = useState(null);
 
   const quickActions = [
     { id: 'add-product', icon: Plus, label: 'Add New Product', description: 'Register new inventory item' },
-    { id: 'stock-transfer', icon: ArrowUpDown, label: 'Stock Transfer', description: 'Move stock between locations' },
+    { id: 'view-inventory', icon: ClipboardList, label: 'View Inventory', description: 'Browse all products & stock levels' },
     { id: 'purchase-order', icon: ShoppingCart, label: 'Create Purchase Order', description: 'Order from suppliers' },
-    { id: 'generate-report', icon: Sparkles, label: 'AI Analytics Report', description: 'Generate smart insights & forecasts' },
+    { id: 'generate-report', icon: Sparkles, label: 'Ai Analytics Report', description: 'Generate smart insights & forecasts' },
   ];
 
   const handleActionClick = (id) => {
