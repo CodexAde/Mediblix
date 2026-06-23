@@ -8,7 +8,6 @@ import LowStockAlerts from '../components/StockManager/LowStockAlerts';
 import AddProductForm from '../components/StockManager/AddProductForm';
 import PurchaseOrderForm from '../components/StockManager/PurchaseOrderForm';
 import GenerateReportForm from '../components/StockManager/GenerateReportForm';
-import StockTransferForm from '../components/StockManager/StockTransferForm';
 import AddProductChoiceModal from '../components/Inventory/AddProductChoiceModal';
 
 const StockManager = () => {
@@ -19,13 +18,14 @@ const StockManager = () => {
   const modalTitles = {
     'add-product': 'Add New Product',
     'purchase-order': 'Create Purchase Order',
-    'stock-transfer': 'Stock Transfer',
     'generate-report': 'Ai Analytics Report',
   };
 
   const handleActionClick = (action) => {
     if (action === 'add-product') {
       setIsChoiceOpen(true);
+    } else if (action === 'bill-history') {
+      navigate('/billing?tab=history');
     } else {
       setActiveModal(action);
     }
@@ -37,8 +37,6 @@ const StockManager = () => {
         return <AddProductForm onClose={() => setActiveModal(null)} />;
       case 'purchase-order':
         return <PurchaseOrderForm onClose={() => setActiveModal(null)} />;
-      case 'stock-transfer':
-        return <StockTransferForm onClose={() => setActiveModal(null)} />;
       case 'generate-report':
         return <GenerateReportForm onClose={() => setActiveModal(null)} />;
       default:

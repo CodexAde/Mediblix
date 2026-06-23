@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone, Eye, Save, FileText, AlertTriangle, CheckCircle2, Sparkles, Upload, Minimize2, Maximize2, Camera } from 'lucide-react';
 import customerService from '../services/customerService';
 import saleService from '../services/saleService';
@@ -6,6 +7,7 @@ import productService from '../services/productService';
 import aiService from '../services/aiService';
 
 const Billing = () => {
+  const [searchParams] = useSearchParams();
   const [customerPhone, setCustomerPhone] = useState('');
   const [customer, setCustomer] = useState(null);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -34,7 +36,7 @@ const Billing = () => {
   const [showDraftsModal, setShowDraftsModal] = useState(false);
   const [activeInvoiceNumber, setActiveInvoiceNumber] = useState('');
   const [toast, setToast] = useState(null);
-  const [activeTab, setActiveTab] = useState('new-bill');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'new-bill');
 
   useEffect(() => {
     if (activeTab === 'history') {
