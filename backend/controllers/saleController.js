@@ -43,8 +43,7 @@ const createSale = async (req, res) => {
       totalAmount += product.price * item.quantity;
     }
 
-    // 2. Create Sale Record
-    const invoiceNumber = `INV-${Date.now()}`;
+    const invoiceNumber = req.body.invoiceNumber || `INV-${Date.now()}`;
     const sale = await Sale.create({
       customer: customerId,
       items: saleItems,

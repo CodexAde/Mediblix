@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone, Eye } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone, Eye, Save, FileText, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import customerService from '../services/customerService';
 import saleService from '../services/saleService';
 import productService from '../services/productService';
@@ -29,6 +29,58 @@ const Billing = () => {
   const [isLastBillView, setIsLastBillView] = useState(false);
   const [loadingBills, setLoadingBills] = useState(false);
   const [billSearch, setBillSearch] = useState('');
+  const [drafts, setDrafts] = useState([]);
+  const [showDraftsModal, setShowDraftsModal] = useState(false);
+  const [activeInvoiceNumber, setActiveInvoiceNumber] = useState('');
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
+  const saveCurrentAsDraft = () => {
+    if (cart.length === 0 && !customer) {
+      showToast("Cannot save empty draft.", "error");
+      return;
+    }
+    const draft = {
+      id: activeInvoiceNumber,
+      invoiceNumber: activeInvoiceNumber,
+      customer,
+      cart,
+      discount,
+      paymentMethod,
+      createdAt: new Date().toISOString()
+    };
+    const updatedDrafts = drafts.filter(d => d.id !== activeInvoiceNumber);
+    updatedDrafts.unshift(draft);
+    setDrafts(updatedDrafts);
+    localStorage.setItem('spren_drafts', JSON.stringify(updatedDrafts));
+    showToast("Draft saved successfully!", "success");
+  };
+
+  const loadDraft = (draft) => {
+    setCustomer(draft.customer);
+    if (draft.customer) {
+      setCustomerPhone(draft.customer.mobile);
+    } else {
+      setCustomerPhone('');
+    }
+    setCart(draft.cart);
+    setDiscount(draft.discount || 0);
+    setPaymentMethod(draft.paymentMethod || 'Cash');
+    setActiveInvoiceNumber(draft.invoiceNumber);
+    setShowDraftsModal(false);
+  };
+
+  const deleteDraft = (draftId) => {
+    const updatedDrafts = drafts.filter(d => d.id !== draftId);
+    setDrafts(updatedDrafts);
+    localStorage.setItem('spren_drafts', JSON.stringify(updatedDrafts));
+  };
 
   const fetchCustomerBills = async (customerId) => {
     try {
@@ -52,7 +104,7 @@ const Billing = () => {
       setIsLastBillView(true);
       setShowBillingModal(true);
     } else {
-      alert("No bills found for this customer.");
+      showToast("No bills found for this customer.", "info");
     }
   };
 
@@ -71,7 +123,7 @@ const Billing = () => {
       window.open(url, '_blank');
     } catch (error) {
       console.error(error);
-      alert('Failed to print invoice.');
+      showToast('Failed to print invoice.', "error");
     }
   };
 
@@ -88,7 +140,7 @@ const Billing = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error(error);
-      alert('Failed to download invoice.');
+      showToast('Failed to download invoice.', "error");
     }
   };
   const fetchProducts = async () => {
@@ -105,6 +157,11 @@ const Billing = () => {
 
   useEffect(() => {
     fetchProducts();
+    setActiveInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
+    const savedDrafts = localStorage.getItem('spren_drafts');
+    if (savedDrafts) {
+      setDrafts(JSON.parse(savedDrafts));
+    }
   }, []);
 
   const generateInvoice = async () => {
@@ -117,10 +174,12 @@ const Billing = () => {
           product: item._id,
           quantity: item.quantity
         })),
-        paymentMethod
+        paymentMethod,
+        invoiceNumber: activeInvoiceNumber
       };
       
       const sale = await saleService.createSale(saleData);
+      deleteDraft(activeInvoiceNumber);
       setCurrentSaleId(sale._id);
       setInvoiceGenerated(true);
       setShowInvoiceModal(true);
@@ -129,7 +188,7 @@ const Billing = () => {
       await fetchProducts();
     } catch (error) {
       console.error('Error creating sale:', error);
-      alert('Failed to create sale. Please try again.');
+      showToast('Failed to create sale. Please try again.', "error");
     }
   };
 
@@ -254,6 +313,7 @@ const Billing = () => {
     setInvoiceGenerated(false);
     setShowInvoiceModal(false);
     setCurrentSaleId(null);
+    setActiveInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
     phoneInputRef.current?.focus();
   };
 
@@ -277,7 +337,7 @@ const Billing = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading invoice:', error);
-      alert('Failed to download invoice. Please try again.');
+      showToast('Failed to download invoice. Please try again.', "error");
     }
   };
 
@@ -298,11 +358,23 @@ const Billing = () => {
           </div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 bg-white border border-[var(--border-soft)] text-[var(--accent)] rounded-md text-xs font-mono">
-              INV-{Date.now().toString().slice(-6)}
+              {activeInvoiceNumber}
             </span>
             <button
+              onClick={() => setShowDraftsModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-all text-xs cursor-pointer font-semibold font-sans"
+            >
+              <FileText size={12} />
+              Drafts
+              {drafts.length > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.2 bg-blue-600 text-white rounded text-[10px] font-sans">
+                  {drafts.length}
+                </span>
+              )}
+            </button>
+            <button
               onClick={clearAll}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-[var(--text-secondary)] hover:text-red-600 hover:bg-red-50 rounded-md transition-all text-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1 text-[var(--text-secondary)] hover:text-red-600 hover:bg-red-50 rounded-md transition-all text-xs cursor-pointer font-sans"
             >
               <RotateCcw size={12} />
               Reset
@@ -592,20 +664,38 @@ const Billing = () => {
                 </div>
 
                 {/* Actions */}
-                <button
-                  onClick={generateInvoice}
-                  disabled={!customer || cart.length === 0}
-                  className={`w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                    customer && cart.length > 0
-                      ? invoiceGenerated 
-                        ? 'bg-green-500 text-white'
-                        : 'bg-[var(--accent)] text-white hover:opacity-90'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  <Check size={16} />
-                  {invoiceGenerated ? 'Invoice Generated!' : 'Complete Sale'}
-                </button>
+                <div className="flex gap-2">
+                  {!invoiceGenerated && (
+                    <button
+                      onClick={saveCurrentAsDraft}
+                      disabled={cart.length === 0 && !customer}
+                      className={`flex-1 py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer border font-sans ${
+                        cart.length > 0 || customer
+                          ? 'bg-white border-[var(--border-soft)] hover:border-[var(--accent)] text-[var(--text-primary)] hover:bg-gray-50 shadow-sm'
+                          : 'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <Save size={16} />
+                      Save Draft
+                    </button>
+                  )}
+                  <button
+                    onClick={generateInvoice}
+                    disabled={!customer || cart.length === 0}
+                    className={`py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer font-sans ${
+                      !invoiceGenerated ? 'flex-1' : 'w-full'
+                    } ${
+                      customer && cart.length > 0
+                        ? invoiceGenerated 
+                          ? 'bg-green-500 text-white'
+                          : 'bg-[var(--accent)] text-white hover:opacity-90'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <Check size={16} />
+                    {invoiceGenerated ? 'Invoice Generated!' : 'Complete Sale'}
+                  </button>
+                </div>
 
                 {showInvoiceModal && (
                   <div className="grid grid-cols-2 gap-2">
@@ -807,6 +897,120 @@ const Billing = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showDraftsModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-4xl rounded-2xl border border-[var(--border-soft)] shadow-strong overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-[var(--border-soft)] flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">
+                Saved Drafts
+              </h2>
+              <button
+                onClick={() => setShowDraftsModal(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col min-h-0">
+              {drafts.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-12 text-[var(--text-secondary)]">
+                  <Package size={36} className="text-gray-300 mb-2" />
+                  <p className="text-sm font-medium">No saved drafts found.</p>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto border border-[var(--border-soft)] rounded-xl">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-[var(--text-secondary)] text-xs font-semibold border-b border-[var(--border-soft)] sticky top-0 z-10">
+                        <th className="px-4 py-3">Invoice</th>
+                        <th className="px-4 py-3">Customer</th>
+                        <th className="px-4 py-3">Items</th>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-soft)] text-sm">
+                      {drafts.map((draft) => (
+                        <tr key={draft.id} className="hover:bg-gray-50/50">
+                          <td className="px-4 py-4 font-semibold text-[var(--text-primary)]">
+                            {draft.invoiceNumber}
+                          </td>
+                          <td className="px-4 py-4 text-[var(--text-secondary)]">
+                            {draft.customer ? (
+                              <div>
+                                <p className="font-semibold text-[var(--text-primary)] text-sm font-sans">{draft.customer.name}</p>
+                                <p className="text-xs font-sans">+91 {draft.customer.mobile}</p>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400 font-sans">Walk-in Customer</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-[var(--text-secondary)] max-w-xs truncate font-sans">
+                            {draft.cart.map(item => `${item.name} (x${item.quantity})`).join(', ')}
+                          </td>
+                          <td className="px-4 py-4 text-[var(--text-secondary)] font-sans">
+                            {new Date(draft.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => loadDraft(draft)}
+                                className="px-3 py-1.5 bg-[var(--accent-light)] hover:bg-green-200 text-[var(--accent)] rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
+                              >
+                                Resume
+                              </button>
+                              <button
+                                onClick={() => deleteDraft(draft.id)}
+                                className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-6 pt-4 border-t border-[var(--border-soft)]">
+                <button
+                  onClick={() => setShowDraftsModal(false)}
+                  className="px-4 py-2 bg-gray-50 border border-[var(--border-soft)] hover:border-gray-400 text-gray-700 text-sm font-semibold rounded-lg transition-all cursor-pointer font-sans"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[9999] animate-toast">
+          <div className={`flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-[var(--border-soft)] border-l-4 transition-all duration-300 ${
+            toast.type === 'success' ? 'border-l-green-500' : toast.type === 'error' ? 'border-l-red-500' : 'border-l-blue-500'
+          }`}>
+            {toast.type === 'success' ? (
+              <CheckCircle2 size={18} className="text-green-500 flex-shrink-0" />
+            ) : toast.type === 'error' ? (
+              <AlertTriangle size={18} className="text-red-500 flex-shrink-0" />
+            ) : (
+              <FileText size={18} className="text-blue-500 flex-shrink-0" />
+            )}
+            <span className="text-sm font-semibold text-[var(--text-primary)] font-sans">{toast.message}</span>
+            <button
+              onClick={() => setToast(null)}
+              className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-all cursor-pointer ml-2"
+            >
+              <X size={14} />
+            </button>
           </div>
         </div>
       )}
