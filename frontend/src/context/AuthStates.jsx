@@ -25,8 +25,9 @@ const AuthState = (props) => {
         },
       };
 
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
       const { data } = await axios.post(
-        '/api/users/login',
+        `${backendUrl}/api/users/login`,
         { email, password },
         config
       );
