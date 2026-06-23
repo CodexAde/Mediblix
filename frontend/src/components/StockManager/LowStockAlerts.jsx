@@ -1,20 +1,63 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import productService from '../../services/productService';
 
 const LowStockAlerts = () => {
   const [showAll, setShowAll] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const allAlerts = [
-    { id: 1, productId: '8', product: 'USB-C Cables', current: 12, minimum: 50, status: 'critical', category: 'Accessories', supplier: 'Tech Supplies Inc.', lastOrdered: '2 weeks ago' },
-    { id: 2, productId: '9', product: 'Phone Cases', current: 28, minimum: 100, status: 'warning', category: 'Accessories', supplier: 'Case Pro Ltd.', lastOrdered: '1 week ago' },
-    { id: 3, productId: '10', product: 'Screen Protectors', current: 45, minimum: 150, status: 'warning', category: 'Accessories', supplier: 'Screen Guard Co.', lastOrdered: '3 days ago' },
-    { id: 4, productId: '11', product: 'Power Adapters', current: 8, minimum: 40, status: 'critical', category: 'Accessories', supplier: 'Tech Supplies Inc.', lastOrdered: '1 month ago' },
-    { id: 5, productId: '12', product: 'Earphones', current: 55, minimum: 200, status: 'warning', category: 'Audio', supplier: 'Audio World', lastOrdered: '5 days ago' },
-    { id: 6, productId: '13', product: 'SIM Card Trays', current: 3, minimum: 20, status: 'critical', category: 'Parts', supplier: 'Mobile Parts Co.', lastOrdered: '3 weeks ago' },
-  ];
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const data = await productService.getProducts();
+        setProducts(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const formatStock = (qty, tabletsPerStrip) => {
+    if (qty <= 0) return '0 Strips';
+    if (!tabletsPerStrip || tabletsPerStrip <= 1) {
+      return `${qty} Strips`;
+    }
+    const totalTablets = Math.round(qty * tabletsPerStrip);
+    const strips = Math.floor(totalTablets / tabletsPerStrip);
+    const tablets = totalTablets % tabletsPerStrip;
+    if (strips > 0 && tablets > 0) {
+      return `${strips} Strips, ${tablets} Tablets`;
+    } else if (strips > 0) {
+      return `${strips} Strips`;
+    } else {
+      return `${tablets} Tablets`;
+    }
+  };
+
+  const allAlerts = products
+    .filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock' || p.quantity < 10)
+    .map(p => {
+      const status = p.quantity === 0 ? 'critical' : 'warning';
+      return {
+        id: p._id,
+        productId: p._id,
+        product: p.name,
+        current: p.quantity,
+        minimum: 10,
+        status: status,
+        category: p.category,
+        supplier: 'Unknown Supplier',
+        lastOrdered: 'N/A',
+        tabletsPerStrip: p.tabletsPerStrip || 10
+      };
+    });
 
   const lowStockAlerts = allAlerts.slice(0, 3);
 
@@ -22,6 +65,19 @@ const LowStockAlerts = () => {
     alert.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
     alert.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="lg:col-span-1">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-[var(--text-primary)]">Low Stock Alerts</h2>
+        </div>
+        <div className="p-8 text-center text-[var(--text-secondary)] bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl">
+          Loading alerts...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -63,15 +119,19 @@ const LowStockAlerts = () => {
                 </div>
               </div>
               <div className="flex justify-between text-xs text-[var(--text-secondary)]">
-                <span>Current: {alert.current}</span>
-                <span>Minimum: {alert.minimum}</span>
+                <span>Current: {formatStock(alert.current, alert.tabletsPerStrip)}</span>
+                <span>Minimum: {alert.minimum} Strips</span>
               </div>
             </div>
           ))}
+          {allAlerts.length === 0 && (
+            <div className="p-8 text-center text-[var(--text-secondary)] bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl">
+              No low stock alerts
+            </div>
+          )}
         </div>
       </div>
 
-      {/* View All Modal */}
       {showAll && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
@@ -129,9 +189,9 @@ const LowStockAlerts = () => {
                             {alert.status.toUpperCase()}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-red-600">{alert.current}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{alert.minimum}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-green-600">{alert.minimum - alert.current}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-red-600">{formatStock(alert.current, alert.tabletsPerStrip)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{alert.minimum} Strips</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-green-600">{formatStock(Math.max(0, alert.minimum - alert.current), alert.tabletsPerStrip)}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{alert.category}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{alert.supplier}</td>
                         <td className="px-4 py-3 text-sm text-gray-500">{alert.lastOrdered}</td>

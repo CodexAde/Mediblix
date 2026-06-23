@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus } from 'lucide-react';
 import StockModal from '../components/StockModal';
 import StatsCards from '../components/StockManager/StatsCards';
 import QuickActions from '../components/StockManager/QuickActions';
@@ -25,8 +24,6 @@ const StockManager = () => {
   const handleActionClick = (action) => {
     if (action === 'add-product') {
       setIsChoiceOpen(true);
-    } else if (action === 'view-inventory') {
-      navigate('/inventory');
     } else {
       setActiveModal(action);
     }
@@ -48,28 +45,10 @@ const StockManager = () => {
   return (
     <div className="h-[calc(100vh-70px)] w-full bg-[var(--bg-main)] overflow-hidden p-8">
       <div className="h-full max-w-7xl mx-auto flex flex-col gap-6">
-        {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-3xl font-bold text-[var(--text-primary)]">Stock Manager</h1>
             <p className="text-[var(--text-secondary)] mt-1">Manage and monitor your inventory in real-time</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
-              <input
-                type="text"
-                placeholder="Search products..."
-                className="pl-10 pr-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl w-64 focus:outline-none focus:border-[var(--accent)]"
-              />
-            </div>
-            <button 
-              onClick={() => setIsChoiceOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer"
-            >
-              <Plus size={18} />
-              Add Product
-            </button>
           </div>
         </div>
 
