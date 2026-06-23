@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone, Eye, Save, FileText, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone, Eye, Save, FileText, AlertTriangle, CheckCircle2, Sparkles, Upload, Minimize2, Maximize2 } from 'lucide-react';
 import customerService from '../services/customerService';
 import saleService from '../services/saleService';
 import productService from '../services/productService';
+import aiService from '../services/aiService';
 
 const Billing = () => {
   const [customerPhone, setCustomerPhone] = useState('');
@@ -33,6 +34,126 @@ const Billing = () => {
   const [showDraftsModal, setShowDraftsModal] = useState(false);
   const [activeInvoiceNumber, setActiveInvoiceNumber] = useState('');
   const [toast, setToast] = useState(null);
+
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [isScanMinimized, setIsScanMinimized] = useState(false);
+  const [scanAnalyzing, setScanAnalyzing] = useState(false);
+  const [scanStep, setScanStep] = useState(0);
+  const [scanDragActive, setScanDragActive] = useState(false);
+  const [scanFileName, setScanFileName] = useState('');
+  const [cartDragActive, setCartDragActive] = useState(false);
+  const scanInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!scanAnalyzing) return;
+    const interval = setInterval(() => {
+      setScanStep((prev) => {
+        if (prev < 4) {
+          return prev + 1;
+        }
+        return prev;
+      });
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [scanAnalyzing]);
+
+  const handleScanBill = async (fileToScan) => {
+    if (!fileToScan) return;
+    setScanFileName(fileToScan.name);
+    setIsScanModalOpen(false);
+    setScanAnalyzing(true);
+    setScanStep(0);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result.split(',')[1];
+        const mimeType = fileToScan.type;
+        const result = await aiService.parseBill(base64Data, mimeType);
+
+        if (result && typeof result === 'object') {
+          if (result.customerMobile) {
+            const formattedMobile = result.customerMobile.replace(/\D/g, '').slice(0, 10);
+            if (formattedMobile.length === 10) {
+              setCustomerPhone(formattedMobile);
+              setIsSearching(true);
+              try {
+                const results = await customerService.searchCustomers(formattedMobile);
+                if (results && results.length > 0) {
+                  setCustomer(results[0]);
+                  setShowNewCustomer(false);
+                } else {
+                  setCustomer(null);
+                  setShowNewCustomer(true);
+                  setNewCustomerName(result.customerName || '');
+                }
+              } catch (err) {
+                console.error(err);
+              } finally {
+                setIsSearching(false);
+              }
+            }
+          }
+
+          if (Array.isArray(result.items)) {
+            let matchedCount = 0;
+            let unmatchedCount = 0;
+            const newCartItems = [];
+
+            result.items.forEach((item) => {
+              const matched = products.find((p) =>
+                (item.sku && p.sku.toLowerCase() === item.sku.toLowerCase()) ||
+                (item.name && p.name.toLowerCase() === item.name.toLowerCase()) ||
+                (item.name && p.name.toLowerCase().includes(item.name.toLowerCase())) ||
+                (item.name && item.name.toLowerCase().includes(p.name.toLowerCase()))
+              );
+
+              if (matched) {
+                newCartItems.push({
+                  ...matched,
+                  quantity: Number(item.quantity) || 1
+                });
+                matchedCount++;
+              } else {
+                unmatchedCount++;
+              }
+            });
+
+            if (newCartItems.length > 0) {
+              setCart((prev) => {
+                const updated = [...prev];
+                newCartItems.forEach((newItem) => {
+                  const existingIndex = updated.findIndex((c) => c._id === newItem._id);
+                  if (existingIndex !== -1) {
+                    updated[existingIndex].quantity += newItem.quantity;
+                  } else {
+                    updated.push(newItem);
+                  }
+                });
+                return updated;
+              });
+            }
+
+            if (matchedCount > 0 && unmatchedCount > 0) {
+              showToast(`Matched ${matchedCount} items. ${unmatchedCount} items not found in inventory.`, 'info');
+            } else if (matchedCount > 0) {
+              showToast(`Successfully added ${matchedCount} items to cart.`, 'success');
+            } else if (unmatchedCount > 0) {
+              showToast(`Could not match any items in inventory.`, 'error');
+            }
+          }
+
+        } else {
+          showToast('Failed to parse bill structure.', 'error');
+        }
+      } catch (err) {
+        showToast(err.message || 'Failed to analyze bill document.', 'error');
+      } finally {
+        setScanAnalyzing(false);
+      }
+    };
+    reader.readAsDataURL(fileToScan);
+  };
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -158,7 +279,7 @@ const Billing = () => {
 
   useEffect(() => {
     fetchProducts();
-    setActiveInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
+    setActiveInvoiceNumber(`Inv-${Date.now().toString().slice(-6)}`);
     const savedDrafts = localStorage.getItem('spren_drafts');
     if (savedDrafts) {
       setDrafts(JSON.parse(savedDrafts));
@@ -314,7 +435,7 @@ const Billing = () => {
     setInvoiceGenerated(false);
     setShowInvoiceModal(false);
     setCurrentSaleId(null);
-    setActiveInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
+    setActiveInvoiceNumber(`Inv-${Date.now().toString().slice(-6)}`);
     phoneInputRef.current?.focus();
   }
 
@@ -358,9 +479,6 @@ const Billing = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 bg-white border border-[var(--border-soft)] text-[var(--accent)] rounded-md text-xs font-mono">
-              {activeInvoiceNumber}
-            </span>
             <button
               onClick={() => setShowDraftsModal(true)}
               className="flex items-center gap-1.5 px-2.5 py-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-all text-xs cursor-pointer font-semibold font-sans"
@@ -526,27 +644,103 @@ const Billing = () => {
                     </span>
                   )}
                 </div>
-                {cart.length > 0 && (
-                  <button 
-                    onClick={() => setCart([])}
-                    className="text-xs text-red-500 hover:text-red-600 cursor-pointer"
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsScanModalOpen(true)}
+                    className="flex items-center gap-1.5 px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 hover:border-purple-200 hover:bg-purple-100 rounded text-[10px] font-semibold transition-all duration-300 shadow-sm cursor-pointer"
                   >
-                    Clear
+                    <Sparkles size={10} className="text-purple-600 animate-pulse" />
+                    Ai Scan
                   </button>
-                )}
+                  {cart.length > 0 && (
+                    <button 
+                      onClick={() => setCart([])}
+                      className="text-xs text-red-500 hover:text-red-600 cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
               
               <div className="flex-1 overflow-y-auto">
                 {cart.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-[var(--text-secondary)]">
-                    <div className="text-center py-6">
-                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Package size={20} className="text-gray-400" />
+                  scanAnalyzing ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
+                      <div className="relative">
+                        <div className="w-14 h-14 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin" />
+                        <Sparkles size={18} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-purple-600" />
                       </div>
-                      <p className="text-sm font-medium">No items</p>
-                      <p className="text-xs">Search products above</p>
+                      <div>
+                        <p className="text-sm font-bold text-[var(--text-primary)]">Analyzing Bill...</p>
+                        <p className="text-xs text-[var(--text-secondary)] mt-1">
+                          {[
+                            "Reading bill image...",
+                            "Sending to Gemini Ai...",
+                            "Extracting client details...",
+                            "Identifying items...",
+                            "Processing cart..."
+                          ][scanStep]}
+                        </p>
+                      </div>
+                      <div className="w-40 h-1 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-600 transition-all duration-1000"
+                          style={{ width: `${((scanStep + 1) / 5) * 100}%` }}
+                        />
+                      </div>
+                      {scanFileName && (
+                        <p className="text-[10px] text-gray-400 truncate max-w-[200px]">{scanFileName}</p>
+                      )}
+                    </div>
+                  ) : (
+                  <div 
+                    onDragEnter={(e) => { e.preventDefault(); setCartDragActive(true); }}
+                    onDragOver={(e) => { e.preventDefault(); setCartDragActive(true); }}
+                    onDragLeave={() => setCartDragActive(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setCartDragActive(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        handleScanBill(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    className={`h-full flex flex-col items-center justify-center text-center p-6 transition-all duration-300 ${
+                      cartDragActive 
+                        ? 'bg-green-50/50 border-2 border-dashed border-[var(--accent)] m-2 rounded-xl' 
+                        : ''
+                    }`}
+                  >
+                    <div className="max-w-xs space-y-3">
+                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-[var(--accent)]">
+                        <Upload size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">No Items In Cart</p>
+                        <p className="text-xs text-[var(--text-secondary)] mt-1">
+                          Search products above or drag & drop a bill photo here to auto-fill
+                        </p>
+                      </div>
+                      <div className="pt-2">
+                        <label className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-[var(--border-soft)] hover:border-purple-300 hover:text-purple-600 text-[var(--text-secondary)] rounded-lg text-xs font-semibold cursor-pointer transition-all">
+                          <Sparkles size={12} className="text-purple-600 animate-pulse" />
+                          Scan Bill
+                          <input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleScanBill(e.target.files[0]);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
+                  )
+
                 ) : (
                   <div className="divide-y divide-[var(--border-soft)]">
                     {cart.map((item, index) => (
@@ -590,11 +784,14 @@ const Billing = () => {
 
           {/* Right - Invoice Summary */}
           <div className="col-span-2 bg-white rounded-lg border border-[var(--border-soft)] flex flex-col min-h-0">
-            <div className="px-4 py-2.5 border-b border-[var(--border-soft)] bg-gray-50 flex-shrink-0">
+            <div className="px-4 py-2.5 border-b border-[var(--border-soft)] bg-gray-50 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Calculator size={14} className="text-[var(--accent)]" />
                 <span className="font-semibold text-[var(--text-primary)] text-sm">Bill Summary</span>
               </div>
+              <span className="px-2.5 py-1 bg-white border border-[var(--border-soft)] text-[var(--accent)] rounded-lg text-xs font-mono font-semibold">
+                {activeInvoiceNumber}
+              </span>
             </div>
 
             <div className="flex-1 p-4 flex flex-col justify-between">
@@ -990,6 +1187,140 @@ const Billing = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {isScanModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setIsScanModalOpen(false)}
+          />
+          <div className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl transform transition-all animate-toast">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Scan Bill</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Parse bill photo using artificial intelligence to auto-fill sale details</p>
+              </div>
+              <button
+                onClick={() => setIsScanModalOpen(false)}
+                className="text-gray-400 hover:text-gray-900 transition-colors p-1.5 hover:bg-gray-100 rounded-full cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {scanAnalyzing && !isScanMinimized ? (
+              <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                <div className="absolute top-4 right-4 z-20">
+                  <button
+                    onClick={() => setIsScanMinimized(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:border-[var(--accent)] transition-all cursor-pointer"
+                  >
+                    <Minimize2 size={14} />
+                    Minimize
+                  </button>
+                </div>
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-green-100 border-t-[var(--accent)] rounded-full animate-spin" />
+                  <Sparkles size={20} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[var(--accent)]" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    Analyzing Bill Document...
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    {[
+                      "Reading Bill Image...",
+                      "Sending Data To Gemini...",
+                      "Extracting Client Details...",
+                      "Identifying Items In Bill...",
+                      "Processing Billing Cart..."
+                    ][scanStep]}
+                  </p>
+                </div>
+                <div className="w-48 h-1 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[var(--accent)] transition-all duration-1000"
+                    style={{ width: `${((scanStep + 1) / 5) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div
+                onDragEnter={(e) => { e.preventDefault(); setScanDragActive(true); }}
+                onDragOver={(e) => { e.preventDefault(); setScanDragActive(true); }}
+                onDragLeave={() => setScanDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setScanDragActive(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleScanBill(e.dataTransfer.files[0]);
+                  }
+                }}
+                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                  scanDragActive
+                    ? 'border-[var(--accent)] bg-green-50/50 shadow-inner'
+                    : 'border-2 border-dashed border-[var(--border-soft)] bg-[var(--bg-card)] hover:border-[var(--accent)]'
+                }`}
+              >
+                <div className="space-y-4">
+                  <div className="w-12 h-12 bg-green-100 text-[var(--accent)] rounded-xl flex items-center justify-center mx-auto">
+                    <Upload size={24} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Drag & Drop Bill Here</p>
+                    <p className="text-xs text-gray-500">Supports Jpeg, Png, or Pdf</p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <label className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-[var(--accent)] text-gray-700 hover:text-[var(--accent)] rounded-lg transition-all text-xs font-semibold cursor-pointer">
+                      <Upload size={13} />
+                      Add Document
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleScanBill(e.target.files[0]);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    <label className="inline-flex items-center justify-center px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-all text-xs font-semibold cursor-pointer">
+                      Select File
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleScanBill(e.target.files[0]);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {scanAnalyzing && isScanMinimized && (
+        <div className="fixed bottom-6 right-6 z-50 bg-white border border-green-200 rounded-2xl p-4 shadow-xl flex items-center gap-4 animate-toast max-w-sm">
+          <div className="w-8 h-8 border-2 border-green-100 border-t-[var(--accent)] rounded-full animate-spin flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-bold text-gray-900 truncate">Scanning Bill</h4>
+            <p className="text-xs text-gray-500 truncate mt-0.5">{scanFileName}</p>
+          </div>
+          <button
+            onClick={() => setIsScanMinimized(false)}
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+          >
+            <Maximize2 size={16} />
+          </button>
         </div>
       )}
 

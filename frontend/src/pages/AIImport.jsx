@@ -129,7 +129,11 @@ const AIImport = () => {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
+      if (isUploadModalOpen) {
+        handleAddDocumentUpload(e.dataTransfer.files[0]);
+      } else {
+        setFile(e.dataTransfer.files[0]);
+      }
     }
   };
 
