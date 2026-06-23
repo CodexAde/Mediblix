@@ -1,11 +1,14 @@
 {
   "name": "spren",
   "version": "1.0.0",
-  "description": "Spren - Full Stack Application",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
     "install-all": "npm install && npm install --prefix frontend && npm install --prefix backend",
-    "build": "echo 'No build required'"
+    "build": "npm run build --prefix frontend"
   },
   "keywords": [],
   "author": "",
