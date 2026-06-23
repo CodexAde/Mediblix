@@ -60,6 +60,7 @@ const Billing = () => {
     setDrafts(updatedDrafts);
     localStorage.setItem('spren_drafts', JSON.stringify(updatedDrafts));
     showToast("Draft saved successfully!", "success");
+    clearAll();
   };
 
   const loadDraft = (draft) => {
@@ -304,7 +305,7 @@ const Billing = () => {
 
 
 
-  const clearAll = () => {
+  function clearAll() {
     setCustomer(null);
     setCustomerPhone('');
     setCart([]);
@@ -315,7 +316,7 @@ const Billing = () => {
     setCurrentSaleId(null);
     setActiveInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
     phoneInputRef.current?.focus();
-  };
+  }
 
   const handlePrintInvoice = () => {
     if (!currentSaleId) return;

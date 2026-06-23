@@ -15,8 +15,14 @@ const searchCustomers = async (query) => {
   return response.data;
 };
 
+const getCustomerById = async (id) => {
+  const response = await api.get(`/customers/${id}`);
+  return response.data;
+};
+
 export default {
   getCustomers,
   createCustomer,
   searchCustomers,
+  getCustomerById,
 };

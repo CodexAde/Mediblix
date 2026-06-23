@@ -69,4 +69,23 @@ const searchCustomers = async (req, res) => {
   }
 };
 
-export { getCustomers, createCustomer, searchCustomers };
+const getCustomerById = async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.params.id).populate({
+      path: "purchaseHistory",
+      populate: {
+        path: "items.product",
+        select: "name price",
+      },
+    });
+    if (customer) {
+      res.json(customer);
+    } else {
+      res.status(404).json({ message: "Customer not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { getCustomers, createCustomer, searchCustomers, getCustomerById };

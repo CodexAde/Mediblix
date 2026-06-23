@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, Search, TrendingUp, Mail, Phone, ShoppingBag, MoreVertical, Plus, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import customerService from '../services/customerService';
 
 const Customers = () => {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -118,6 +120,7 @@ const Customers = () => {
                 {filteredCustomers.map((customer) => (
                   <div 
                     key={customer._id} 
+                    onClick={() => navigate(`/customer/${customer._id}`)}
                     className="bg-white rounded-2xl p-5 border border-[var(--border-soft)] shadow-sm hover:shadow-md transition-all group cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-3">
