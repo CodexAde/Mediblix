@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone, Eye } from 'lucide-react';
 import customerService from '../services/customerService';
 import saleService from '../services/saleService';
 import productService from '../services/productService';
@@ -23,6 +23,74 @@ const Billing = () => {
   const searchRef = useRef(null);
   const phoneInputRef = useRef(null);
 
+  const [customerBills, setCustomerBills] = useState([]);
+  const [showBillingModal, setShowBillingModal] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [isLastBillView, setIsLastBillView] = useState(false);
+  const [loadingBills, setLoadingBills] = useState(false);
+  const [billSearch, setBillSearch] = useState('');
+
+  const fetchCustomerBills = async (customerId) => {
+    try {
+      setLoadingBills(true);
+      const data = await saleService.getSales({ customer: customerId });
+      setCustomerBills(data);
+      return data;
+    } catch (error) {
+      console.error(error);
+      return [];
+    } finally {
+      setLoadingBills(false);
+    }
+  };
+
+  const handleOpenLastBill = async () => {
+    if (!customer) return;
+    const bills = await fetchCustomerBills(customer._id);
+    if (bills && bills.length > 0) {
+      setSelectedBill(bills[0]);
+      setIsLastBillView(true);
+      setShowBillingModal(true);
+    } else {
+      alert("No bills found for this customer.");
+    }
+  };
+
+  const handleOpenBillHistory = async () => {
+    if (!customer) return;
+    await fetchCustomerBills(customer._id);
+    setSelectedBill(null);
+    setIsLastBillView(false);
+    setShowBillingModal(true);
+  };
+
+  const handlePrintPastInvoice = async (saleId) => {
+    try {
+      const blob = await saleService.generateInvoice(saleId);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error(error);
+      alert('Failed to print invoice.');
+    }
+  };
+
+  const handleDownloadPastInvoice = async (saleId, invoiceNumber) => {
+    try {
+      const blob = await saleService.generateInvoice(saleId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${invoiceNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to download invoice.');
+    }
+  };
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
@@ -129,7 +197,6 @@ const Billing = () => {
       }
     }
   };
-
   const filteredProducts = productSearch.length > 0 
     ? products.filter(p =>
         p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
@@ -137,6 +204,12 @@ const Billing = () => {
       )
     : [];
 
+  const filteredBills = billSearch.length > 0
+    ? customerBills.filter(bill =>
+        bill.invoiceNumber.toLowerCase().includes(billSearch.toLowerCase()) ||
+        (bill.paymentMethod && bill.paymentMethod.toLowerCase().includes(billSearch.toLowerCase()))
+      )
+    : customerBills;
   const addToCart = (product) => {
     const existing = cart.find(item => item._id === product._id);
     if (existing) {
@@ -290,7 +363,7 @@ const Billing = () => {
               ) : (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-xs font-bold">
+                    <div className="w-9 h-9 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-xs font-bold font-sans">
                       {customer.name.split(' ').map(n => n[0]).join('')}
                     </div>
                     <div>
@@ -299,12 +372,26 @@ const Billing = () => {
                     </div>
                     <span className="px-2 py-0.5 bg-green-50 text-green-600 rounded text-xs font-medium">Active</span>
                   </div>
-                  <button
-                    onClick={() => { setCustomer(null); setCustomerPhone(''); }}
-                    className="p-1.5 hover:bg-red-50 rounded-md text-red-500 transition-all cursor-pointer"
-                  >
-                    <X size={16} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleOpenLastBill}
+                      className="px-3 py-1.5 bg-[var(--accent-light)] hover:bg-green-200 text-[var(--accent)] rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
+                    >
+                      Last Bill
+                    </button>
+                    <button
+                      onClick={handleOpenBillHistory}
+                      className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
+                    >
+                      Bill History
+                    </button>
+                    <button
+                      onClick={() => { setCustomer(null); setCustomerPhone(''); }}
+                      className="p-1.5 hover:bg-red-50 rounded-md text-red-500 transition-all cursor-pointer ml-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -543,6 +630,186 @@ const Billing = () => {
           </div>
         </div>
       </div>
+
+      {showBillingModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-4xl rounded-2xl border border-[var(--border-soft)] shadow-strong overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-[var(--border-soft)] flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">
+                {selectedBill ? "Invoice Details" : "Bill History"}
+              </h2>
+              <button
+                onClick={() => setShowBillingModal(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {loadingBills ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : selectedBill ? (
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col min-h-0">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="font-bold text-xl text-[var(--accent)]">Spren</h3>
+                    <p className="text-xs text-[var(--text-secondary)] mt-1">Invoice Number: {selectedBill.invoiceNumber}</p>
+                    <p className="text-xs text-[var(--text-secondary)]">Date: {new Date(selectedBill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-md text-xs font-semibold">Paid</span>
+                    <p className="text-xs text-[var(--text-secondary)] mt-2">Payment: {selectedBill.paymentMethod}</p>
+                  </div>
+                </div>
+
+                <div className="border border-[var(--border-soft)] rounded-xl overflow-hidden mb-6 flex-shrink-0 animate-fade-in">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-[var(--text-secondary)] text-xs font-semibold border-b border-[var(--border-soft)]">
+                        <th className="px-4 py-3">Item</th>
+                        <th className="px-4 py-3 text-right">Price</th>
+                        <th className="px-4 py-3 text-center">Quantity</th>
+                        <th className="px-4 py-3 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-soft)] text-sm">
+                      {selectedBill.items.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50/50">
+                          <td className="px-4 py-3 font-medium text-[var(--text-primary)]">
+                            {item.product?.name || "Deleted Product"}
+                          </td>
+                          <td className="px-4 py-3 text-right text-[var(--text-secondary)]">
+                            ₹{item.price.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-center font-medium">
+                            {item.quantity}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--text-primary)]">
+                            ₹{(item.price * item.quantity).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="w-full max-w-xs ml-auto space-y-2 border-t border-[var(--border-soft)] pt-4 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[var(--text-secondary)]">Subtotal</span>
+                    <span className="font-semibold">₹{selectedBill.totalAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-bold text-[var(--text-primary)] border-t border-dashed border-[var(--border-soft)] pt-2">
+                    <span>Grand Total</span>
+                    <span className="text-lg text-[var(--accent)]">₹{selectedBill.totalAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 mt-auto pt-4 border-t border-[var(--border-soft)]">
+                  {!isLastBillView && (
+                    <button
+                      onClick={() => setSelectedBill(null)}
+                      className="px-4 py-2 bg-gray-50 border border-[var(--border-soft)] hover:border-gray-400 text-gray-700 text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      Back
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handlePrintPastInvoice(selectedBill._id)}
+                    className="px-4 py-2 bg-gray-50 border border-[var(--border-soft)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ml-auto font-sans"
+                  >
+                    <Printer size={14} />
+                    Print
+                  </button>
+                  <button
+                    onClick={() => handleDownloadPastInvoice(selectedBill._id, selectedBill.invoiceNumber)}
+                    className="px-4 py-2 bg-[var(--accent)] hover:opacity-90 text-white text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 font-sans"
+                  >
+                    <Download size={14} />
+                    Download PDF
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col min-h-0">
+                <div className="relative mb-4">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by invoice number..."
+                    value={billSearch}
+                    onChange={(e) => setBillSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 border border-[var(--border-soft)] rounded-xl focus:outline-none focus:border-[var(--accent)] text-sm"
+                  />
+                </div>
+
+                {filteredBills.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center py-12 text-[var(--text-secondary)]">
+                    <Package size={36} className="text-gray-300 mb-2" />
+                    <p className="text-sm font-medium">No past bills found for this customer.</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto border border-[var(--border-soft)] rounded-xl">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 text-[var(--text-secondary)] text-xs font-semibold border-b border-[var(--border-soft)] sticky top-0 z-10">
+                          <th className="px-4 py-3">Invoice</th>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Items</th>
+                          <th className="px-4 py-3">Payment</th>
+                          <th className="px-4 py-3 text-right">Amount</th>
+                          <th className="px-4 py-3 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-soft)] text-sm">
+                        {filteredBills.map((bill) => (
+                          <tr key={bill._id} className="hover:bg-gray-50/50">
+                            <td className="px-4 py-4 font-semibold text-[var(--text-primary)]">
+                              {bill.invoiceNumber}
+                            </td>
+                            <td className="px-4 py-4 text-[var(--text-secondary)]">
+                              {new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="px-4 py-4 text-[var(--text-secondary)] max-w-xs truncate">
+                              {bill.items.map(item => item.product?.name || "Deleted Product").join(', ')}
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className="px-2 py-0.5 bg-gray-100 text-[var(--text-secondary)] rounded text-xs font-medium">
+                                {bill.paymentMethod}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-right font-bold text-[var(--accent)]">
+                              ₹{bill.totalAmount.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <button
+                                onClick={() => setSelectedBill(bill)}
+                                className="p-1.5 bg-gray-50 border border-[var(--border-soft)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] rounded-lg transition-all cursor-pointer"
+                              >
+                                <Eye size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <div className="flex justify-end mt-6 pt-4 border-t border-[var(--border-soft)]">
+                  <button
+                    onClick={() => setShowBillingModal(false)}
+                    className="px-4 py-2 bg-gray-50 border border-[var(--border-soft)] hover:border-gray-400 text-gray-700 text-sm font-semibold rounded-lg transition-all cursor-pointer font-sans"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

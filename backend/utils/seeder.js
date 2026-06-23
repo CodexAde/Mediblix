@@ -10,7 +10,7 @@ const users = [
   {
     name: 'Admin User',
     email: 'admin@spren.com',
-    password: 'admin@crix',
+    password: 'SprenPassword123',
     isAdmin: true,
   },
 ];

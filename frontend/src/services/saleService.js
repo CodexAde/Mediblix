@@ -5,8 +5,8 @@ const createSale = async (saleData) => {
   return response.data;
 };
 
-const getSales = async () => {
-  const response = await api.get("/sales");
+const getSales = async (params) => {
+  const response = await api.get("/sales", { params });
   return response.data;
 };
 

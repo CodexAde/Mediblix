@@ -73,7 +73,11 @@ const createSale = async (req, res) => {
 // @access  Public
 const getSales = async (req, res) => {
   try {
-    const sales = await Sale.find({})
+    const query = {};
+    if (req.query.customer) {
+      query.customer = req.query.customer;
+    }
+    const sales = await Sale.find(query)
       .populate("customer", "name email mobile")
       .populate("items.product", "name price")
       .sort({ createdAt: -1 });
