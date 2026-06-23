@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Search, Truck, Clock, CheckCircle, Building, Sparkles, Trash2 } from 'lucide-react';
+import { ShoppingCart, Search, Truck, Clock, CheckCircle, Building, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import purchaseOrderService from '../services/purchaseOrderService';
+import AddPurchaseOrderChoiceModal from '../components/Orders/AddPurchaseOrderChoiceModal';
+import AddPurchaseOrderDrawer from '../components/Orders/AddPurchaseOrderDrawer';
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,13 +84,22 @@ const Orders = () => {
             <h1 className="text-3xl font-bold text-[var(--text-primary)]">Purchase Orders</h1>
             <p className="text-[var(--text-secondary)] mt-1">Track orders placed to suppliers</p>
           </div>
-          <button 
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-purple-500 hover:text-purple-700 transition-all text-[var(--text-primary)] cursor-pointer font-medium"
-            onClick={() => navigate('/ai-import?type=purchase-order')}
-          >
-            <Sparkles size={18} className="text-purple-600 animate-pulse" />
-            AI Import
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              className="flex items-center gap-2 px-4 py-2 border border-[var(--border-soft)] bg-white text-[var(--text-primary)] rounded-xl hover:bg-gray-50 transition-all font-medium cursor-pointer"
+              onClick={() => navigate('/suppliers')}
+            >
+              <Building size={18} className="text-green-600" />
+              Suppliers
+            </button>
+            <button 
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer"
+              onClick={() => setIsChoiceModalOpen(true)}
+            >
+              <Plus size={18} />
+              Create Order
+            </button>
+          </div>
         </div>
 
         <div className="bg-[var(--bg-card)] rounded-2xl p-4 border border-[var(--border-soft)]">
@@ -152,7 +165,7 @@ const Orders = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => handleDelete(order._id, e)}
-                        className="p-1.5 bg-white border border-gray-100 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                        className="p-1.5 bg-white border border-gray-100 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -165,6 +178,18 @@ const Orders = () => {
           </div>
         )}
       </div>
+
+      <AddPurchaseOrderChoiceModal
+        isOpen={isChoiceModalOpen}
+        onClose={() => setIsChoiceModalOpen(false)}
+        onManualSelect={() => setIsDrawerOpen(true)}
+      />
+
+      <AddPurchaseOrderDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onOrderCreated={fetchOrders}
+      />
     </div>
   );
 };

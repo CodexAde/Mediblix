@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, Sparkles, Plus, Trash2, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Sparkles, Plus, Trash2, Check, AlertCircle, Minimize2, Maximize2, Undo2, Redo2, X } from "lucide-react";
 import aiService from "../services/aiService";
 import productService from "../services/productService";
 import importHistoryService from "../services/importHistoryService";
@@ -30,6 +30,17 @@ const AIImport = () => {
   const [toast, setToast] = useState(null);
   const [error, setError] = useState(null);
 
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [minimizedFileName, setMinimizedFileName] = useState("");
+  const [backgroundAnalyzing, setBackgroundAnalyzing] = useState(false);
+
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const [suggestions, setSuggestions] = useState({});
+  const debounceTimers = useRef({});
+
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -43,24 +54,60 @@ const AIImport = () => {
   }, []);
 
   useEffect(() => {
-    if (!analyzing) return;
-    const steps = [
-      "Reading File Data...",
-      "Connecting To Gemini AI...",
-      "Extracting Text Content...",
-      "Identifying Items And Prices...",
-      "Structuring Product Details..."
-    ];
+    if (!analyzing && !backgroundAnalyzing) return;
     const interval = setInterval(() => {
       setAnalysisStep((prev) => {
-        if (prev < steps.length - 1) {
+        if (prev < 4) {
           return prev + 1;
         }
         return prev;
       });
     }, 1500);
     return () => clearInterval(interval);
-  }, [analyzing]);
+  }, [analyzing, backgroundAnalyzing]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [history, historyIndex]);
+
+  const updateHistory = (newItems) => {
+    const nextHistory = history.slice(0, historyIndex + 1);
+    nextHistory.push(JSON.parse(JSON.stringify(newItems)));
+    setHistory(nextHistory);
+    setHistoryIndex(nextHistory.length - 1);
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const nextIndex = historyIndex - 1;
+      setHistoryIndex(nextIndex);
+      setItems(JSON.parse(JSON.stringify(history[nextIndex])));
+      showToast("Undo Successful", "success");
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const nextIndex = historyIndex + 1;
+      setHistoryIndex(nextIndex);
+      setItems(JSON.parse(JSON.stringify(history[nextIndex])));
+      showToast("Redo Successful", "success");
+    }
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -107,6 +154,8 @@ const AIImport = () => {
         
         if (Array.isArray(result)) {
           setItems(result);
+          setHistory([JSON.parse(JSON.stringify(result))]);
+          setHistoryIndex(0);
           showToast("Invoice Parsed Successfully");
         } else {
           setError("Failed to parse invoice structure.");
@@ -124,10 +173,45 @@ const AIImport = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleAddDocumentUpload = async (uploadedFile) => {
+    if (!uploadedFile) return;
+    setIsUploadModalOpen(false);
+    setBackgroundAnalyzing(true);
+    setMinimizedFileName(uploadedFile.name);
+    setAnalysisStep(0);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result.split(",")[1];
+        const mimeType = uploadedFile.type;
+        const result = await aiService.parseInvoice(base64Data, mimeType);
+        
+        if (Array.isArray(result)) {
+          setItems((prev) => {
+            const updated = [...prev, ...result];
+            updateHistory(updated);
+            return updated;
+          });
+          showToast(`Appended ${result.length} Items From ${uploadedFile.name}`);
+        } else {
+          showToast("Failed to parse document structure", "error");
+        }
+      } catch (err) {
+        showToast(err.message || "Failed to parse document", "error");
+      } finally {
+        setBackgroundAnalyzing(false);
+        setIsMinimized(false);
+        setMinimizedFileName("");
+      }
+    };
+    reader.readAsDataURL(uploadedFile);
+  };
+
   const handleAddField = () => {
     const randomSku = "NEW-" + Math.floor(1000 + Math.random() * 9000);
-    setItems((prev) => [
-      ...prev,
+    const updated = [
+      ...items,
       {
         name: "New Product Name",
         sku: randomSku,
@@ -135,7 +219,9 @@ const AIImport = () => {
         price: 0,
         quantity: 1
       }
-    ]);
+    ];
+    setItems(updated);
+    updateHistory(updated);
   };
 
   const handleFieldChange = (index, field, value) => {
@@ -148,10 +234,59 @@ const AIImport = () => {
       }
       return updated;
     });
+
+    if (field === "name") {
+      checkNameSuggestions(index, value);
+    }
+  };
+
+  const checkNameSuggestions = (index, value) => {
+    if (debounceTimers.current[index]) {
+      clearTimeout(debounceTimers.current[index]);
+    }
+
+    debounceTimers.current[index] = setTimeout(() => {
+      const words = value.trim().split(/\s+/);
+      if (words.length >= 3) {
+        const query = value.toLowerCase();
+        const matched = existingProducts.find((p) =>
+          p.name.toLowerCase().includes(query) || query.includes(p.name.toLowerCase())
+        );
+        if (matched) {
+          setSuggestions((prev) => ({
+            ...prev,
+            [index]: { sku: matched.sku, name: matched.name }
+          }));
+        } else {
+          setSuggestions((prev) => {
+            const next = { ...prev };
+            delete next[index];
+            return next;
+          });
+        }
+      } else {
+        setSuggestions((prev) => {
+          const next = { ...prev };
+          delete next[index];
+          return next;
+        });
+      }
+    }, 400);
+  };
+
+  const handleFieldBlur = () => {
+    updateHistory(items);
   };
 
   const handleRemoveItem = (index) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+    const updated = items.filter((_, i) => i !== index);
+    setItems(updated);
+    updateHistory(updated);
+    setSuggestions((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
   };
 
   const checkSkuExists = (sku) => {
@@ -256,6 +391,25 @@ const AIImport = () => {
               </p>
             </div>
           </div>
+
+          {items.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                disabled={historyIndex <= 0}
+                onClick={handleUndo}
+                className="p-2.5 bg-white border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] text-[var(--text-primary)] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Undo2 size={18} />
+              </button>
+              <button
+                disabled={historyIndex >= history.length - 1}
+                onClick={handleRedo}
+                className="p-2.5 bg-white border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] text-[var(--text-primary)] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Redo2 size={18} />
+              </button>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -265,7 +419,7 @@ const AIImport = () => {
           </div>
         )}
 
-        {items.length === 0 && !analyzing ? (
+        {items.length === 0 && !analyzing && !backgroundAnalyzing ? (
           <div className="grid grid-cols-1 gap-6">
             <div
               onDragEnter={handleDrag}
@@ -337,8 +491,17 @@ const AIImport = () => {
           </div>
         ) : null}
 
-        {analyzing && (
+        {(analyzing || (backgroundAnalyzing && !isMinimized)) && (
           <div className="bg-[var(--bg-card)] border border-green-200 rounded-3xl p-16 flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
+            <div className="absolute top-4 right-4 z-20">
+              <button
+                onClick={() => setIsMinimized(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:border-[var(--accent)] transition-all cursor-pointer"
+              >
+                <Minimize2 size={14} />
+                Minimize
+              </button>
+            </div>
             <div className="relative">
               <div className="w-20 h-20 border-4 border-green-100 border-t-[var(--accent)] rounded-full animate-spin" />
               <Sparkles size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[var(--accent)]" />
@@ -360,7 +523,7 @@ const AIImport = () => {
           </div>
         )}
 
-        {items.length > 0 && !analyzing ? (
+        {items.length > 0 && (!analyzing && (!backgroundAnalyzing || isMinimized)) ? (
           <div className="space-y-6">
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -412,13 +575,22 @@ const AIImport = () => {
             <div className="bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-2xl overflow-hidden shadow-sm">
               <div className="p-5 border-b border-[var(--border-soft)] flex justify-between items-center bg-gray-50/50">
                 <h3 className="font-semibold text-[var(--text-primary)]">Parsed Document Items</h3>
-                <button
-                  onClick={handleAddField}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[var(--border-soft)] hover:border-[var(--accent)] rounded-xl text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent)] transition-all cursor-pointer shadow-sm"
-                >
-                  <Plus size={16} />
-                  Add Product
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsUploadModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[var(--border-soft)] hover:border-[var(--accent)] rounded-xl text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent)] transition-all cursor-pointer shadow-sm"
+                  >
+                    <Upload size={16} />
+                    Add Document
+                  </button>
+                  <button
+                    onClick={handleAddField}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[var(--border-soft)] hover:border-[var(--accent)] rounded-xl text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent)] transition-all cursor-pointer shadow-sm"
+                  >
+                    <Plus size={16} />
+                    Add Product
+                  </button>
+                </div>
               </div>
               
               <div className="overflow-x-auto">
@@ -439,21 +611,36 @@ const AIImport = () => {
                   <tbody>
                     {items.map((item, index) => {
                       const exists = checkSkuExists(item.sku);
+                      const nameSuggestion = suggestions[index];
                       return (
-                        <tr key={index} className="border-b border-[var(--border-soft)] hover:bg-gray-50/40 transition-colors">
+                        <tr 
+                          key={index} 
+                          className={`border-b border-[var(--border-soft)] transition-colors ${
+                            exists 
+                              ? 'hover:bg-gray-50/40' 
+                              : 'bg-green-50/60 hover:bg-green-100/40'
+                          }`}
+                        >
                           <td className="p-3">
                             <input
                               type="text"
                               value={item.name}
                               onChange={(e) => handleFieldChange(index, "name", e.target.value)}
+                              onBlur={handleFieldBlur}
                               className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                             />
+                            {nameSuggestion && (
+                              <div className="mt-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded inline-block animate-toast">
+                                Matches Existing Catalog Item: {nameSuggestion.name} (SKU: {nameSuggestion.sku})
+                              </div>
+                            )}
                           </td>
                           <td className="p-3">
                             <input
                               type="text"
                               value={item.sku}
                               onChange={(e) => handleFieldChange(index, "sku", e.target.value)}
+                              onBlur={handleFieldBlur}
                               className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 font-mono text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                             />
                           </td>
@@ -463,6 +650,7 @@ const AIImport = () => {
                                 type="text"
                                 value={item.category || ""}
                                 onChange={(e) => handleFieldChange(index, "category", e.target.value)}
+                                onBlur={handleFieldBlur}
                                 className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                               />
                             </td>
@@ -475,6 +663,7 @@ const AIImport = () => {
                                 step="0.01"
                                 value={item.price}
                                 onChange={(e) => handleFieldChange(index, "price", e.target.value)}
+                                onBlur={handleFieldBlur}
                                 className="w-full bg-white border border-[var(--border-soft)] rounded-lg pl-6 pr-2 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                               />
                             </div>
@@ -484,6 +673,7 @@ const AIImport = () => {
                               type="number"
                               value={item.quantity}
                               onChange={(e) => handleFieldChange(index, "quantity", e.target.value)}
+                              onBlur={handleFieldBlur}
                               className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                             />
                           </td>
@@ -519,6 +709,8 @@ const AIImport = () => {
                 onClick={() => {
                   setItems([]);
                   setFile(null);
+                  setHistory([]);
+                  setHistoryIndex(-1);
                 }}
                 className="px-5 py-2.5 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-red-400 hover:text-red-500 transition-all font-medium cursor-pointer"
               >
@@ -537,6 +729,76 @@ const AIImport = () => {
         ) : null}
 
       </div>
+
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setIsUploadModalOpen(false)}
+          />
+          <div className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl transform transition-all animate-toast">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Add Invoice Document</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Parse new document items and append to review list</p>
+              </div>
+              <button
+                onClick={() => setIsUploadModalOpen(false)}
+                className="text-gray-400 hover:text-gray-900 transition-colors p-1.5 hover:bg-gray-100 rounded-full cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              className="border-2 border-dashed border-[var(--border-soft)] bg-[var(--bg-card)] hover:border-[var(--accent)] rounded-2xl p-8 text-center transition-all duration-300"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 bg-green-100 text-[var(--accent)] rounded-xl flex items-center justify-center mx-auto">
+                  <Upload size={24} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Drag & Drop Document Here</p>
+                  <p className="text-xs text-gray-500">JPEG, PNG, or PDF</p>
+                </div>
+                <label className="inline-flex items-center justify-center px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-all text-xs font-semibold cursor-pointer">
+                  Select File
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleAddDocumentUpload(e.target.files[0]);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {backgroundAnalyzing && isMinimized && (
+        <div className="fixed bottom-6 right-6 z-50 bg-white border border-green-200 rounded-2xl p-4 shadow-xl flex items-center gap-4 animate-toast max-w-sm">
+          <div className="w-8 h-8 border-2 border-green-100 border-t-[var(--accent)] rounded-full animate-spin flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-bold text-gray-900 truncate">Analyzing Invoice</h4>
+            <p className="text-xs text-gray-500 truncate mt-0.5">{minimizedFileName}</p>
+          </div>
+          <button
+            onClick={() => setIsMinimized(false)}
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+          >
+            <Maximize2 size={16} />
+          </button>
+        </div>
+      )}
 
       {toast && (
         <div className="fixed bottom-5 right-5 z-50 animate-toast">

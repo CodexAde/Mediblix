@@ -29,7 +29,7 @@ const parseInvoice = async (req, res) => {
                   },
                 },
                 {
-                  text: "You are an expert invoice and purchase sheet parser. Extract all product items listed in this document. Output a JSON array of items, where each item contains exactly these fields: name (string), sku (string), category (string), quantity (number), price (number). Generate clean SKUs if they are missing or invalid (prefix with product type, e.g. ELEC-101). Categorize them logically (e.g., Electronics, Clothing, Home & Garden, Sports, Accessories). Only return the raw JSON array inside the text block. Do not include markdown code block characters like ```json.",
+                  text: "You are an expert invoice and purchase sheet parser. Extract all product items listed in this document. Output a JSON array of items, where each item contains exactly these fields: name (string), sku (string), category (string), quantity (number), price (number). Generate clean SKUs if they are missing or invalid (prefix with product type, e.g. ELEC-101). Categorize them logically (e.g., Electronics, Clothing, Home & Garden, Sports, Accessories). Only return a raw JSON array inside the text block. If no products can be found, return an empty JSON array: []. Do not include markdown code block characters or any explaining text.",
                 },
               ],
             },
@@ -48,10 +48,21 @@ const parseInvoice = async (req, res) => {
       return res.status(500).json({ message: "No data could be extracted by AI" });
     }
 
-    textResponse = textResponse.replace(/```json/gi, "").replace(/```/gi, "").trim();
-    const items = JSON.parse(textResponse);
+    const startIdx = textResponse.indexOf('[');
+    const endIdx = textResponse.lastIndexOf(']');
+    
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      textResponse = textResponse.substring(startIdx, endIdx + 1);
+    } else {
+      textResponse = textResponse.replace(/```json/gi, "").replace(/```/gi, "").trim();
+    }
 
-    res.json(items);
+    try {
+      const items = JSON.parse(textResponse);
+      res.json(items);
+    } catch (parseError) {
+      res.status(422).json({ message: "AI response was not in a valid format. Please ensure the document contains a clear product list." });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

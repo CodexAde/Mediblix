@@ -6,6 +6,15 @@ const purchaseOrderSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    supplierEmail: {
+      type: String,
+    },
+    supplierPhone: {
+      type: String,
+    },
+    deliveryAddress: {
+      type: String,
+    },
     items: [
       {
         productName: {

@@ -90,8 +90,8 @@ const OrderDetails = () => {
         const mappedOrder = {
           id: data._id,
           supplier: data.supplierName,
-          contact: `info@${data.supplierName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-          phone: '+1 (555) 000-1122',
+          contact: data.supplierEmail || `info@${data.supplierName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+          phone: data.supplierPhone || '+1 (555) 000-1122',
           status: data.status,
           orderDate: new Date(data.createdAt).toLocaleDateString(),
           deliveryDate: new Date(new Date(data.createdAt).getTime() + 3*24*60*60*1000).toLocaleDateString(),
@@ -103,7 +103,7 @@ const OrderDetails = () => {
             total: item.quantity * item.price
           })),
           shipping: {
-            address: '123 Supplier Street, Tech City, NY 10001',
+            address: data.deliveryAddress || '123 Supplier Street, Tech City, NY 10001',
             carrier: 'FedEx Express',
             tracking: 'FX' + data._id.substring(data._id.length - 10).toUpperCase(),
           }

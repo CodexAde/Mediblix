@@ -10,7 +10,7 @@ const getPurchaseOrders = async (req, res) => {
 };
 
 const createPurchaseOrder = async (req, res) => {
-  const { supplierName, items } = req.body;
+  const { supplierName, supplierEmail, supplierPhone, deliveryAddress, items } = req.body;
 
   if (!supplierName || !items || !Array.isArray(items)) {
     return res.status(400).json({ message: "Supplier name and items array are required" });
@@ -24,6 +24,9 @@ const createPurchaseOrder = async (req, res) => {
 
     const order = await PurchaseOrder.create({
       supplierName,
+      supplierEmail,
+      supplierPhone,
+      deliveryAddress,
       items,
       totalAmount,
       status: "Pending",

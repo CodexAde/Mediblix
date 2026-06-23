@@ -15,6 +15,7 @@ import OrderDetails from './pages/OrderDetails';
 import CustomerDetails from './pages/CustomerDetails';
 import LoginPage from './pages/Login';
 import AIImport from './pages/AIImport';
+import Suppliers from './pages/Suppliers';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -50,6 +51,7 @@ function App() {
                       <Route path="/order-detail/:id" element={<OrderDetails />} />
                       <Route path="/customer/:id" element={<CustomerDetails />} />
                       <Route path="/ai-import" element={<AIImport />} />
+                      <Route path="/suppliers" element={<Suppliers />} />
                     </Routes>
                   </MainLayout>
                 </ProtectedRoute>
