@@ -9,15 +9,25 @@ import AddProductForm from '../components/StockManager/AddProductForm';
 import StockTransferForm from '../components/StockManager/StockTransferForm';
 import PurchaseOrderForm from '../components/StockManager/PurchaseOrderForm';
 import GenerateReportForm from '../components/StockManager/GenerateReportForm';
+import AddProductChoiceModal from '../components/Inventory/AddProductChoiceModal';
 
 const StockManager = () => {
   const [activeModal, setActiveModal] = useState(null);
+  const [isChoiceOpen, setIsChoiceOpen] = useState(false);
 
   const modalTitles = {
     'add-product': 'Add New Product',
     'stock-transfer': 'Stock Transfer',
     'purchase-order': 'Create Purchase Order',
     'generate-report': 'Generate Report',
+  };
+
+  const handleActionClick = (action) => {
+    if (action === 'add-product') {
+      setIsChoiceOpen(true);
+    } else {
+      setActiveModal(action);
+    }
   };
 
   const renderModalContent = () => {
@@ -54,7 +64,7 @@ const StockManager = () => {
               />
             </div>
             <button 
-              onClick={() => setActiveModal('add-product')}
+              onClick={() => setIsChoiceOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer"
             >
               <Plus size={18} />
@@ -72,7 +82,7 @@ const StockManager = () => {
         <div className="flex-1 min-h-0">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
             <div className="overflow-y-auto h-full">
-              <QuickActions onActionClick={setActiveModal} />
+              <QuickActions onActionClick={handleActionClick} />
             </div>
             <div className="overflow-y-auto h-full">
               <RecentMovements />
@@ -92,6 +102,12 @@ const StockManager = () => {
       >
         {renderModalContent()}
       </StockModal>
+
+      <AddProductChoiceModal
+        isOpen={isChoiceOpen}
+        onClose={() => setIsChoiceOpen(false)}
+        onManualSelect={() => setActiveModal('add-product')}
+      />
     </div>
   );
 };

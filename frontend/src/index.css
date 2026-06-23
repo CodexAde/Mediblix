@@ -54,25 +54,10 @@
   animation: fizzy-pop 0.4s ease-out forwards;
 }
 
-/* AI Gradient Animation */
-@keyframes ai-border {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 .ai-mode-active {
-  background: linear-gradient(90deg, #eff6ff, #f5f3ff, #eff6ff);
-  background-size: 200% 200%;
-  animation: ai-border 3s ease infinite;
-  border-color: #a855f7 !important;
-  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15);
-}
-
-.ai-text-gradient {
-  background: linear-gradient(to right, #7c3aed, #2563eb);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background-color: var(--accent-light);
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(22, 101, 52, 0.15);
 }
 
 @keyframes slide-in-toast {

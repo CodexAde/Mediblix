@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, Sparkles } from 'lucide-react';
+import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, Sparkles, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import productService from '../services/productService';
 import AddProductDrawer from '../components/Inventory/AddProductDrawer';
 import ExportModal from '../components/Inventory/ExportModal';
+import ImportHistoryDrawer from '../components/Inventory/ImportHistoryDrawer';
+import AddProductChoiceModal from '../components/Inventory/AddProductChoiceModal';
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
@@ -13,6 +15,8 @@ const Inventory = () => {
   const [isAIMode, setIsAIMode] = useState(false);
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+  const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const categories = ['All', 'Electronics', 'Clothing', 'Home & Garden', 'Sports', 'Accessories'];
@@ -70,6 +74,20 @@ const Inventory = () => {
           </div>
           <div className="flex items-center gap-3">
             <button 
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-purple-400 hover:text-purple-600 transition-all text-[var(--text-primary)] cursor-pointer"
+              onClick={() => setIsHistoryDrawerOpen(true)}
+            >
+              <History size={18} />
+              Import History
+            </button>
+            <button 
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-purple-500 hover:text-purple-700 transition-all text-[var(--text-primary)] cursor-pointer font-medium"
+              onClick={() => navigate('/ai-import?type=inventory')}
+            >
+              <Sparkles size={18} className="text-purple-600 animate-pulse" />
+              AI Import
+            </button>
+            <button 
               className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer"
               onClick={() => setIsExportModalOpen(true)}
             >
@@ -78,7 +96,7 @@ const Inventory = () => {
             </button>
             <button 
               className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer"
-              onClick={() => setIsAddDrawerOpen(true)}
+              onClick={() => setIsChoiceModalOpen(true)}
             >
               <Plus size={18} />
               Add Product
@@ -240,6 +258,20 @@ const Inventory = () => {
         isOpen={isExportModalOpen} 
         onClose={() => setIsExportModalOpen(false)} 
         data={products} 
+      />
+
+      <ImportHistoryDrawer
+        isOpen={isHistoryDrawerOpen}
+        onClose={() => {
+          setIsHistoryDrawerOpen(false);
+          fetchProducts();
+        }}
+      />
+
+      <AddProductChoiceModal
+        isOpen={isChoiceModalOpen}
+        onClose={() => setIsChoiceModalOpen(false)}
+        onManualSelect={() => setIsAddDrawerOpen(true)}
       />
     </div>
   );
