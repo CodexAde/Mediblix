@@ -112,7 +112,7 @@ const Billing = () => {
             }
           }
 
-          if (Array.isArray(result.items)) {
+          if (Array.isArray(result.items) && result.items.length > 0) {
             let matchedCount = 0;
             let unmatchedCount = 0;
             const newCartItems = [];
@@ -155,13 +155,15 @@ const Billing = () => {
               showToast(`Matched ${matchedCount} items. ${unmatchedCount} items not found in inventory.`, 'info');
             } else if (matchedCount > 0) {
               showToast(`Successfully added ${matchedCount} items to cart.`, 'success');
-            } else if (unmatchedCount > 0) {
-              showToast(`Could not match any items in inventory.`, 'error');
+            } else {
+              showToast('The data that you uploaded is not a valid prescription or bill.', 'error');
             }
+          } else {
+            showToast('The data that you uploaded is not a valid prescription or bill.', 'error');
           }
 
         } else {
-          showToast('Failed to parse bill structure.', 'error');
+          showToast('The data that you uploaded is not a valid prescription or bill.', 'error');
         }
       } catch (err) {
         showToast(err.message || 'Failed to analyze bill document.', 'error');
@@ -864,7 +866,7 @@ const Billing = () => {
                             <p className="text-xs text-[var(--text-secondary)] mt-1">
                               {[
                                 "Reading bill image...",
-                                "Sending to Gemini Ai...",
+                                "Sending to Ai...",
                                 "Extracting client details...",
                                 "Identifying items...",
                                 "Processing cart..."
@@ -1439,11 +1441,11 @@ const Billing = () => {
                   </h3>
                   <p className="text-xs text-[var(--text-secondary)] mt-1">
                     {[
-                      "Reading Prescription Image...",
-                      "Sending Data To Gemini...",
-                      "Extracting Client Details...",
-                      "Identifying Items In Prescription...",
-                      "Processing Billing Cart..."
+                      "Reading prescription image...",
+                      "Sending data to Ai...",
+                      "Extracting client details...",
+                      "Identifying items in prescription...",
+                      "Processing billing cart..."
                     ][scanStep]}
                   </p>
                 </div>
@@ -1516,22 +1518,7 @@ const Billing = () => {
         </div>
       )}
 
-      {scanAnalyzing && isScanMinimized && (
-        <div className="fixed bottom-6 right-6 z-50 bg-white border border-green-200 rounded-2xl p-4 shadow-xl flex items-center gap-4 animate-toast max-w-sm">
-          <div className="w-8 h-8 border-2 border-green-100 border-t-green-600 rounded-full animate-spin flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-gray-900 truncate">Scanning Prescription</h4>
-            <p className="text-xs text-gray-500 truncate mt-0.5">{scanFileName}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsScanMinimized(false)}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
-          >
-            <Maximize2 size={16} />
-          </button>
-        </div>
-      )}
+
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-[9999] animate-toast">
