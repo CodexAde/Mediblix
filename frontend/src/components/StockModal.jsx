@@ -1,12 +1,47 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 const StockModal = ({ isOpen, onClose, title, children }) => {
+  const modalRef = useRef(null);
+
   useEffect(() => {
     if (!isOpen) return;
+    const modalElement = modalRef.current;
+    if (!modalElement) return;
+
+    const focusableElements = modalElement.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (firstElement) {
+      setTimeout(() => {
+        firstElement.focus();
+      }, 50);
+    }
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         onClose();
+      }
+
+      if (e.key === 'Tab') {
+        if (focusableElements.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -24,7 +59,7 @@ const StockModal = ({ isOpen, onClose, title, children }) => {
       />
       
       {/* Modal */}
-      <div className={`relative bg-white rounded-2xl shadow-2xl ${title === 'Bill History' ? 'max-w-4xl' : 'max-w-2xl'} w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200`}>
+      <div ref={modalRef} className={`relative bg-white rounded-2xl shadow-2xl ${title === 'Bill History' ? 'max-w-4xl' : 'max-w-2xl'} w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">{title}</h2>

@@ -26,6 +26,8 @@ const Billing = () => {
   const searchRef = useRef(null);
   const searchInputRef = useRef(null);
   const phoneInputRef = useRef(null);
+  const scanModalRef = useRef(null);
+  const billingModalRef = useRef(null);
 
   const [customerBills, setCustomerBills] = useState([]);
   const [showBillingModal, setShowBillingModal] = useState(false);
@@ -567,6 +569,47 @@ const Billing = () => {
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
   }, [clearAll]);
+
+  useEffect(() => {
+    const activeModalRef = isScanModalOpen ? scanModalRef : (showBillingModal ? billingModalRef : null);
+    if (!activeModalRef) return;
+    const modalElement = activeModalRef.current;
+    if (!modalElement) return;
+
+    const focusableElements = modalElement.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (firstElement) {
+      setTimeout(() => {
+        firstElement.focus();
+      }, 50);
+    }
+
+    const handleTabKey = (e) => {
+      if (e.key === 'Tab') {
+        if (focusableElements.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleTabKey);
+    return () => window.removeEventListener('keydown', handleTabKey);
+  }, [isScanModalOpen, showBillingModal]);
 
   const handlePrintInvoice = () => {
     if (!currentSaleId) return;
@@ -1359,7 +1402,7 @@ const Billing = () => {
             className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300"
             onClick={() => setIsScanModalOpen(false)}
           />
-          <div className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl transform transition-all animate-toast">
+          <div ref={scanModalRef} className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl transform transition-all animate-toast">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Scan Prescription</h2>
@@ -1519,7 +1562,7 @@ const Billing = () => {
             className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300"
             onClick={() => setShowBillingModal(false)}
           />
-          <div className="relative bg-white border-2 border-green-100 rounded-3xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl shadow-green-100/50 transform transition-all animate-toast overflow-hidden">
+          <div ref={billingModalRef} className="relative bg-white border-2 border-green-100 rounded-3xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl shadow-green-100/50 transform transition-all animate-toast overflow-hidden">
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100 flex-shrink-0">
               <div>
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">

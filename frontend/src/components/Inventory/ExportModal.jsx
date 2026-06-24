@@ -1,20 +1,56 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X, FileText, Table } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const ExportModal = ({ isOpen, onClose, data }) => {
+  const modalRef = useRef(null);
+
   useEffect(() => {
     if (!isOpen) return;
+    const modalElement = modalRef.current;
+    if (!modalElement) return;
+
+    const focusableElements = modalElement.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (firstElement) {
+      setTimeout(() => {
+        firstElement.focus();
+      }, 50);
+    }
+
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         onClose();
+      }
+
+      if (e.key === "Tab") {
+        if (focusableElements.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const exportToExcel = () => {
@@ -79,7 +115,7 @@ const ExportModal = ({ isOpen, onClose, data }) => {
         onClick={onClose}
       />
       
-      <div className="relative bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-md shadow-2xl transform transition-all">
+      <div ref={modalRef} className="relative bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-md shadow-2xl transform transition-all">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900">Export Inventory</h2>
           <button

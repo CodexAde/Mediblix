@@ -3,8 +3,17 @@ import { Package, TrendingUp, AlertTriangle, Truck, IndianRupee } from 'lucide-r
 const StatsCards = () => {
   const stockCards = [
     {
+      icon: IndianRupee,
+      title: 'Stock value',
+      value: '₹1.2M',
+      change: '+5.2%',
+      changeType: 'positive',
+      color: '#f3e8ff',
+      iconColor: '#9333ea',
+    },
+    {
       icon: Package,
-      title: 'Total Products',
+      title: 'Total products',
       value: '2,543',
       change: '+12%',
       changeType: 'positive',
@@ -13,7 +22,7 @@ const StatsCards = () => {
     },
     {
       icon: AlertTriangle,
-      title: 'Low Stock Items',
+      title: 'Low stock items',
       value: '23',
       change: 'Needs attention',
       changeType: 'warning',
@@ -22,21 +31,12 @@ const StatsCards = () => {
     },
     {
       icon: Truck,
-      title: 'Pending Orders',
+      title: 'Pending orders',
       value: '156',
       change: '+8%',
       changeType: 'positive',
       color: '#dbeafe',
       iconColor: '#2563eb',
-    },
-    {
-      icon: IndianRupee,
-      title: 'Stock Value',
-      value: '₹1.2M',
-      change: '+5.2%',
-      changeType: 'positive',
-      color: '#f3e8ff',
-      iconColor: '#9333ea',
     },
   ];
 
