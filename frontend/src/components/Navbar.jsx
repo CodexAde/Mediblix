@@ -9,8 +9,8 @@ const Navbar = () => {
   if (isMobile) return null;
 
   const navItems = [
-    { path: '/stock', label: 'Stock Manager', icon: Boxes, isPrimary: true },
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/stock', label: 'Dashboard', icon: Boxes, isPrimary: true },
+    // { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/inventory', label: 'Inventory', icon: Package },
   ];
 
@@ -48,7 +48,7 @@ const Navbar = () => {
 
       <div className="absolute left-1/2 -translate-x-1/2">
         <Link to="/billing" className="text-xl font-bold text-[var(--text-primary)] hover:opacity-80 transition-opacity">
-          Codeven
+          SPREN
         </Link>
       </div>
 

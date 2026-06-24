@@ -1,6 +1,18 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 const StockModal = ({ isOpen, onClose, title, children }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -12,7 +24,7 @@ const StockModal = ({ isOpen, onClose, title, children }) => {
       />
       
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className={`relative bg-white rounded-2xl shadow-2xl ${title === 'Bill History' ? 'max-w-4xl' : 'max-w-2xl'} w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">{title}</h2>

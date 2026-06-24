@@ -130,72 +130,105 @@ const generateInvoice = async (req, res) => {
 
     doc.pipe(res);
 
-    doc
-      .fillColor("#444444")
-      .fontSize(20)
-      .text("Spren", 50, 57)
-      .fontSize(10)
-      .text("123 Main Street", 200, 65, { align: "right" })
-      .text("New York, NY, 10025", 200, 80, { align: "right" })
-      .moveDown();
+    doc.lineWidth(1.5).strokeColor('#166534').roundedRect(50, 45, 36, 36, 6).stroke();
+    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(16).text('Rx', 50, 55, { width: 36, align: 'center' });
 
-    doc.fillColor("#000000").fontSize(20).text("Invoice", 50, 160);
+    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(16).text('Spren Pharmacy', 98, 45);
+    doc.fillColor('#6b7280').font('Helvetica').fontSize(8.5)
+      .text('123 Main Street, New York, NY 10025', 98, 63)
+      .text('Phone: +91 99999 88888 | support@spren.com', 98, 73);
 
-    doc
-      .fontSize(10)
-      .text(`Invoice Number: ${sale.invoiceNumber}`, 50, 200)
-      .text(
-        `Invoice Date: ${new Date(sale.createdAt).toLocaleDateString()}`,
-        50,
-        215
-      )
-      .text(`Balance Due: Rs. ${sale.totalAmount}`, 50, 130, { align: "right" });
+    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(20).text('INVOICE', 400, 43, { align: 'right', width: 145 });
+    doc.fillColor('#4b5563').font('Helvetica').fontSize(9)
+      .text(`Invoice No: ${sale.invoiceNumber}`, 400, 65, { align: 'right', width: 145 })
+      .text(`Date: ${new Date(sale.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 400, 77, { align: 'right', width: 145 });
 
-    doc
-      .text(`Bill To: ${sale.customer.name}`, 300, 200)
-      .text(`Mobile: ${sale.customer.mobile}`, 300, 215)
-      .text(`Email: ${sale.customer.email || "N/A"}`, 300, 230)
-      .moveDown();
+    doc.moveTo(50, 100).lineTo(545, 100).lineWidth(1).strokeColor('#e5e7eb').stroke();
 
-    let i,
-      invoiceTableTop = 330;
-    doc.font("Helvetica-Bold");
+    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9.5).text('BILL TO', 50, 115);
+    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11.5).text(sale.customer.name, 50, 130);
+    doc.fillColor('#4b5563').font('Helvetica').fontSize(9)
+      .text(`Phone: +91 ${sale.customer.mobile}`, 50, 146)
+      .text(`Email: ${sale.customer.email || 'Walk-in customer'}`, 50, 158);
 
-    doc
-      .fontSize(10)
-      .text("Item", 50, invoiceTableTop)
-      .text("Unit Cost", 280, invoiceTableTop, { width: 90, align: "right" })
-      .text("Quantity", 370, invoiceTableTop, { width: 90, align: "right" })
-      .text("Line Total", 0, invoiceTableTop, { align: "right" });
+    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9.5).text('PAYMENT DETAILS', 320, 115);
+    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11.5).text('Paid', 320, 130);
+    doc.fillColor('#4b5563').font('Helvetica').fontSize(9)
+      .text(`Method: ${sale.paymentMethod}`, 320, 146)
+      .text(`Ref ID: #${sale._id.toString().slice(-8).toUpperCase()}`, 320, 158);
 
-    doc
-      .moveTo(50, invoiceTableTop + 20)
-      .lineTo(550, invoiceTableTop + 20)
-      .stroke();
+    doc.moveTo(50, 180).lineTo(545, 180).lineWidth(1).strokeColor('#e5e7eb').stroke();
 
-    doc.font("Helvetica");
-    let position = invoiceTableTop + 30;
+    const tableHeaderY = 195;
+    
+    doc.fillColor('#6b7280').font('Helvetica-Bold').fontSize(8.5);
+    doc.text("ITEMS & DESCRIPTION", 50, tableHeaderY);
+    doc.text("PRICE", 270, tableHeaderY, { width: 80, align: "right" });
+    doc.text("QTY", 360, tableHeaderY, { width: 60, align: "right" });
+    doc.text("TOTAL", 440, tableHeaderY, { width: 100, align: "right" });
+
+    doc.moveTo(50, tableHeaderY + 12).lineTo(545, tableHeaderY + 12).lineWidth(1).strokeColor('#111827').stroke();
+
+    doc.font("Helvetica").fillColor('#1f2937');
+    let position = tableHeaderY + 22;
 
     sale.items.forEach((item) => {
       const positionY = position;
-      const unitLabel = item.unit === "Tablet" ? " Tablet" : " Strip";
+      const unitLabel = item.unit === "Tablet" ? " Tab" : " Strip";
+      
       doc
-        .fontSize(10)
-        .text(`${item.product.name} (${item.unit || "Strip"})`, 50, positionY)
-        .text(`Rs. ${item.price}`, 280, positionY, { width: 90, align: "right" })
-        .text(`${item.quantity}${unitLabel}`, 370, positionY, { width: 90, align: "right" })
-        .text(`Rs. ${item.price * item.quantity}`, 0, positionY, {
-          align: "right",
-        });
+        .fontSize(9.5)
+        .font('Helvetica-Bold').fillColor('#111827')
+        .text(item.product.name, 50, positionY)
+        .font('Helvetica').fontSize(8.5).fillColor('#6b7280')
+        .text(`Unit packaging: ${item.unit || "Strip"}`, 50, positionY + 13);
+        
+      doc
+        .font('Helvetica').fontSize(9.5).fillColor('#374151')
+        .text(`Rs. ${item.price}`, 270, positionY + 4, { width: 80, align: "right" })
+        .text(`${item.quantity}${unitLabel}`, 360, positionY + 4, { width: 60, align: "right" })
+        .font('Helvetica-Bold').fillColor('#111827')
+        .text(`Rs. ${item.price * item.quantity}`, 440, positionY + 4, { width: 100, align: "right" });
 
-      position += 20;
+      doc.moveTo(50, positionY + 28).lineTo(545, positionY + 28).lineWidth(0.5).strokeColor('#f3f4f6').stroke();
+
+      position += 38;
     });
 
-    const subtotalPosition = position + 20;
-    doc.font("Helvetica-Bold");
-    doc
-      .text("Subtotal", 370, subtotalPosition, { width: 90, align: "right" })
-      .text(`Rs. ${sale.totalAmount}`, 0, subtotalPosition, { align: "right" });
+    const summaryY = position + 10;
+    const taxableValue = (sale.totalAmount / 1.18).toFixed(2);
+    const cgst = ((sale.totalAmount - taxableValue) / 2).toFixed(2);
+    const sgst = cgst;
+
+    doc.font("Helvetica").fontSize(9).fillColor('#4b5563')
+      .text("Taxable Value", 350, summaryY, { width: 80, align: "right" })
+      .text("CGST @ 9%", 350, summaryY + 14, { width: 80, align: "right" })
+      .text("SGST @ 9%", 350, summaryY + 28, { width: 80, align: "right" });
+
+    doc.font("Helvetica-Bold").fontSize(9).fillColor('#111827')
+      .text(`Rs. ${taxableValue}`, 440, summaryY, { width: 100, align: "right" })
+      .text(`Rs. ${cgst}`, 440, summaryY + 14, { width: 100, align: "right" })
+      .text(`Rs. ${sgst}`, 440, summaryY + 28, { width: 100, align: "right" });
+
+    const totalBannerY = summaryY + 46;
+    doc.fillColor('#eaf5ed').rect(350, totalBannerY, 195, 28).fill();
+    
+    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(10.5)
+      .text("Grand Total", 365, totalBannerY + 9)
+      .text(`Rs. ${sale.totalAmount}`, 440, totalBannerY + 9, { width: 100, align: "right" });
+
+    const footerY = totalBannerY + 80;
+
+    doc.moveTo(50, footerY - 15).lineTo(545, footerY - 15).lineWidth(1).strokeColor('#e5e7eb').stroke();
+
+    doc.font("Helvetica-Bold").fontSize(8.5).fillColor('#374151')
+      .text("Terms & Conditions:", 50, footerY);
+    doc.font("Helvetica").fontSize(8).fillColor('#6b7280')
+      .text("1. Medicines once sold cannot be returned without a valid batch verification.", 50, footerY + 14)
+      .text("2. Please store medicines as per directed guidelines. Keep out of reach of children.", 50, footerY + 24);
+
+    doc.font("Helvetica-Oblique").fontSize(9.5).fillColor('#166534')
+      .text("Thank you for choosing Spren Pharmacy. Get well soon!", 50, footerY + 50, { align: "center", width: 495 });
 
     doc.end();
   } catch (error) {

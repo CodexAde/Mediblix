@@ -1,9 +1,20 @@
+import { useEffect } from "react";
 import { X, FileText, Table } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const ExportModal = ({ isOpen, onClose, data }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
   if (!isOpen) return null;
 
   const exportToExcel = () => {

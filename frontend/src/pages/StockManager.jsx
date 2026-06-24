@@ -9,6 +9,7 @@ import AddProductForm from '../components/StockManager/AddProductForm';
 import PurchaseOrderForm from '../components/StockManager/PurchaseOrderForm';
 import GenerateReportForm from '../components/StockManager/GenerateReportForm';
 import AddProductChoiceModal from '../components/Inventory/AddProductChoiceModal';
+import BillHistoryModalContent from '../components/StockManager/BillHistoryModalContent';
 
 const StockManager = () => {
   const navigate = useNavigate();
@@ -19,13 +20,12 @@ const StockManager = () => {
     'add-product': 'Add New Product',
     'purchase-order': 'Create Purchase Order',
     'generate-report': 'Ai Analytics Report',
+    'bill-history': 'Bill History',
   };
 
   const handleActionClick = (action) => {
     if (action === 'add-product') {
       setIsChoiceOpen(true);
-    } else if (action === 'bill-history') {
-      navigate('/billing?tab=history');
     } else {
       setActiveModal(action);
     }
@@ -39,6 +39,8 @@ const StockManager = () => {
         return <PurchaseOrderForm onClose={() => setActiveModal(null)} />;
       case 'generate-report':
         return <GenerateReportForm onClose={() => setActiveModal(null)} />;
+      case 'bill-history':
+        return <BillHistoryModalContent onClose={() => setActiveModal(null)} />;
       default:
         return null;
     }

@@ -24,6 +24,7 @@ const Billing = () => {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
   const phoneInputRef = useRef(null);
 
   const [customerBills, setCustomerBills] = useState([]);
@@ -74,6 +75,7 @@ const Billing = () => {
     if (!fileToScan) return;
     setScanFileName(fileToScan.name);
     setIsScanModalOpen(false);
+    setIsScanMinimized(true);
     setScanAnalyzing(true);
     setScanStep(0);
 
@@ -528,11 +530,36 @@ const Billing = () => {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
-      if (e.key === 'F2') {
+      if (e.key === 'F1') {
         e.preventDefault();
         setActiveTab('new-bill');
         setSelectedBill(null);
         clearAll();
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        setActiveTab('new-bill');
+        setSelectedBill(null);
+        setTimeout(() => {
+          phoneInputRef.current?.focus();
+        }, 50);
+      } else if (e.key === 'F3') {
+        e.preventDefault();
+        setActiveTab('new-bill');
+        setSelectedBill(null);
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 50);
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        setActiveTab('new-bill');
+        setSelectedBill(null);
+        scanInputRef.current?.click();
+      } else if (e.key === 'Escape') {
+        setShowBillingModal(false);
+        setShowDraftsModal(false);
+        setShowInvoiceModal(false);
+        setIsScanModalOpen(false);
+        setSelectedBill(null);
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -584,9 +611,8 @@ const Billing = () => {
           <div className="flex items-center gap-3">
             <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-[var(--border-soft)]">
               {[
-                { id: 'new-bill', label: 'New Bill (F2)', icon: ShoppingCart },
-                { id: 'drafts', label: 'Saved Drafts', icon: FileText, count: drafts.length },
-                { id: 'history', label: 'Bill History', icon: Clock }
+                { id: 'new-bill', label: 'New Bill (F1)', icon: ShoppingCart },
+                { id: 'drafts', label: 'Saved Drafts', icon: FileText, count: drafts.length }
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -637,7 +663,7 @@ const Billing = () => {
                           <input
                             ref={phoneInputRef}
                             type="tel"
-                            placeholder="Enter 10-digit phone"
+                            placeholder="Enter 10-digit phone (F2)"
                             value={customerPhone}
                             onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                             onKeyDown={handlePhoneKeyDown}
@@ -687,23 +713,15 @@ const Billing = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={async () => {
-                            const bills = await fetchCustomerBills(customer._id);
-                            if (bills && bills.length > 0) {
-                              setSelectedBill(bills[0]);
-                              setActiveTab('history');
-                            } else {
-                              showToast("No bills found for this customer.", "info");
-                            }
-                          }}
-                          className="px-3 py-1.5 bg-[var(--accent-light)] hover:bg-green-200 text-[var(--accent)] rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
+                          type="button"
+                          onClick={handleOpenLastBill}
+                          className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
                         >
                           Last Bill
                         </button>
                         <button
-                          onClick={() => {
-                            setActiveTab('history');
-                          }}
+                          type="button"
+                          onClick={handleOpenBillHistory}
                           className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
                         >
                           Bill History
@@ -723,8 +741,9 @@ const Billing = () => {
                   <div className="relative">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                     <input
+                      ref={searchInputRef}
                       type="text"
-                      placeholder="Search products by name or Sku..."
+                      placeholder="Search products by name or Sku... (F3)"
                       value={productSearch}
                       onChange={(e) => {
                         setProductSearch(e.target.value);
@@ -778,13 +797,6 @@ const Billing = () => {
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setIsScanModalOpen(true)}
-                        className="flex items-center gap-1.5 px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 hover:border-purple-200 hover:bg-purple-100 rounded text-[10px] font-semibold transition-all duration-300 shadow-sm cursor-pointer"
-                      >
-                        <Camera size={10} className="text-purple-600 animate-pulse" />
-                        Scan Prescription
-                      </button>
                       {cart.length > 0 && (
                         <button 
                           onClick={() => setCart([])}
@@ -801,8 +813,8 @@ const Billing = () => {
                       scanAnalyzing ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
                           <div className="relative">
-                            <div className="w-14 h-14 border-4 border-purple-100 border-t-purple-600 rounded-full animate-spin" />
-                            <Sparkles size={18} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-purple-600" />
+                            <div className="w-14 h-14 border-4 border-green-100 border-t-green-600 rounded-full animate-spin" />
+                            <Sparkles size={18} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-green-600" />
                           </div>
                           <div>
                             <p className="text-sm font-bold text-[var(--text-primary)]">Analyzing Bill...</p>
@@ -818,7 +830,7 @@ const Billing = () => {
                           </div>
                           <div className="w-40 h-1 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-purple-600 transition-all duration-1000"
+                              className="h-full bg-green-600 transition-all duration-1000"
                               style={{ width: `${((scanStep + 1) / 5) * 100}%` }}
                             />
                           </div>
@@ -855,9 +867,9 @@ const Billing = () => {
                               </p>
                             </div>
                             <div className="pt-2">
-                              <label className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-[var(--border-soft)] hover:border-purple-300 hover:text-purple-600 text-[var(--text-secondary)] rounded-lg text-xs font-semibold cursor-pointer transition-all">
-                                <Camera size={12} className="text-purple-600 animate-pulse" />
-                                Scan Prescription
+                              <label className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-[var(--border-soft)] hover:border-green-300 hover:text-green-600 text-[var(--text-secondary)] rounded-lg text-xs font-semibold cursor-pointer transition-all">
+                                <Camera size={12} className="text-green-600 animate-pulse" />
+                                Scan Prescription (F4)
                                 <input
                                   type="file"
                                   accept=".jpg,.jpeg,.png,.pdf"
@@ -965,7 +977,7 @@ const Billing = () => {
                 <div className="flex-1 p-4 flex flex-col justify-between">
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-[var(--text-secondary)]">Subtotal ({totalItems} items)</span>
+                      <span className="text-[var(--text-secondary)]">Taxable value ({totalItems} items)</span>
                       <span className="font-medium">₹{subtotal.toLocaleString()}</span>
                     </div>
                     
@@ -990,12 +1002,12 @@ const Billing = () => {
                     )}
                     
                     <div className="flex justify-between text-sm">
-                      <span className="text-[var(--text-secondary)]">Gst @18%</span>
+                      <span className="text-[var(--text-secondary)]">Gst @ 18%</span>
                       <span className="font-medium">₹{Math.round(gst).toLocaleString()}</span>
                     </div>
                     
                     <div className="border-t border-dashed border-[var(--border-soft)] pt-3 flex justify-between items-center">
-                      <span className="font-bold text-[var(--text-primary)]">Grand Total</span>
+                      <span className="font-bold text-[var(--text-primary)]">Grand total</span>
                       <span className="text-2xl font-bold text-[var(--accent)]">₹{Math.round(total).toLocaleString()}</span>
                     </div>
                   </div>
@@ -1210,11 +1222,19 @@ const Billing = () => {
 
                   <div className="w-full max-w-xs ml-auto space-y-2 border-t border-[var(--border-soft)] pt-4 mb-6">
                     <div className="flex justify-between text-sm">
-                      <span className="text-[var(--text-secondary)]">Subtotal</span>
-                      <span className="font-semibold">₹{selectedBill.totalAmount.toLocaleString()}</span>
+                      <span className="text-[var(--text-secondary)]">Taxable value</span>
+                      <span className="font-semibold">₹{Math.round(selectedBill.totalAmount / 1.18).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[var(--text-secondary)]">Cgst @ 9%</span>
+                      <span className="font-semibold">₹{Math.round((selectedBill.totalAmount - Math.round(selectedBill.totalAmount / 1.18)) / 2).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[var(--text-secondary)]">Sgst @ 9%</span>
+                      <span className="font-semibold">₹{(selectedBill.totalAmount - Math.round(selectedBill.totalAmount / 1.18) - Math.round((selectedBill.totalAmount - Math.round(selectedBill.totalAmount / 1.18)) / 2)).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-base font-bold text-[var(--text-primary)] border-t border-dashed border-[var(--border-soft)] pt-2">
-                      <span>Grand Total</span>
+                      <span>Grand total</span>
                       <span className="text-lg text-green-600 font-bold">₹{selectedBill.totalAmount.toLocaleString()}</span>
                     </div>
                   </div>
@@ -1493,6 +1513,203 @@ const Billing = () => {
           </div>
         </div>
       )}
+      {showBillingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setShowBillingModal(false)}
+          />
+          <div className="relative bg-white border-2 border-green-100 rounded-3xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl shadow-green-100/50 transform transition-all animate-toast overflow-hidden">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100 flex-shrink-0">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <span className="p-1.5 bg-green-50 text-green-600 rounded-lg">
+                    <FileText size={18} />
+                  </span>
+                  {selectedBill ? `Invoice - ${selectedBill.invoiceNumber}` : `${customer?.name}'s Bill History`}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {selectedBill ? 'Detailed summary of selected transaction' : 'List of all past sales transactions'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBillingModal(false)}
+                className="text-gray-400 hover:text-gray-900 transition-colors p-1.5 hover:bg-gray-100 rounded-full cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1">
+              {selectedBill ? (
+                <div className="animate-fade-in flex flex-col h-full">
+                  <div className="flex justify-between items-start mb-4 bg-green-50/50 p-4 rounded-2xl border border-green-50">
+                    <div>
+                      <h3 className="font-bold text-base text-green-700">Spren Pharmacy</h3>
+                      <p className="text-[10px] text-gray-500 mt-1">Invoice Number: {selectedBill.invoiceNumber}</p>
+                      <p className="text-[10px] text-gray-500">Date: {new Date(selectedBill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded text-[10px] font-semibold">Paid</span>
+                      <p className="text-[10px] text-gray-500 mt-2.5">Payment: {selectedBill.paymentMethod}</p>
+                    </div>
+                  </div>
+
+                  <div className="border border-gray-100 rounded-2xl overflow-hidden mb-4">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 text-gray-500 text-[10px] font-semibold border-b border-gray-100">
+                          <th className="px-4 py-2.5">Item</th>
+                          <th className="px-4 py-2.5 text-right">Price</th>
+                          <th className="px-4 py-2.5 text-center">Quantity</th>
+                          <th className="px-4 py-2.5 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 text-xs">
+                        {selectedBill.items.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/50">
+                            <td className="px-4 py-2.5 font-medium text-gray-900">
+                              {item.product?.name || "Deleted Product"} {item.unit && `(${item.unit})`}
+                            </td>
+                            <td className="px-4 py-2.5 text-right text-gray-500">
+                              ₹{item.price.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-2.5 text-center font-medium text-gray-900">
+                              {item.quantity} {item.unit === 'Tablet' ? 'Tablets' : 'Strips'}
+                            </td>
+                            <td className="px-4 py-2.5 text-right font-semibold text-gray-900">
+                              ₹{(item.price * item.quantity).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="w-full max-w-xs ml-auto space-y-1.5 border-t border-gray-100 pt-3 mb-4">
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Taxable value</span>
+                      <span className="font-semibold text-gray-900">₹{Math.round(selectedBill.totalAmount / 1.18).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Cgst @ 9%</span>
+                      <span className="font-semibold text-gray-900">₹{Math.round((selectedBill.totalAmount - Math.round(selectedBill.totalAmount / 1.18)) / 2).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Sgst @ 9%</span>
+                      <span className="font-semibold text-gray-900">₹{(selectedBill.totalAmount - Math.round(selectedBill.totalAmount / 1.18) - Math.round((selectedBill.totalAmount - Math.round(selectedBill.totalAmount / 1.18)) / 2)).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold text-gray-900 border-t border-dashed border-gray-100 pt-2">
+                      <span>Grand total</span>
+                      <span className="text-base text-green-600 font-bold">₹{selectedBill.totalAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-auto pt-3 border-t border-gray-100">
+                    {!isLastBillView && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBill(null)}
+                        className="px-3.5 py-1.5 bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                      >
+                        Back to List
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handlePrintPastInvoice(selectedBill._id)}
+                      className="px-3.5 py-1.5 bg-gray-50 border border-gray-200 hover:border-green-600 text-gray-700 hover:text-green-700 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1 ml-auto"
+                    >
+                      <Printer size={12} />
+                      Print
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadPastInvoice(selectedBill._id, selectedBill.invoiceNumber)}
+                      className="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <Download size={12} />
+                      Download PDF
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="animate-fade-in flex flex-col h-full">
+                  {loadingBills ? (
+                    <div className="flex-1 flex flex-col items-center justify-center py-12">
+                      <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : customerBills.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-gray-500 py-12">
+                      <FileText size={36} className="text-gray-300 mb-2" />
+                      <p className="text-sm font-medium">No past bills found for this customer.</p>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-100 rounded-2xl overflow-hidden">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50 text-gray-500 text-xs font-semibold border-b border-gray-100">
+                            <th className="px-4 py-3">Invoice</th>
+                            <th className="px-4 py-3">Date</th>
+                            <th className="px-4 py-3">Items</th>
+                            <th className="px-4 py-3">Payment</th>
+                            <th className="px-4 py-3 text-right">Amount</th>
+                            <th className="px-4 py-3 text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 text-xs">
+                          {customerBills.map((bill) => (
+                            <tr key={bill._id} className="hover:bg-gray-50/50">
+                              <td className="px-4 py-3 font-semibold text-gray-900">
+                                {bill.invoiceNumber}
+                              </td>
+                              <td className="px-4 py-3 text-gray-500">
+                                {new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="px-4 py-3 text-gray-500 max-w-xs truncate">
+                                {bill.items.map(item => item.product?.name || "Deleted Product").join(', ')}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-medium">
+                                  {bill.paymentMethod}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-right font-bold text-green-600">
+                                ₹{bill.totalAmount.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedBill(bill)}
+                                  className="p-1.5 bg-gray-50 border border-gray-200 hover:border-green-600 text-gray-700 hover:text-green-700 rounded-lg transition-all cursor-pointer"
+                                >
+                                  <Eye size={12} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      <input
+        ref={scanInputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.pdf"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleScanBill(e.target.files[0]);
+          }
+        }}
+        className="hidden"
+      />
     </div>
   );
 };

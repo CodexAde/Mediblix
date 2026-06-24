@@ -106,7 +106,7 @@ const LoginPage = () => {
           {/* Simple Codevern Branding */}
           <div className="mt-12 text-center">
              <p className="text-[11px] font-medium text-gray-400 tracking-wide uppercase">
-               Powered by <span className="text-green-600 font-black">Codevern</span>
+               Powered by <span className="text-green-600 font-black">Spren</span>
              </p>
           </div>
         </div>

@@ -1,7 +1,18 @@
+import { useEffect } from "react";
 import { X, Sparkles, Edit3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const AddPurchaseOrderChoiceModal = ({ isOpen, onClose, onManualSelect }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
   const navigate = useNavigate();
 
   if (!isOpen) return null;

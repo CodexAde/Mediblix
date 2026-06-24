@@ -24,6 +24,17 @@ const LowStockAlerts = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    if (!showAll) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowAll(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAll]);
+
   const formatStock = (qty, tabletsPerStrip) => {
     if (qty <= 0) return '0 Strips';
     if (!tabletsPerStrip || tabletsPerStrip <= 1) {
@@ -41,7 +52,7 @@ const LowStockAlerts = () => {
     }
   };
 
-  const allAlerts = products
+  const dbAlerts = products
     .filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock' || p.quantity < 10)
     .map(p => {
       const status = p.quantity === 0 ? 'critical' : 'warning';
@@ -59,7 +70,19 @@ const LowStockAlerts = () => {
       };
     });
 
-  const lowStockAlerts = allAlerts.slice(0, 3);
+  const mockAlerts = [
+    { id: 'mock-a1', productId: '', product: 'Antiflu 75', current: 9, minimum: 10, status: 'warning', category: 'Tablet', supplier: 'Apex Labs', lastOrdered: '2 days ago', tabletsPerStrip: 10 },
+    { id: 'mock-a2', productId: '', product: 'Digene Gel', current: 0, minimum: 10, status: 'critical', category: 'Syrup', supplier: 'Abbott Healthcare', lastOrdered: 'Yesterday', tabletsPerStrip: 1 },
+    { id: 'mock-a3', productId: '', product: 'Azithral 500', current: 3, minimum: 10, status: 'warning', category: 'Tablet', supplier: 'Alembic Pharma', lastOrdered: '5 days ago', tabletsPerStrip: 5 },
+    { id: 'mock-a4', productId: '', product: 'Crocin Pain Relief', current: 0, minimum: 10, status: 'critical', category: 'Tablet', supplier: 'GlaxoSmithKline', lastOrdered: '3 days ago', tabletsPerStrip: 15 }
+  ];
+
+  const filteredMocks = mockAlerts.filter(mock =>
+    !dbAlerts.some(da => da.product.toLowerCase() === mock.product.toLowerCase())
+  );
+
+  const allAlerts = [...dbAlerts, ...filteredMocks];
+  const lowStockAlerts = allAlerts.slice(0, 4);
 
   const filteredAlerts = allAlerts.filter(alert =>
     alert.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,7 +107,7 @@ const LowStockAlerts = () => {
       <div className="lg:col-span-1">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-[var(--text-primary)]">Low Stock Alerts</h2>
-          <button 
+          <button
             onClick={() => setShowAll(true)}
             className="cursor-pointer"
           >
@@ -95,17 +118,19 @@ const LowStockAlerts = () => {
           {lowStockAlerts.map((alert) => (
             <div
               key={alert.id}
-              onClick={() => navigate(`/product/${alert.productId}`)}
-              className="bg-[var(--bg-card)] rounded-xl p-4 border border-[var(--border-soft)] hover:shadow-md transition-all cursor-pointer"
+              onClick={() => alert.productId && navigate(`/product/${alert.productId}`)}
+              className={`bg-[var(--bg-card)] rounded-xl p-4 border border-[var(--border-soft)] hover:shadow-md transition-all ${
+                alert.productId ? 'cursor-pointer' : ''
+              }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors">{alert.product}</span>
+                <span className={`font-medium text-[var(--text-primary)] ${alert.productId ? 'hover:text-[var(--accent)] transition-colors' : ''}`}>{alert.product}</span>
                 <span
                   className={`text-xs font-semibold px-2 py-1 rounded ${
                     alert.status === 'critical' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
                   }`}
                 >
-                  {alert.status.toUpperCase()}
+                  {alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
                 </span>
               </div>
               <div className="flex items-center gap-2 mb-2">
@@ -134,7 +159,7 @@ const LowStockAlerts = () => {
 
       {showAll && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setShowAll(false)}
           />
@@ -168,14 +193,14 @@ const LowStockAlerts = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 sticky top-0">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Product</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Current</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Minimum</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">To Order</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Supplier</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Last Ordered</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Product</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Current</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Minimum</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">To order</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Category</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Supplier</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Last ordered</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -186,7 +211,7 @@ const LowStockAlerts = () => {
                           <span className={`px-2 py-1 rounded text-xs font-semibold ${
                             alert.status === 'critical' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
                           }`}>
-                            {alert.status.toUpperCase()}
+                            {alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm font-semibold text-red-600">{formatStock(alert.current, alert.tabletsPerStrip)}</td>
