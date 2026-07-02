@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, Sparkles, Plus, Trash2, Check, AlertCircle, Minimize2, Maximize2, Undo2, Redo2, X } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Sparkles, Plus, Trash2, Check, AlertCircle, Minimize2, Maximize2, Undo2, Redo2, X, Mic, Volume2, Play, Pause, StopCircle } from "lucide-react";
 import aiService from "../services/aiService";
 import productService from "../services/productService";
 import importHistoryService from "../services/importHistoryService";
@@ -41,6 +41,194 @@ const AIImport = () => {
 
   const [suggestions, setSuggestions] = useState({});
   const debounceTimers = useRef({});
+
+  const [activeScanTab, setActiveScanTab] = useState("document");
+  const [audioRecordings, setAudioRecordings] = useState([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [showMicScreen, setShowMicScreen] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [playingRecordingId, setPlayingRecordingId] = useState(null);
+
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+  const audioPreviewRef = useRef(null);
+
+  const [activeInputRowIndex, setActiveInputRowIndex] = useState(null);
+
+  const getProductSuggestions = (queryText) => {
+    if (!queryText) return [];
+    const query = queryText.toLowerCase();
+    return existingProducts.filter((p) => {
+      const name = p.name.toLowerCase();
+      const sku = p.sku.toLowerCase();
+      return name.includes(query) || sku.includes(query);
+    }).slice(0, 5);
+  };
+
+  useEffect(() => {
+    setFile(null);
+    setAudioRecordings([]);
+    setShowMicScreen(false);
+    setIsRecording(false);
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+      audioPreviewRef.current = null;
+    }
+    setPlayingRecordingId(null);
+  }, [activeScanTab]);
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+      }
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const options = { mimeType: 'audio/webm' };
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, options);
+      } catch (e) {
+        recorder = new MediaRecorder(stream);
+      }
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const url = URL.createObjectURL(audioBlob);
+        setAudioRecordings((prev) => [
+          ...prev,
+          {
+            id: `rec-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            name: `recorded_bill_${prev.length + 1}.webm`,
+            blob: audioBlob,
+            url: url
+          }
+        ]);
+        setShowMicScreen(false);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      showToast("Could not access microphone.", "error");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    }
+  };
+
+  const handleRemoveRecording = (id) => {
+    setAudioRecordings((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      if (playingRecordingId === id) {
+        if (audioPreviewRef.current) {
+          audioPreviewRef.current.pause();
+          audioPreviewRef.current = null;
+        }
+        setPlayingRecordingId(null);
+      }
+      return next;
+    });
+  };
+
+  const toggleRecordingPlayback = (rec) => {
+    if (playingRecordingId === rec.id) {
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+      }
+      setPlayingRecordingId(null);
+    } else {
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+      }
+      const audio = new Audio(rec.url);
+      audio.onended = () => {
+        setPlayingRecordingId(null);
+        audioPreviewRef.current = null;
+      };
+      audioPreviewRef.current = audio;
+      audio.play();
+      setPlayingRecordingId(rec.id);
+    }
+  };
+
+  const handleAddNewRecordingClick = () => {
+    setShowMicScreen(true);
+    startRecording();
+  };
+
+  const handleAnalyzeMultipleRecordings = async () => {
+    if (audioRecordings.length === 0) return;
+    setAnalyzing(true);
+    setAnalysisStep(0);
+    setError(null);
+
+    try {
+      const base64Files = await Promise.all(
+        audioRecordings.map((rec) => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64Data = reader.result.split(',')[1];
+              resolve({
+                fileData: base64Data,
+                mimeType: rec.blob.type || 'audio/webm'
+              });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(rec.blob);
+          });
+        })
+      );
+
+      const result = await aiService.parseInvoice({ files: base64Files });
+
+      if (Array.isArray(result)) {
+        setItems(result);
+        setHistory([JSON.parse(JSON.stringify(result))]);
+        setHistoryIndex(0);
+        showToast("Voice Recordings Parsed Successfully");
+      } else {
+        setError("Failed to parse recordings structure.");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to analyze recordings.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -282,6 +470,9 @@ const AIImport = () => {
 
   const handleFieldBlur = () => {
     updateHistory(items);
+    setTimeout(() => {
+      setActiveInputRowIndex(null);
+    }, 180);
   };
 
   const handleRemoveItem = (index) => {
@@ -427,69 +618,282 @@ const AIImport = () => {
         )}
 
         {items.length === 0 && !analyzing && !backgroundAnalyzing ? (
-          <div className="grid grid-cols-1 gap-6">
-            <div
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 ${
-                dragActive
-                  ? "border-[var(--accent)] bg-green-50/50 shadow-inner"
-                  : "border-[var(--border-soft)] bg-[var(--bg-card)] hover:border-[var(--accent)]"
-              }`}
-            >
-              <div className="max-w-md mx-auto space-y-4">
-                <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto text-[var(--accent)]">
-                  <Upload size={32} />
+          <div className="grid grid-cols-1 gap-4">
+            
+            <div className="flex items-center gap-1.5 p-1 bg-gray-50 border border-gray-150 rounded-2xl w-fit mx-auto mb-2 font-sans">
+              <button
+                type="button"
+                onClick={() => setActiveScanTab('document')}
+                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                  activeScanTab === 'document'
+                    ? 'bg-white text-green-700 shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Upload size={13} />
+                Document Scan
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveScanTab('voice')}
+                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                  activeScanTab === 'voice'
+                    ? 'bg-green-600 text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Mic size={13} className={activeScanTab === 'voice' ? '' : 'text-green-600 animate-pulse'} />
+                Voice Dictation
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveScanTab('audio-file')}
+                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                  activeScanTab === 'audio-file'
+                    ? 'bg-white text-green-700 shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Volume2 size={13} />
+                Upload Audio
+              </button>
+            </div>
+
+            {activeScanTab === 'document' && (
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 ${
+                  dragActive
+                    ? "border-[var(--accent)] bg-green-50/50 shadow-inner"
+                    : "border-gray-200 bg-white hover:border-green-600"
+                }`}
+              >
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto text-[var(--accent)]">
+                    <Upload size={32} />
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold text-[var(--text-primary)]">
+                      Drag And Drop Invoice Document Here
+                    </p>
+                    <p className="text-sm text-[var(--text-secondary)] mt-1">
+                      Supports JPEG, PNG images and PDF invoice sheets
+                    </p>
+                  </div>
+                  <div>
+                    <label className="inline-flex items-center justify-center px-5 py-2.5 bg-green-600 text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer shadow-md">
+                      Browse File
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  {file && (
+                    <div className="p-3 bg-white border border-gray-150 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <FileText size={20} className="text-green-600 flex-shrink-0" />
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setFile(null)}
+                        className="text-xs text-red-500 hover:underline cursor-pointer flex-shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-lg font-semibold text-[var(--text-primary)]">
-                    Drag And Drop Invoice Document Here
-                  </p>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    Supports JPEG, PNG images and PDF invoice sheets
-                  </p>
-                </div>
-                <div>
-                  <label className="inline-flex items-center justify-center px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer shadow-lg shadow-green-950/10">
-                    Browse File
-                    <input
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.pdf"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                {file && (
-                  <div className="p-3 bg-white border border-[var(--border-soft)] rounded-xl flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <FileText size={20} className="text-[var(--accent)]" />
-                      <div className="text-left">
-                        <p className="text-sm font-medium text-[var(--text-primary)] truncate max-w-[200px]">
-                          {file.name}
+              </div>
+            )}
+
+            {activeScanTab === 'voice' && (
+              <div className="border border-gray-200 bg-white rounded-3xl p-8 text-center min-h-[260px] flex flex-col justify-center items-center">
+                <div className="w-full max-w-sm">
+                  {isRecording ? (
+                    <div className="flex flex-col items-center justify-center py-6 space-y-4 font-sans">
+                      <div className="relative flex items-center justify-center">
+                        <span className="absolute w-20 h-20 bg-red-100 rounded-full animate-ping opacity-75" />
+                        <button
+                          type="button"
+                          onClick={stopRecording}
+                          className="w-16 h-16 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 hover:scale-105 transition-all shadow-lg cursor-pointer z-10"
+                        >
+                          <span className="w-6 h-6 bg-white rounded" />
+                        </button>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-gray-900">Recording Voice Dictation...</p>
+                        <p className="text-xs text-red-600 font-bold mt-1 font-mono">
+                          {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
                         </p>
-                        <p className="text-xs text-[var(--text-secondary)]">
-                          {(file.size / 1024).toFixed(1)} KB
+                      </div>
+                      <div className="voice-wave-container flex items-end justify-center gap-1 h-6">
+                        <span className="voice-bar"></span>
+                        <span className="voice-bar"></span>
+                        <span className="voice-bar"></span>
+                        <span className="voice-bar"></span>
+                        <span className="voice-bar"></span>
+                      </div>
+                    </div>
+                  ) : (audioRecordings.length === 0 || showMicScreen) ? (
+                    <div className="flex flex-col items-center justify-center py-6 space-y-4 font-sans">
+                      <div className="relative flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={startRecording}
+                          className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 hover:scale-105 transition-all shadow-lg cursor-pointer"
+                        >
+                          <Mic size={28} />
+                        </button>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-gray-900">Start Recording</p>
+                        <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1">
+                          Tap the microphone to dictate medicine names, quantity, price, and category.
+                        </p>
+                      </div>
+                      <div className="bg-green-50 border border-green-100 rounded-xl p-3 max-w-xs text-left">
+                        <p className="text-[10px] uppercase tracking-wider text-green-700 font-bold">Try saying</p>
+                        <p className="text-xs text-green-800 font-medium mt-1 leading-relaxed">
+                          "Paracetamol 500 price 20 quantity 10, Amoxicillin price 50 quantity 5"
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setFile(null)}
-                      className="text-xs text-red-500 hover:underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6 space-y-4 font-sans">
+                      <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
+                        <Volume2 size={24} />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-gray-900">Voice Recordings Ready</p>
+                        <p className="text-xs text-gray-500 mt-1">Review your voice clips before AI analysis</p>
+                      </div>
 
-            {file && (
+                      <div className="w-full max-w-xs space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                        {audioRecordings.map((rec) => (
+                          <div key={rec.id} className="flex items-center gap-3 bg-gray-50 border border-gray-150 px-4 py-2.5 rounded-2xl w-full justify-between font-sans">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRecording(rec.id)}
+                                className="text-gray-400 hover:text-red-600 transition-all cursor-pointer p-1 hover:bg-gray-100 rounded-full flex-shrink-0"
+                              >
+                                <X size={13} />
+                              </button>
+                              <span className="text-xs text-gray-600 font-semibold truncate">{rec.name}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleRecordingPlayback(rec)}
+                              className="p-2 bg-green-600 hover:opacity-90 text-white rounded-full transition-all cursor-pointer flex-shrink-0"
+                            >
+                              {playingRecordingId === rec.id ? <Pause size={14} /> : <Play size={14} />}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center gap-2.5 w-full max-w-xs pt-2">
+                        <button
+                          type="button"
+                          onClick={handleAddNewRecordingClick}
+                          className="flex-1 py-2.5 border border-green-600 text-green-700 hover:bg-green-50 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 font-sans"
+                        >
+                          <Plus size={13} className="stroke-[3]" />
+                          Add Recording
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAnalyzeMultipleRecordings}
+                          className="flex-1 py-2.5 bg-green-600 text-white hover:opacity-90 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm font-sans"
+                        >
+                          <Sparkles size={12} />
+                          Analyze
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeScanTab === 'audio-file' && (
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 ${
+                  dragActive
+                    ? "border-[var(--accent)] bg-green-50/50 shadow-inner"
+                    : "border-gray-200 bg-white hover:border-green-600"
+                }`}
+              >
+                <div className="max-w-md mx-auto space-y-4 font-sans">
+                  <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <Volume2 size={32} />
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold text-gray-900">
+                      Drag And Drop Voice File Here
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Supports MP3, WAV, M4A and WEBM formats
+                    </p>
+                  </div>
+                  <div>
+                    <label className="inline-flex items-center justify-center px-5 py-2.5 bg-green-600 text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer shadow-md">
+                      Browse Audio
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  {file && (
+                    <div className="p-3 bg-white border border-gray-150 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <FileText size={20} className="text-green-600 flex-shrink-0" />
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setFile(null)}
+                        className="text-xs text-red-500 hover:underline cursor-pointer flex-shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {file && activeScanTab !== 'voice' && (
               <button
                 onClick={handleAnalyze}
-                className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl hover:opacity-95 transition-all font-semibold flex items-center justify-center gap-2 shadow-lg shadow-green-950/10 cursor-pointer"
+                className="w-full py-4 bg-green-600 text-white rounded-2xl hover:opacity-95 transition-all font-semibold flex items-center justify-center gap-2 shadow-md cursor-pointer shadow-green-950/10"
               >
                 <Sparkles size={20} />
                 Start AI Analysis
@@ -500,15 +904,6 @@ const AIImport = () => {
 
         {(analyzing || (backgroundAnalyzing && !isMinimized)) && (
           <div className="bg-[var(--bg-card)] border border-green-200 rounded-3xl p-16 flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
-            <div className="absolute top-4 right-4 z-20">
-              <button
-                onClick={() => setIsMinimized(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:border-[var(--accent)] transition-all cursor-pointer"
-              >
-                <Minimize2 size={14} />
-                Minimize
-              </button>
-            </div>
             <div className="relative">
               <div className="w-20 h-20 border-4 border-green-100 border-t-[var(--accent)] rounded-full animate-spin" />
               <Sparkles size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[var(--accent)]" />
@@ -661,13 +1056,45 @@ const AIImport = () => {
                           }`}
                         >
                           <td className="p-3">
-                            <input
-                              type="text"
-                              value={item.name}
-                              onChange={(e) => handleFieldChange(index, "name", e.target.value)}
-                              onBlur={handleFieldBlur}
-                              className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                            />
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={item.name}
+                                onChange={(e) => handleFieldChange(index, "name", e.target.value)}
+                                onFocus={() => setActiveInputRowIndex(index)}
+                                onBlur={handleFieldBlur}
+                                className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                              />
+                              {activeInputRowIndex === index && item.name.trim().length > 0 && (
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
+                                  {getProductSuggestions(item.name).map((product) => (
+                                    <button
+                                      key={product._id}
+                                      type="button"
+                                      onMouseDown={() => {
+                                        setItems((prev) => {
+                                          const updated = [...prev];
+                                          updated[index].name = product.name;
+                                          updated[index].sku = product.sku;
+                                          if (product.category) updated[index].category = product.category;
+                                          if (product.price) updated[index].price = product.price;
+                                          updateHistory(updated);
+                                          return updated;
+                                        });
+                                        setActiveInputRowIndex(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 hover:bg-green-50 text-xs font-semibold border-b border-gray-100 last:border-b-0 cursor-pointer flex items-center justify-between font-sans"
+                                    >
+                                      <div className="truncate">
+                                        <span className="font-semibold text-gray-800">{product.name}</span>
+                                        <span className="text-[10px] text-gray-400 ml-2 font-mono">({product.sku})</span>
+                                      </div>
+                                      <span className="text-[10px] text-green-700 bg-green-50 px-1.5 py-0.5 rounded font-bold">₹{product.price || 0}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             {nameSuggestion && (
                               <div className="mt-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded inline-block animate-toast">
                                 Matches Existing Catalog Item: {nameSuggestion.name} (Sku: {nameSuggestion.sku})

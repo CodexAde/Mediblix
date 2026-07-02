@@ -1,7 +1,10 @@
 import api from "./api";
 
-const parseInvoice = async (fileData, mimeType) => {
-  const response = await api.post("/ai/parse-invoice", { fileData, mimeType });
+const parseInvoice = async (fileDataOrPayload, mimeType) => {
+  const body = typeof fileDataOrPayload === "object" && fileDataOrPayload.files
+    ? { files: fileDataOrPayload.files }
+    : { fileData: fileDataOrPayload, mimeType };
+  const response = await api.post("/ai/parse-invoice", body);
   return response.data;
 };
 

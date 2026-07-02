@@ -1,17 +1,42 @@
 const parseInvoice = async (req, res) => {
-  const { fileData, mimeType } = req.body;
+  const { fileData, mimeType, files } = req.body;
 
-  if (!fileData || !mimeType) {
-    return res.status(400).json({ message: "File data and mime type are required" });
+  if ((!fileData || !mimeType) && (!files || !Array.isArray(files))) {
+    return res.status(400).json({ message: "File data or files array is required" });
   }
-
-  const cleanMimeType = mimeType.split(';')[0].trim();
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(500).json({ message: "Gemini Api Key is not configured" });
     }
+
+    const parts = [];
+    if (files && Array.isArray(files) && files.length > 0) {
+      for (const file of files) {
+        if (file.fileData && file.mimeType) {
+          const cleanMimeType = file.mimeType.split(';')[0].trim();
+          parts.push({
+            inlineData: {
+              mimeType: cleanMimeType,
+              data: file.fileData,
+            }
+          });
+        }
+      }
+    } else {
+      const cleanMimeType = mimeType.split(';')[0].trim();
+      parts.push({
+        inlineData: {
+          mimeType: cleanMimeType,
+          data: fileData,
+        }
+      });
+    }
+
+    parts.push({
+      text: "You are an expert pharmaceutical invoice and purchase sheet parser. Extract all medicine product items listed in this document or mentioned in this audio recording. Output a JSON array of items, where each item contains exactly these fields: name (string), sku (string), category (string), quantity (number), price (number), expiryDate (string, YYYY-MM-DD or null), packaging (string), tabletsPerStrip (number). Generate clean SKUs if they are missing or invalid (prefix with PHR-, e.g. PHR-101). Categorize them logically (e.g., Analgesics, Antibiotics, Diabetes, Cardiology, Vitamins, Antacids, Antivirals). Only return a raw JSON array inside the text block. If no products can be found, return an empty JSON array: []. Do not include markdown code block characters or any explaining text.",
+    });
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -23,17 +48,7 @@ const parseInvoice = async (req, res) => {
         body: JSON.stringify({
           contents: [
             {
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: cleanMimeType,
-                    data: fileData,
-                  },
-                },
-                {
-                  text: "You are an expert pharmaceutical invoice and purchase sheet parser. Extract all medicine product items listed in this document. Output a JSON array of items, where each item contains exactly these fields: name (string), sku (string), category (string), quantity (number), price (number), expiryDate (string, YYYY-MM-DD or null), packaging (string), tabletsPerStrip (number). Generate clean SKUs if they are missing or invalid (prefix with PHR-, e.g. PHR-101). Categorize them logically (e.g., Analgesics, Antibiotics, Diabetes, Cardiology, Vitamins, Antacids, Antivirals). Only return a raw JSON array inside the text block. If no products can be found, return an empty JSON array: []. Do not include markdown code block characters or any explaining text.",
-                },
-              ],
+              parts,
             },
           ],
         }),
