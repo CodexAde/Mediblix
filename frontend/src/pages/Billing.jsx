@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone, Eye, Save, FileText, AlertTriangle, CheckCircle2, Sparkles, Upload, Minimize2, Maximize2, Camera } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Phone, Package, Printer, Download, X, Check, ShoppingCart, Calculator, Clock, RotateCcw, Banknote, CreditCard, Smartphone, Eye, Save, FileText, AlertTriangle, CheckCircle2, Sparkles, Upload, Minimize2, Maximize2, Camera, Mic, Volume2, Play, Pause, StopCircle } from 'lucide-react';
 import customerService from '../services/customerService';
 import saleService from '../services/saleService';
 import productService from '../services/productService';
@@ -60,6 +60,360 @@ const Billing = () => {
   const [cartDragActive, setCartDragActive] = useState(false);
   const scanInputRef = useRef(null);
 
+  const [activeScanTab, setActiveScanTab] = useState('document');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [audioUrl, setAudioUrl] = useState('');
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [audioDragActive, setAudioDragActive] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+  const audioPreviewRef = useRef(null);
+
+  const [parsedItemsToResolve, setParsedItemsToResolve] = useState([]);
+  const [isResolvingItems, setIsResolvingItems] = useState(false);
+  const [audioRecordings, setAudioRecordings] = useState([]);
+  const [showMicScreen, setShowMicScreen] = useState(false);
+  const [playingRecordingId, setPlayingRecordingId] = useState(null);
+
+  const getSimilarityScore = (s1, s2) => {
+    s1 = s1.toLowerCase().trim();
+    s2 = s2.toLowerCase().trim();
+    if (s1 === s2) return 1.0;
+    if (s1.includes(s2) || s2.includes(s1)) {
+      return Math.min(s1.length, s2.length) / Math.max(s1.length, s2.length);
+    }
+    const m = s1.length;
+    const n = s2.length;
+    const d = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) d[i][0] = i;
+    for (let j = 0; j <= n; j++) d[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(
+          d[i - 1][j] + 1,
+          d[i][j - 1] + 1,
+          d[i - 1][j - 1] + cost
+        );
+      }
+    }
+    const distance = d[m][n];
+    const maxLength = Math.max(m, n);
+    return maxLength === 0 ? 1.0 : 1.0 - distance / maxLength;
+  };
+
+  const findFuzzyMatch = (itemName) => {
+    if (!itemName) return null;
+    let bestMatch = null;
+    let highestScore = 0;
+    for (const p of products) {
+      const score = getSimilarityScore(itemName, p.name);
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = p;
+      }
+    }
+    return highestScore >= 0.70 ? bestMatch : null;
+  };
+
+  const getSuggestions = (itemName) => {
+    if (!itemName) return [];
+    const query = itemName.toLowerCase();
+    return products.filter((p) => {
+      const name = p.name.toLowerCase();
+      const sku = p.sku.toLowerCase();
+      const queryWords = query.split(/\s+/);
+      const nameWords = name.split(/\s+/);
+      const hasWordOverlap = queryWords.some(qw => qw.length > 2 && nameWords.some(nw => nw.includes(qw) || qw.includes(nw)));
+      return name.includes(query) || query.includes(name) || sku.includes(query) || hasWordOverlap || getSimilarityScore(query, name) >= 0.5;
+    }).slice(0, 3);
+  };
+
+  const mergeDuplicateParsedItems = (items) => {
+    const merged = [];
+    items.forEach((item) => {
+      const existing = merged.find((m) => {
+        if (item.matchedProduct && m.matchedProduct) {
+          return m.matchedProduct._id === item.matchedProduct._id;
+        }
+        return !item.matchedProduct && !m.matchedProduct && m.name.toLowerCase() === item.name.toLowerCase();
+      });
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        merged.push({ ...item });
+      }
+    });
+    return merged;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setAudioRecordings(prev => {
+          const newRec = {
+            id: `rec-${Date.now()}`,
+            blob,
+            url,
+            name: `recorded_bill_${prev.length + 1}.webm`
+          };
+          return [...prev, newRec];
+        });
+        setShowMicScreen(false);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      setAudioUrl('');
+      setAudioBlob(null);
+      setRecordingDuration(0);
+      recorder.start();
+      setIsRecording(true);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => {
+          if (prev >= 60) {
+            stopRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      showToast('Could not access microphone. Please check permissions.', 'error');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    }
+  };
+
+  const togglePreviewPlayback = () => {
+    if (!audioUrl) return;
+    if (isPlayingPreview) {
+      audioPreviewRef.current?.pause();
+      setIsPlayingPreview(false);
+    } else {
+      if (!audioPreviewRef.current) {
+        audioPreviewRef.current = new Audio(audioUrl);
+        audioPreviewRef.current.onended = () => {
+          setIsPlayingPreview(false);
+          audioPreviewRef.current = null;
+        };
+      } else if (audioPreviewRef.current.src !== audioUrl) {
+        audioPreviewRef.current.src = audioUrl;
+      }
+      audioPreviewRef.current.play();
+      setIsPlayingPreview(true);
+    }
+  };
+
+  const clearRecording = () => {
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+      audioPreviewRef.current = null;
+    }
+    setAudioUrl('');
+    setAudioBlob(null);
+    setIsPlayingPreview(false);
+    setRecordingDuration(0);
+  };
+
+  const handleAddNewRecordingClick = () => {
+    setShowMicScreen(true);
+    startRecording();
+  };
+
+  const closeScanModal = () => {
+    setIsScanModalOpen(false);
+    setIsResolvingItems(false);
+    setParsedItemsToResolve([]);
+    setAudioRecordings([]);
+    setShowMicScreen(false);
+    setPlayingRecordingId(null);
+    stopRecording();
+    clearRecording();
+  };
+
+  const toggleRecordingPlayback = (rec) => {
+    if (playingRecordingId === rec.id) {
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+      }
+      setPlayingRecordingId(null);
+    } else {
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+      }
+      audioPreviewRef.current = new Audio(rec.url);
+      audioPreviewRef.current.onended = () => {
+        setPlayingRecordingId(null);
+        audioPreviewRef.current = null;
+      };
+      audioPreviewRef.current.play();
+      setPlayingRecordingId(rec.id);
+    }
+  };
+
+  const handleRemoveRecording = (recId) => {
+    setAudioRecordings(prev => prev.filter(r => r.id !== recId));
+  };
+
+  const handleAnalyzeMultipleRecordings = async () => {
+    if (audioRecordings.length === 0) return;
+
+    setIsScanModalOpen(true);
+    setIsScanMinimized(false);
+    setScanAnalyzing(true);
+    setScanStep(0);
+    setScanFileName('Multiple Voice Recordings');
+
+    try {
+      const filePromises = audioRecordings.map((rec) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64Data = reader.result.split(',')[1];
+            resolve({
+              fileData: base64Data,
+              mimeType: rec.blob.type || 'audio/webm'
+            });
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(rec.blob);
+        });
+      });
+
+      const files = await Promise.all(filePromises);
+      const result = await aiService.parseBill({ files });
+
+      if (result && typeof result === 'object') {
+        if (result.customerMobile) {
+          const formattedMobile = result.customerMobile.replace(/\D/g, '').slice(0, 10);
+          if (formattedMobile.length === 10) {
+            setCustomerPhone(formattedMobile);
+            setIsSearching(true);
+            try {
+              const results = await customerService.searchCustomers(formattedMobile);
+              if (results && results.length > 0) {
+                setCustomer(results[0]);
+                setShowNewCustomer(false);
+              } else {
+                setCustomer(null);
+                setShowNewCustomer(true);
+                setNewCustomerName(result.customerName || '');
+              }
+            } catch (err) {
+              console.error(err);
+            } finally {
+              setIsSearching(false);
+            }
+          }
+        }
+
+        if (Array.isArray(result.items) && result.items.length > 0) {
+          const itemsToResolve = result.items.map((item, idx) => {
+            const matched = findFuzzyMatch(item.name);
+            return {
+              id: `parsed-${idx}-${Date.now()}`,
+              name: item.name,
+              quantity: Number(item.quantity) || 1,
+              unit: item.unit || 'Strip',
+              matchedProduct: matched || null,
+              suggestions: matched ? [] : getSuggestions(item.name)
+            };
+          });
+
+          setParsedItemsToResolve(prev => mergeDuplicateParsedItems([...prev, ...itemsToResolve]));
+          setIsResolvingItems(true);
+          setIsScanModalOpen(true);
+          setIsScanMinimized(false);
+          setScanAnalyzing(false);
+        } else {
+          setScanAnalyzing(false);
+          showToast('No medicine details found in the recordings.', 'error');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setScanAnalyzing(false);
+      showToast('Error analyzing voice recordings. Please try again.', 'error');
+    }
+  };
+
+  const handleConfirmResolvedItems = () => {
+    const itemsToAdd = parsedItemsToResolve.filter(item => item.matchedProduct);
+    if (itemsToAdd.length === 0) {
+      showToast('No items selected to add to cart.', 'error');
+      return;
+    }
+
+    setCart((prev) => {
+      const updated = [...prev];
+      itemsToAdd.forEach((item) => {
+        const existingIndex = updated.findIndex((c) => c._id === item.matchedProduct._id);
+        if (existingIndex !== -1) {
+          updated[existingIndex].quantity += item.quantity;
+        } else {
+          updated.push({
+            ...item.matchedProduct,
+            quantity: item.quantity,
+            unit: item.unit
+          });
+        }
+      });
+      return updated;
+    });
+
+    showToast(`Successfully added ${itemsToAdd.length} items to cart.`, 'success');
+    closeScanModal();
+  };
+
+  const handleQuantityChange = (itemId, change) => {
+    setParsedItemsToResolve(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const newQty = Math.max(1, item.quantity + change);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const handleRemoveParsedItem = (itemId) => {
+    setParsedItemsToResolve(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handleMapProduct = (itemId, product) => {
+    setParsedItemsToResolve(prev => prev.map(item => {
+      if (item.id === itemId) {
+        return { ...item, matchedProduct: product };
+      }
+      return item;
+    }));
+  };
+
   useEffect(() => {
     if (!scanAnalyzing) return;
     const interval = setInterval(() => {
@@ -73,11 +427,22 @@ const Billing = () => {
     return () => clearInterval(interval);
   }, [scanAnalyzing]);
 
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+      }
+    };
+  }, []);
+
   const handleScanBill = async (fileToScan) => {
     if (!fileToScan) return;
     setScanFileName(fileToScan.name);
-    setIsScanModalOpen(false);
-    setIsScanMinimized(true);
+    stopRecording();
+    setIsScanMinimized(false);
     setScanAnalyzing(true);
     setScanStep(0);
 
@@ -113,51 +478,23 @@ const Billing = () => {
           }
 
           if (Array.isArray(result.items) && result.items.length > 0) {
-            let matchedCount = 0;
-            let unmatchedCount = 0;
-            const newCartItems = [];
+            const itemsToResolve = result.items.map((item, idx) => {
+              const matched = findFuzzyMatch(item.name);
 
-            result.items.forEach((item) => {
-              const matched = products.find((p) =>
-                (item.sku && p.sku.toLowerCase() === item.sku.toLowerCase()) ||
-                (item.name && p.name.toLowerCase() === item.name.toLowerCase()) ||
-                (item.name && p.name.toLowerCase().includes(item.name.toLowerCase())) ||
-                (item.name && item.name.toLowerCase().includes(p.name.toLowerCase()))
-              );
-
-              if (matched) {
-                newCartItems.push({
-                  ...matched,
-                  quantity: Number(item.quantity) || 1
-                });
-                matchedCount++;
-              } else {
-                unmatchedCount++;
-              }
+              return {
+                id: `parsed-${idx}-${Date.now()}`,
+                name: item.name,
+                quantity: Number(item.quantity) || 1,
+                unit: item.unit || 'Strip',
+                matchedProduct: matched || null,
+                suggestions: matched ? [] : getSuggestions(item.name)
+              };
             });
 
-            if (newCartItems.length > 0) {
-              setCart((prev) => {
-                const updated = [...prev];
-                newCartItems.forEach((newItem) => {
-                  const existingIndex = updated.findIndex((c) => c._id === newItem._id);
-                  if (existingIndex !== -1) {
-                    updated[existingIndex].quantity += newItem.quantity;
-                  } else {
-                    updated.push(newItem);
-                  }
-                });
-                return updated;
-              });
-            }
-
-            if (matchedCount > 0 && unmatchedCount > 0) {
-              showToast(`Matched ${matchedCount} items. ${unmatchedCount} items not found in inventory.`, 'info');
-            } else if (matchedCount > 0) {
-              showToast(`Successfully added ${matchedCount} items to cart.`, 'success');
-            } else {
-              showToast('The data that you uploaded is not a valid prescription or bill.', 'error');
-            }
+            setParsedItemsToResolve(prev => mergeDuplicateParsedItems([...prev, ...itemsToResolve]));
+            setIsResolvingItems(true);
+            setIsScanModalOpen(true);
+            setIsScanMinimized(false);
           } else {
             showToast('The data that you uploaded is not a valid prescription or bill.', 'error');
           }
@@ -176,9 +513,10 @@ const Billing = () => {
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
+    const duration = type === 'error' ? 8000 : 4000;
     setTimeout(() => {
       setToast(null);
-    }, 3000);
+    }, duration);
   };
 
   const saveCurrentAsDraft = () => {
@@ -557,12 +895,25 @@ const Billing = () => {
         e.preventDefault();
         setActiveTab('new-bill');
         setSelectedBill(null);
-        scanInputRef.current?.click();
+        setActiveScanTab('document');
+        setIsScanModalOpen(true);
+      } else if (e.key === 'F5') {
+        e.preventDefault();
+        setActiveTab('new-bill');
+        setSelectedBill(null);
+        setActiveScanTab('voice');
+        setIsScanModalOpen(true);
+      } else if (e.key === 'F6') {
+        e.preventDefault();
+        setActiveTab('new-bill');
+        setSelectedBill(null);
+        setActiveScanTab('audio-file');
+        setIsScanModalOpen(true);
       } else if (e.key === 'Escape') {
         setShowBillingModal(false);
         setShowDraftsModal(false);
         setShowInvoiceModal(false);
-        setIsScanModalOpen(false);
+        closeScanModal();
         setSelectedBill(null);
       }
     };
@@ -841,16 +1192,7 @@ const Billing = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
-                      {cart.length > 0 && (
-                        <button 
-                          onClick={() => setCart([])}
-                          className="text-xs text-red-500 hover:text-red-600 cursor-pointer"
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
+
                   </div>
                   
                   <div className="flex-1 overflow-y-auto">
@@ -901,31 +1243,60 @@ const Billing = () => {
                               : ''
                           }`}
                         >
-                          <div className="max-w-xs space-y-3">
-                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-[var(--accent)]">
-                              <Upload size={20} />
+                          <div className="max-w-xs w-full space-y-2">
+                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-[var(--accent)] flex-shrink-0">
+                              <Upload size={16} />
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-[var(--text-primary)]">No Items In Cart</p>
-                              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                                Search products above or drag & drop a prescription photo here to auto-fill
+                              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-tight">
+                                Search products above, upload a document, or speak to auto-fill items
                               </p>
                             </div>
-                            <div className="pt-2">
-                              <label className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-[var(--border-soft)] hover:border-green-300 hover:text-green-600 text-[var(--text-secondary)] rounded-lg text-xs font-semibold cursor-pointer transition-all">
-                                <Camera size={12} className="text-green-600 animate-pulse" />
-                                Scan Prescription (F4)
-                                <input
-                                  type="file"
-                                  accept=".jpg,.jpeg,.png,.pdf"
-                                  onChange={(e) => {
-                                    if (e.target.files && e.target.files[0]) {
-                                      handleScanBill(e.target.files[0]);
-                                    }
-                                  }}
-                                  className="hidden"
-                                />
-                              </label>
+                            <div className="pt-1 flex flex-col gap-2 font-sans w-full">
+                              <button
+                                type="button"
+                                onClick={() => { setActiveScanTab('document'); setIsScanModalOpen(true); }}
+                                className="w-full px-3 py-2 bg-white border border-gray-200 hover:border-green-600 hover:bg-green-50/10 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer group text-left"
+                              >
+                                <div className="w-7 h-7 bg-gray-50 text-gray-500 group-hover:bg-green-50 group-hover:text-green-600 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors">
+                                  <Upload size={13} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="block text-xs font-bold text-gray-800 truncate">Document Scan (F4)</span>
+                                  <span className="block text-[9px] text-gray-400 font-medium truncate">Upload prescription image or PDF file</span>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => { setActiveScanTab('voice'); setIsScanModalOpen(true); }}
+                                className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white shadow-sm rounded-xl transition-all flex items-center gap-2.5 cursor-pointer text-left"
+                              >
+                                <div className="w-7 h-7 bg-green-500 text-white rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <Mic size={13} className="animate-pulse" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="block text-xs font-bold text-white truncate">Voice Dictation (F5)</span>
+                                  <span className="block text-[9px] text-green-100 font-medium truncate">Dictate live medicines & client details</span>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => { setActiveScanTab('audio-file'); setIsScanModalOpen(true); }}
+                                className="w-full px-3 py-2 bg-white border border-gray-200 hover:border-green-600 hover:bg-green-50/10 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer group text-left"
+                              >
+                                <div className="w-7 h-7 bg-gray-50 text-gray-500 group-hover:bg-green-50 group-hover:text-green-600 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors">
+                                  <Volume2 size={13} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="block text-xs font-bold text-gray-800 truncate">Upload Audio (F6)</span>
+                                  <span className="block text-[9px] text-gray-400 font-medium truncate">Upload an existing voice file</span>
+                                </div>
+                              </button>
+
+                              <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-0.5 text-center block">PRESS KEYBOARD F4, F5, OR F6 TO QUICK LAUNCH</span>
                             </div>
                           </div>
                         </div>
@@ -1402,17 +1773,17 @@ const Billing = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300"
-            onClick={() => setIsScanModalOpen(false)}
+            onClick={closeScanModal}
           />
           <div ref={scanModalRef} className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl transform transition-all animate-toast">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Scan Prescription</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Parse prescription photo using artificial intelligence to auto-fill sale details</p>
+                <h2 className="text-xl font-bold text-gray-900">AI Billing Assistant</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Generate client invoices using document upload or audio voice dictations</p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsScanModalOpen(false)}
+                onClick={closeScanModal}
                 className="text-gray-400 hover:text-gray-900 transition-colors p-1.5 hover:bg-gray-100 rounded-full cursor-pointer"
               >
                 <X size={20} />
@@ -1420,33 +1791,36 @@ const Billing = () => {
             </div>
 
             {scanAnalyzing && !isScanMinimized ? (
-              <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                <div className="absolute top-4 right-4 z-20">
-                  <button
-                    type="button"
-                    onClick={() => setIsScanMinimized(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:border-green-600 hover:text-green-600 transition-all cursor-pointer"
-                  >
-                    <Minimize2 size={14} />
-                    Minimize
-                  </button>
-                </div>
+              <div className="flex flex-col items-center justify-center py-8 space-y-4 font-sans">
                 <div className="relative">
                   <div className="w-16 h-16 border-4 border-green-100 border-t-green-600 rounded-full animate-spin" />
                   <Sparkles size={20} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-green-600" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    Analyzing Prescription Document...
+                    {scanFileName && (scanFileName.endsWith('.mp3') || scanFileName.endsWith('.wav') || scanFileName.endsWith('.m4a') || scanFileName.endsWith('.webm') || scanFileName.endsWith('.ogg') || scanFileName.startsWith('recorded_'))
+                      ? "Analyzing Voice Audio..."
+                      : "Analyzing Prescription Document..."}
                   </h3>
                   <p className="text-xs text-[var(--text-secondary)] mt-1">
-                    {[
-                      "Reading prescription image...",
-                      "Sending data to Ai...",
-                      "Extracting client details...",
-                      "Identifying items in prescription...",
-                      "Processing billing cart..."
-                    ][scanStep]}
+                    {(() => {
+                      const isAudio = scanFileName && (scanFileName.endsWith('.mp3') || scanFileName.endsWith('.wav') || scanFileName.endsWith('.m4a') || scanFileName.endsWith('.webm') || scanFileName.endsWith('.ogg') || scanFileName.startsWith('recorded_'));
+                      return isAudio
+                        ? [
+                            "Processing voice audio...",
+                            "Transcribing speech with Ai...",
+                            "Extracting customer details...",
+                            "Identifying products from speech...",
+                            "Updating your shopping cart..."
+                          ][scanStep]
+                        : [
+                            "Reading prescription image...",
+                            "Sending data to Ai...",
+                            "Extracting client details...",
+                            "Identifying items in prescription...",
+                            "Processing billing cart..."
+                          ][scanStep];
+                    })()}
                   </p>
                 </div>
                 <div className="w-48 h-1 bg-gray-100 rounded-full overflow-hidden">
@@ -1456,62 +1830,400 @@ const Billing = () => {
                   />
                 </div>
               </div>
-            ) : (
-              <div
-                onDragEnter={(e) => { e.preventDefault(); setScanDragActive(true); }}
-                onDragOver={(e) => { e.preventDefault(); setScanDragActive(true); }}
-                onDragLeave={() => setScanDragActive(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setScanDragActive(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    handleScanBill(e.dataTransfer.files[0]);
-                  }
-                }}
-                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
-                  scanDragActive
-                    ? 'border-green-600 bg-green-50/50 shadow-inner'
-                    : 'border-2 border-dashed border-[var(--border-soft)] bg-[var(--bg-card)] hover:border-green-600'
-                }`}
-              >
-                <div className="space-y-4">
-                  <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mx-auto">
-                    <Upload size={24} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">Drag & Drop Prescription Here</p>
-                    <p className="text-xs text-gray-500">Supports Jpeg, Png, or Pdf</p>
-                  </div>
-                  <div className="flex items-center justify-center gap-2">
-                    <label className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-green-600 hover:text-green-600 text-gray-700 rounded-lg transition-all text-xs font-semibold cursor-pointer">
-                      <Upload size={13} />
-                      Add Document
-                      <input
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            handleScanBill(e.target.files[0]);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                    <label className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90 transition-all text-xs font-semibold cursor-pointer">
-                      Select File
-                      <input
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            handleScanBill(e.target.files[0]);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
+            ) : isResolvingItems ? (
+              <div className="space-y-4">
+                <div className="max-h-[350px] overflow-y-auto pr-1">
+                  {parsedItemsToResolve.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4 font-sans">No items to review.</p>
+                  ) : (
+                    parsedItemsToResolve.map((item) => (
+                      <div key={item.id} className="bg-gray-50 border border-gray-150 rounded-2xl p-3.5 mb-3 font-sans">
+                        {item.matchedProduct ? (
+                          <div>
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex items-start gap-2.5">
+                                <div className="w-5 h-5 bg-green-150 text-green-700 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <Check size={11} className="stroke-[3]" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900 leading-snug">{item.matchedProduct.name}</p>
+                                  <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+                                    {item.matchedProduct.sku} • ₹{item.matchedProduct.price} • {item.matchedProduct.packaging || '15 Tablets / Strip'}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveParsedItem(item.id)}
+                                className="text-gray-400 hover:text-red-600 transition-all cursor-pointer p-0.5 rounded hover:bg-gray-100"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                            <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-gray-150">
+                              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Quantity ({item.unit}):</span>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuantityChange(item.id, -1)}
+                                  className="w-5.5 h-5.5 border border-gray-250 text-gray-600 hover:border-green-600 hover:text-green-600 rounded flex items-center justify-center text-xs font-bold transition-all cursor-pointer"
+                                >
+                                  <Minus size={9} className="stroke-[3]" />
+                                </button>
+                                <span className="text-xs font-bold text-gray-800 w-6 text-center">{item.quantity}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuantityChange(item.id, 1)}
+                                  className="w-5.5 h-5.5 border border-gray-250 text-gray-600 hover:border-green-600 hover:text-green-600 rounded flex items-center justify-center text-xs font-bold transition-all cursor-pointer"
+                                >
+                                  <Plus size={9} className="stroke-[3]" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                <div className="w-5 h-5 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <AlertTriangle size={11} className="stroke-[3]" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-bold text-gray-900 leading-snug truncate">"{item.name}"</p>
+                                  <p className="text-[10px] text-amber-600 font-semibold mt-0.5">Not found in inventory</p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveParsedItem(item.id)}
+                                className="text-gray-400 hover:text-red-600 transition-all cursor-pointer p-0.5 rounded hover:bg-gray-100"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                            {item.suggestions && item.suggestions.length > 0 && (
+                              <div className="mt-2.5">
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Did you mean:</span>
+                                <div className="flex flex-wrap gap-1.5 font-sans">
+                                  {item.suggestions.map((p) => (
+                                    <button
+                                      key={p._id}
+                                      type="button"
+                                      onClick={() => handleMapProduct(item.id, p)}
+                                      className="px-2 py-1 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 text-[9px] font-bold rounded-lg transition-all cursor-pointer"
+                                    >
+                                      {p.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <div className="mt-2.5">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Select from inventory:</span>
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  const prod = products.find(p => p._id === e.target.value);
+                                  if (prod) handleMapProduct(item.id, prod);
+                                }}
+                                className="w-full px-2 py-1.5 text-xs bg-white border border-gray-255 rounded-lg text-gray-700 focus:border-green-600 focus:outline-none font-sans cursor-pointer"
+                              >
+                                <option value="">Choose item...</option>
+                                {products.map((p) => (
+                                  <option key={p._id} value={p._id}>
+                                    {p.name} ({p.sku}) - ₹{p.price}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
+                <div className="flex justify-between items-center pt-4 border-t border-gray-100 font-sans">
+                  <button
+                    type="button"
+                    onClick={closeScanModal}
+                    className="px-4 py-2 border border-gray-250 hover:border-gray-300 text-gray-600 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmResolvedItems}
+                    disabled={parsedItemsToResolve.filter(item => item.matchedProduct).length === 0}
+                    className="px-4 py-2 bg-green-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1.5 font-sans"
+                  >
+                    <Check size={13} className="stroke-[3]" />
+                    Add {parsedItemsToResolve.filter(item => item.matchedProduct).length} Items to Cart
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex border-b border-gray-100 mb-6 font-sans">
+                  <button
+                    type="button"
+                    onClick={() => { setActiveScanTab('document'); clearRecording(); }}
+                    className={`flex-1 pb-3 text-center text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      activeScanTab === 'document'
+                        ? 'border-green-600 text-green-600'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    <Upload size={16} />
+                    Document Scan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveScanTab('voice')}
+                    className={`flex-1 pb-3 text-center text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      activeScanTab === 'voice'
+                        ? 'border-green-600 text-green-600'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    <Mic size={16} />
+                    Voice Dictation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setActiveScanTab('audio-file'); clearRecording(); }}
+                    className={`flex-1 pb-3 text-center text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      activeScanTab === 'audio-file'
+                        ? 'border-green-600 text-green-600'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    <Volume2 size={16} />
+                    Upload Audio
+                  </button>
+                </div>
+
+                {activeScanTab === 'document' && (
+                  <div
+                    onDragEnter={(e) => { e.preventDefault(); setScanDragActive(true); }}
+                    onDragOver={(e) => { e.preventDefault(); setScanDragActive(true); }}
+                    onDragLeave={() => setScanDragActive(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setScanDragActive(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        handleScanBill(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                      scanDragActive
+                        ? 'border-green-600 bg-green-50/50 shadow-inner'
+                        : 'border-2 border-dashed border-[var(--border-soft)] bg-[var(--bg-card)] hover:border-green-600'
+                    }`}
+                  >
+                    <div className="space-y-4 font-sans">
+                      <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mx-auto">
+                        <Upload size={24} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Drag & Drop Prescription Here</p>
+                        <p className="text-xs text-gray-500">Supports Jpeg, Png, or Pdf</p>
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <label className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-green-600 hover:text-green-600 text-gray-700 rounded-lg transition-all text-xs font-semibold cursor-pointer">
+                          <Upload size={13} />
+                          Add Document
+                          <input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleScanBill(e.target.files[0]);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                        <label className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:opacity-90 transition-all text-xs font-semibold cursor-pointer">
+                          Select File
+                          <input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleScanBill(e.target.files[0]);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeScanTab === 'voice' && (
+                  <div>
+                    {isRecording ? (
+                      <div className="flex flex-col items-center justify-center py-6 space-y-4 font-sans">
+                        <div className="relative flex items-center justify-center">
+                          <div className="absolute w-24 h-24 bg-red-100 rounded-full animate-ring" />
+                          <button
+                            type="button"
+                            onClick={stopRecording}
+                            className="relative z-10 w-16 h-16 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition-all shadow-lg cursor-pointer animate-pulse"
+                          >
+                            <StopCircle size={28} />
+                          </button>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-red-600 animate-pulse">Recording...</p>
+                          <p className="text-2xl font-mono font-bold text-gray-800 mt-1">
+                            {(() => {
+                              const m = Math.floor(recordingDuration / 60);
+                              const s = recordingDuration % 60;
+                              return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                            })()} / 01:00
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-center gap-1.5 h-8">
+                          <span className="voice-bar"></span>
+                          <span className="voice-bar"></span>
+                          <span className="voice-bar"></span>
+                          <span className="voice-bar"></span>
+                          <span className="voice-bar"></span>
+                        </div>
+                      </div>
+                    ) : (audioRecordings.length === 0 || showMicScreen) ? (
+                      <div className="flex flex-col items-center justify-center py-6 space-y-4 font-sans">
+                        <div className="relative flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={startRecording}
+                            className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 hover:scale-105 transition-all shadow-lg cursor-pointer"
+                          >
+                            <Mic size={28} />
+                          </button>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-gray-900">Start Recording</p>
+                          <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1">
+                            Tap the microphone to dictate medicine names, quantity, and customer mobile details.
+                          </p>
+                        </div>
+                        <div className="bg-green-50 border border-green-100 rounded-xl p-3 max-w-xs text-left">
+                          <p className="text-[10px] uppercase tracking-wider text-green-700 font-bold">Try saying</p>
+                          <p className="text-xs text-green-800 font-medium mt-1 leading-relaxed">
+                            "Paracetamol 2 strips, Ibuprofen 1 strip, for Ramesh mobile 9876543210"
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-6 space-y-4 font-sans">
+                        <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center">
+                          <Volume2 size={24} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-gray-900">Voice Recordings Ready</p>
+                          <p className="text-xs text-gray-500 mt-1">Listen to verify or submit to parse bill</p>
+                        </div>
+
+                        <div className="w-full max-w-xs space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                          {audioRecordings.map((rec) => (
+                            <div key={rec.id} className="flex items-center gap-3 bg-gray-50 border border-gray-150 px-4 py-2.5 rounded-2xl w-full justify-between font-sans">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveRecording(rec.id)}
+                                  className="text-gray-400 hover:text-red-600 transition-all cursor-pointer p-1 hover:bg-gray-100 rounded-full flex-shrink-0"
+                                >
+                                  <X size={13} />
+                                </button>
+                                <span className="text-xs text-gray-600 font-semibold truncate">{rec.name}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => toggleRecordingPlayback(rec)}
+                                className="p-2 bg-green-600 hover:opacity-90 text-white rounded-full transition-all cursor-pointer flex-shrink-0"
+                              >
+                                {playingRecordingId === rec.id ? <Pause size={14} /> : <Play size={14} />}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-2.5 w-full max-w-xs pt-2">
+                          <button
+                            type="button"
+                            onClick={handleAddNewRecordingClick}
+                            className="flex-1 py-2.5 border border-green-600 text-green-700 hover:bg-green-50 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 font-sans"
+                          >
+                            <Plus size={13} className="stroke-[3]" />
+                            Add Recording
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleAnalyzeMultipleRecordings}
+                            className="flex-1 py-2.5 bg-green-600 text-white hover:opacity-90 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm font-sans"
+                          >
+                            <Sparkles size={12} />
+                            Analyze
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeScanTab === 'audio-file' && (
+                  <div
+                    onDragEnter={(e) => { e.preventDefault(); setAudioDragActive(true); }}
+                    onDragOver={(e) => { e.preventDefault(); setAudioDragActive(true); }}
+                    onDragLeave={() => setAudioDragActive(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setAudioDragActive(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        const file = e.dataTransfer.files[0];
+                        if (file.type.startsWith('audio/')) {
+                          handleScanBill(file);
+                        } else {
+                          showToast('Please upload a valid audio file.', 'error');
+                        }
+                      }
+                    }}
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                      audioDragActive
+                        ? 'border-green-600 bg-green-50/50 shadow-inner'
+                        : 'border-2 border-dashed border-[var(--border-soft)] bg-[var(--bg-card)] hover:border-green-600'
+                    }`}
+                  >
+                    <div className="space-y-4 font-sans">
+                      <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mx-auto">
+                        <Volume2 size={24} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Drag & Drop Audio Here</p>
+                        <p className="text-xs text-gray-500">Supports Mp3, Wav, M4a, Webm, or Ogg</p>
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <label className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-green-600 hover:text-green-600 text-gray-700 rounded-lg transition-all text-xs font-semibold cursor-pointer">
+                          <Upload size={13} />
+                          Add Audio File
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleScanBill(e.target.files[0]);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
