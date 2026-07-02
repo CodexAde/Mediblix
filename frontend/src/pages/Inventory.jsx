@@ -48,20 +48,8 @@ const Inventory = () => {
   };
 
   const formatStock = (qty, tabletsPerStrip) => {
-    if (qty <= 0) return '0 Strips';
-    if (!tabletsPerStrip || tabletsPerStrip <= 1) {
-      return `${qty} Strips`;
-    }
-    const totalTablets = Math.round(qty * tabletsPerStrip);
-    const strips = Math.floor(totalTablets / tabletsPerStrip);
-    const tablets = totalTablets % tabletsPerStrip;
-    if (strips > 0 && tablets > 0) {
-      return `${strips} Strips, ${tablets} Tablets`;
-    } else if (strips > 0) {
-      return `${strips} Strips`;
-    } else {
-      return `${tablets} Tablets`;
-    }
+    if (qty <= 0) return '0 Tablets';
+    return `${qty} Tablets`;
   };
 
   const getStatusColor = (status) => {
@@ -153,12 +141,12 @@ const Inventory = () => {
           </div>
         </div>
 
-        {/* Products Table */}
         <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] overflow-hidden">
           {loading ? (
             <div className="p-8 text-center text-[var(--text-secondary)]">Loading inventory...</div>
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto">
+              <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--border-soft)] bg-gray-50">
                   <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
@@ -166,9 +154,10 @@ const Inventory = () => {
                       Product <ArrowUpDown size={14} />
                     </div>
                   </th>
-                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Sku</th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Batch Number</th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">HSN</th>
                   <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Category</th>
-                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Packaging</th>
+                  <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Mfg Date</th>
                   <th className="text-left p-4 font-semibold text-[var(--text-primary)]">Expiry Date</th>
                   <th className="text-left p-4 font-semibold text-[var(--text-primary)]">
                     <div className="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)]">
@@ -204,16 +193,19 @@ const Inventory = () => {
                       </div>
                     </td>
                     <td className="p-4 text-[var(--text-secondary)] font-mono text-sm">{product.sku}</td>
+                    <td className="p-4 text-[var(--text-secondary)] text-sm">{product.hsn || 'N/A'}</td>
                     <td className="p-4">
                       <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">
                         {product.category}
                       </span>
                     </td>
-                    <td className="p-4 text-[var(--text-secondary)] text-sm">{product.packaging || '10 Tablets / Strip'}</td>
+                    <td className="p-4 text-[var(--text-secondary)] text-sm font-sans">
+                      {product.mfgDate ? new Date(product.mfgDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                    </td>
                     <td className="p-4 text-[var(--text-secondary)] text-sm font-sans">
                       {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                     </td>
-                    <td className="p-4 font-semibold text-[var(--text-primary)]">{formatStock(product.quantity, product.tabletsPerStrip)}</td>
+                    <td className="p-4 font-semibold text-[var(--text-primary)]">{formatStock(product.quantity, 1)}</td>
                     <td className="p-4 font-semibold text-[var(--text-primary)]">₹{product.price.toLocaleString('en-IN')}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(product.status)}`}>
@@ -234,7 +226,8 @@ const Inventory = () => {
                 ))}
               </tbody>
             </table>
-          )}
+          </div>
+        )}
           
           {/* Pagination (Static for now) */}
           <div className="p-4 border-t border-[var(--border-soft)] flex items-center justify-between bg-gray-50">

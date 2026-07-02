@@ -78,6 +78,20 @@ const Billing = () => {
   const [showMicScreen, setShowMicScreen] = useState(false);
   const [playingRecordingId, setPlayingRecordingId] = useState(null);
 
+  const [showDirectAddRow, setShowDirectAddRow] = useState(false);
+  const [directAddSearchQuery, setDirectAddSearchQuery] = useState('');
+  const directAddInputRef = useRef(null);
+
+  const filteredProductsForDirectAdd = (queryText) => {
+    if (!queryText) return [];
+    const query = queryText.toLowerCase();
+    return products.filter((p) => {
+      const name = p.name.toLowerCase();
+      const sku = p.sku.toLowerCase();
+      return name.includes(query) || sku.includes(query);
+    }).slice(0, 5);
+  };
+
   const getSimilarityScore = (s1, s2) => {
     s1 = s1.toLowerCase().trim();
     s2 = s2.toLowerCase().trim();
@@ -245,6 +259,16 @@ const Billing = () => {
     startRecording();
   };
 
+
+
+  useEffect(() => {
+    if (showDirectAddRow) {
+      setTimeout(() => {
+        directAddInputRef.current?.focus();
+      }, 80);
+    }
+  }, [showDirectAddRow]);
+
   const closeScanModal = () => {
     setIsScanModalOpen(false);
     setIsResolvingItems(false);
@@ -340,7 +364,7 @@ const Billing = () => {
               id: `parsed-${idx}-${Date.now()}`,
               name: item.name,
               quantity: Number(item.quantity) || 1,
-              unit: item.unit || 'Strip',
+              unit: 'Tablet',
               matchedProduct: matched || null,
               suggestions: matched ? [] : getSuggestions(item.name)
             };
@@ -485,7 +509,7 @@ const Billing = () => {
                 id: `parsed-${idx}-${Date.now()}`,
                 name: item.name,
                 quantity: Number(item.quantity) || 1,
-                unit: item.unit || 'Strip',
+                unit: 'Tablet',
                 matchedProduct: matched || null,
                 suggestions: matched ? [] : getSuggestions(item.name)
               };
@@ -672,32 +696,18 @@ const Billing = () => {
   }, []);
 
   const getItemPrice = (item) => {
-    if (item.unit === 'Tablet') {
-      return Math.round((item.price / (item.tabletsPerStrip || 10)) * 100) / 100;
-    }
     return item.price;
   };
 
   const formatStock = (qty, tabletsPerStrip) => {
-    if (qty <= 0) return '0 Strips';
-    if (!tabletsPerStrip || tabletsPerStrip <= 1) {
-      return `${qty} Strips`;
-    }
-    const totalTablets = Math.round(qty * tabletsPerStrip);
-    const strips = Math.floor(totalTablets / tabletsPerStrip);
-    const tablets = totalTablets % tabletsPerStrip;
-    if (strips > 0 && tablets > 0) {
-      return `${strips} Strips, ${tablets} Tablets`;
-    } else if (strips > 0) {
-      return `${strips} Strips`;
-    } else {
-      return `${tablets} Tablets`;
-    }
+    if (qty <= 0) return '0 Tablets';
+    return `${qty} Tablets`;
   };
 
-  const toggleUnit = (productId, unit) => {
+  const updateItemDiscount = (productId, discountVal) => {
+    const val = Math.max(0, Math.min(100, Number(discountVal) || 0));
     setCart(cart.map(item =>
-      item._id === productId ? { ...item, unit } : item
+      item._id === productId ? { ...item, discount: val } : item
     ));
   };
 
@@ -724,8 +734,9 @@ const Billing = () => {
         items: cart.map(item => ({
           product: item._id,
           quantity: item.quantity,
-          unit: item.unit || 'Strip',
-          price: getItemPrice(item)
+          unit: 'Tablet',
+          price: getItemPrice(item),
+          discount: item.discount || 0
         })),
         paymentMethod,
         invoiceNumber: activeInvoiceNumber
@@ -825,22 +836,36 @@ const Billing = () => {
     : customerBills;
 
   const addToCart = (product) => {
+    const originalProduct = products.find(p => p._id === product._id) || product;
+    if (originalProduct.quantity <= 0) {
+      showToast(`Insufficient stock available for ${originalProduct.name}`, 'error');
+      return;
+    }
     const existing = cart.find(item => item._id === product._id);
     if (existing) {
+      if (existing.quantity >= originalProduct.quantity) {
+        showToast(`Insufficient stock available for ${originalProduct.name}`, 'error');
+        return;
+      }
       setCart(cart.map(item =>
         item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
       ));
     } else {
-      setCart([...cart, { ...product, quantity: 1, unit: 'Strip' }]);
+      setCart([...cart, { ...product, quantity: 1, unit: 'Tablet', discount: 0 }]);
     }
     setProductSearch('');
     setShowSuggestions(false);
   };
 
   const updateQuantity = (productId, delta) => {
+    const originalProduct = products.find(p => p._id === productId);
     setCart(cart.map(item => {
       if (item._id === productId) {
         const newQty = item.quantity + delta;
+        if (delta > 0 && originalProduct && newQty > originalProduct.quantity) {
+          showToast(`Insufficient stock available for ${item.name}`, 'error');
+          return item;
+        }
         return newQty > 0 ? { ...item, quantity: newQty } : item;
       }
       return item;
@@ -852,9 +877,11 @@ const Billing = () => {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.quantity), 0);
-  const discountAmount = (subtotal * discount) / 100;
-  const gst = ((subtotal - discountAmount) * 18) / 100;
-  const total = subtotal - discountAmount + gst;
+  const itemDiscountAmount = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.quantity * (item.discount || 0) / 100), 0);
+  const totalDiscountAmount = itemDiscountAmount;
+  const taxableValue = subtotal - totalDiscountAmount;
+  const gst = (taxableValue * 18) / 100;
+  const total = taxableValue + gst;
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   function clearAll() {
@@ -903,6 +930,7 @@ const Billing = () => {
         setSelectedBill(null);
         setActiveScanTab('voice');
         setIsScanModalOpen(true);
+        startRecording();
       } else if (e.key === 'F6') {
         e.preventDefault();
         setActiveTab('new-bill');
@@ -1163,10 +1191,10 @@ const Billing = () => {
                               </div>
                               <div>
                                 <p className="font-medium text-[var(--text-primary)] text-sm">
-                                  {product.name} <span className="text-xs text-gray-400 font-normal">({product.packaging || '10 Tablets / Strip'})</span>
+                                  {product.name} <span className="text-xs text-gray-400 font-normal">({product.packaging || '1 Tablet'})</span>
                                 </p>
                                 <p className="text-xs text-[var(--text-secondary)]">
-                                  {product.sku} • {formatStock(product.quantity, product.tabletsPerStrip)} in stock • Exp: {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'N/A'}
+                                  {product.sku} • {formatStock(product.quantity, 1)} in stock • Exp: {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'N/A'}
                                 </p>
                               </div>
                             </div>
@@ -1192,7 +1220,36 @@ const Billing = () => {
                         </span>
                       )}
                     </div>
-
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => { setActiveScanTab('document'); setIsScanModalOpen(true); }}
+                        title="Document Scan (F4)"
+                        className="p-1 hover:bg-gray-200 hover:text-[var(--accent)] text-gray-400 rounded transition-all cursor-pointer"
+                      >
+                        <Camera size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveScanTab('voice');
+                          setIsScanModalOpen(true);
+                          startRecording();
+                        }}
+                        title="Voice Dictation (F5)"
+                        className="p-1 hover:bg-gray-200 hover:text-[var(--accent)] text-gray-400 rounded transition-all cursor-pointer"
+                      >
+                        <Mic size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setActiveScanTab('audio-file'); setIsScanModalOpen(true); }}
+                        title="Upload Audio (F6)"
+                        className="p-1 hover:bg-gray-200 hover:text-[var(--accent)] text-gray-400 rounded transition-all cursor-pointer"
+                      >
+                        <Volume2 size={14} />
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="flex-1 overflow-y-auto">
@@ -1304,75 +1361,149 @@ const Billing = () => {
                     ) : (
                       <div className="divide-y divide-[var(--border-soft)]">
                         {cart.map((item, index) => (
-                          <div key={item._id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-all">
-                            <span className="text-xs text-[var(--text-secondary)] w-4">{index + 1}.</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-[var(--text-primary)] text-sm truncate">{item.name}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] text-gray-400 font-medium">({item.packaging || '10 Tablets / Strip'})</span>
-                                {item.expiryDate && (
-                                  <span className="text-[10px] text-red-500 font-semibold font-sans">
-                                    Exp: {new Date(item.expiryDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
-                                  </span>
-                                )}
+                          <div key={item._id} className="flex items-center justify-between gap-1.5 px-2 py-2 hover:bg-gray-50 transition-all border-b border-gray-100 last:border-b-0">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <span className="text-xs text-[var(--text-secondary)] flex-shrink-0 w-3">{index + 1}.</span>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-[var(--text-primary)] text-xs truncate max-w-[120px]">{item.name}</p>
+                                <p className="text-[10px] text-gray-400 font-medium">({item.packaging || '1 Tablet'})</p>
+                                <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 font-medium">₹{getItemPrice(item).toLocaleString()} / Tab</p>
                               </div>
-                              <p className="text-xs text-[var(--text-secondary)] mt-0.5">₹{getItemPrice(item).toLocaleString()} / {item.unit || 'Strip'}</p>
                             </div>
-                            {item.tabletsPerStrip > 1 && (
-                              <div className="flex items-center border border-gray-200 rounded overflow-hidden mr-2 flex-shrink-0">
+                            
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <span className="text-[10px] text-gray-400 font-bold">Disc:</span>
+                              <div className="flex items-center bg-white border border-gray-250 rounded px-1 py-0.5 w-11">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={item.discount || 0}
+                                  onChange={(e) => updateItemDiscount(item._id, e.target.value)}
+                                  onFocus={(e) => e.target.select()}
+                                  className="w-full text-right text-xs focus:outline-none font-bold text-gray-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  placeholder="0"
+                                />
+                                <span className="text-[10px] text-gray-400 font-bold">%</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <span className="text-[10px] text-gray-400 font-bold">Tablets:</span>
+                              <div className="flex items-center gap-0.5 bg-gray-100 rounded p-0.5">
                                 <button
                                   type="button"
-                                  onClick={() => toggleUnit(item._id, 'Strip')}
-                                  className={`px-2 py-0.5 text-[10px] font-semibold transition-all cursor-pointer ${
-                                    item.unit !== 'Tablet'
-                                      ? 'bg-green-600 text-white'
-                                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                                  }`}
+                                  onClick={() => updateQuantity(item._id, -1)}
+                                  className="w-5 h-5 flex items-center justify-center hover:bg-white rounded transition-all cursor-pointer text-gray-600"
                                 >
-                                  Strip
+                                  <Minus size={10} />
                                 </button>
+                                <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
                                 <button
                                   type="button"
-                                  onClick={() => toggleUnit(item._id, 'Tablet')}
-                                  className={`px-2 py-0.5 text-[10px] font-semibold transition-all cursor-pointer ${
-                                    item.unit === 'Tablet'
-                                      ? 'bg-green-600 text-white'
-                                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                                  }`}
+                                  onClick={() => updateQuantity(item._id, 1)}
+                                  className="w-5 h-5 flex items-center justify-center hover:bg-white rounded transition-all cursor-pointer text-gray-600"
                                 >
-                                  Tablet
+                                  <Plus size={10} />
                                 </button>
                               </div>
-                            )}
-                            <div className="flex items-center gap-0.5 bg-gray-100 rounded p-0.5">
-                              <button
-                                type="button"
-                                onClick={() => updateQuantity(item._id, -1)}
-                                className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-all cursor-pointer"
-                              >
-                                <Minus size={12} />
-                              </button>
-                              <span className="w-7 text-center text-sm font-semibold">{item.quantity}</span>
-                              <button
-                                type="button"
-                                onClick={() => updateQuantity(item._id, 1)}
-                                className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-all cursor-pointer"
-                              >
-                                <Plus size={12} />
-                              </button>
                             </div>
-                            <p className="w-20 text-right font-bold text-[var(--accent)] text-sm">
-                              ₹{(getItemPrice(item) * item.quantity).toLocaleString()}
+                            
+                            <p className="w-18 text-right font-bold text-[var(--accent)] text-xs flex-shrink-0">
+                              ₹{(getItemPrice(item) * item.quantity * (1 - (item.discount || 0) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                             <button
                               type="button"
                               onClick={() => removeFromCart(item._id)}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all cursor-pointer"
+                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all cursor-pointer flex-shrink-0"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         ))}
+                        {showDirectAddRow && (
+                          <div className="flex items-center justify-between gap-1.5 px-2 py-2 bg-green-50/30 hover:bg-green-55/40 transition-all border-b border-gray-100 last:border-b-0 animate-toast">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1 relative">
+                              <span className="text-xs text-gray-400 flex-shrink-0 w-3">{cart.length + 1}.</span>
+                              <div className="min-w-0 flex-1 relative">
+                                <input
+                                  type="text"
+                                  ref={directAddInputRef}
+                                  value={directAddSearchQuery}
+                                  placeholder="Type name to add product..."
+                                  onChange={(e) => setDirectAddSearchQuery(e.target.value)}
+                                  onBlur={() => {
+                                    setTimeout(() => {
+                                      setShowDirectAddRow(false);
+                                      setDirectAddSearchQuery('');
+                                    }, 200);
+                                  }}
+                                  className="w-full bg-white border border-green-300 focus:border-green-600 rounded px-1.5 py-0.5 text-xs text-gray-700 focus:outline-none font-semibold shadow-sm"
+                                />
+                                {directAddSearchQuery.trim().length > 0 && (
+                                  <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto font-sans">
+                                    {filteredProductsForDirectAdd(directAddSearchQuery).map((product) => (
+                                      <button
+                                        key={product._id}
+                                        type="button"
+                                        onMouseDown={() => {
+                                          addToCart(product);
+                                          setShowDirectAddRow(false);
+                                          setDirectAddSearchQuery('');
+                                        }}
+                                        className="w-full text-left px-3 py-2 hover:bg-green-50 text-xs font-semibold border-b border-gray-100 last:border-b-0 cursor-pointer flex items-center justify-between"
+                                      >
+                                        <div className="truncate">
+                                          <span className="font-semibold text-gray-800">{product.name}</span>
+                                          <span className="text-[10px] text-gray-400 ml-2 font-mono">({product.sku})</span>
+                                        </div>
+                                        <span className="text-[10px] text-green-700 bg-green-50 px-1.5 py-0.5 rounded font-bold">₹{product.price || 0}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-shrink-0 opacity-50 pointer-events-none">
+                              <span className="text-[10px] text-gray-400 font-bold">Disc:</span>
+                              <div className="flex items-center bg-white border border-gray-255 rounded px-1 py-0.5 w-11">
+                                <span className="text-xs font-bold text-gray-505">0</span>
+                                <span className="text-[10px] text-gray-400 font-bold">%</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-shrink-0 opacity-50 pointer-events-none">
+                              <span className="text-[10px] text-gray-400 font-bold">Tablets:</span>
+                              <div className="flex items-center gap-0.5 bg-gray-100 rounded p-0.5">
+                                <span className="w-6 text-center text-xs font-bold text-gray-505">0</span>
+                              </div>
+                            </div>
+
+                            <p className="w-18 text-right font-semibold text-gray-400 text-xs flex-shrink-0">
+                              ₹0.00
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => { setShowDirectAddRow(false); setDirectAddSearchQuery(''); }}
+                              className="p-1 text-gray-400 hover:text-red-500 rounded flex-shrink-0 cursor-pointer"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        )}
+                        {!showDirectAddRow && (
+                          <div className="p-2 border-t border-gray-100 bg-gray-50/50 flex justify-center">
+                            <button
+                              type="button"
+                              onClick={() => setShowDirectAddRow(true)}
+                              className="px-4 py-1.5 bg-white border border-gray-200 hover:border-green-600 rounded-xl text-xs font-bold text-green-700 hover:bg-green-50/50 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm font-sans"
+                            >
+                              <Plus size={12} className="stroke-[3]" />
+                              Add Item
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1397,23 +1528,12 @@ const Billing = () => {
                       <span className="font-medium">₹{subtotal.toLocaleString()}</span>
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-[var(--text-secondary)]">Discount</span>
-                      <div className="flex items-center gap-1 bg-gray-50 rounded px-2 py-0.5">
-                        <input
-                          type="number"
-                          value={discount}
-                          onChange={(e) => setDiscount(Math.max(0, Math.min(100, Number(e.target.value))))}
-                          className="w-12 px-1 py-0.5 bg-transparent text-right text-sm focus:outline-none font-medium"
-                        />
-                        <span className="text-xs text-[var(--text-secondary)]">%</span>
-                      </div>
-                    </div>
+
                     
-                    {discount > 0 && (
+                    {totalDiscountAmount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
-                        <span>You save</span>
-                        <span className="font-medium">-₹{Math.round(discountAmount).toLocaleString()}</span>
+                        <span>Discount</span>
+                        <span className="font-medium">-₹{Math.round(totalDiscountAmount).toLocaleString()}</span>
                       </div>
                     )}
                     
@@ -1619,16 +1739,24 @@ const Billing = () => {
                         {selectedBill.items.map((item, idx) => (
                           <tr key={idx} className="hover:bg-gray-50/50">
                             <td className="px-4 py-3 font-medium text-[var(--text-primary)]">
-                              {item.product?.name || "Deleted Product"} {item.unit && `(${item.unit})`}
+                              {item.product?.name || "Deleted Product"}
                             </td>
                             <td className="px-4 py-3 text-right text-[var(--text-secondary)]">
                               ₹{item.price.toLocaleString()}
                             </td>
                             <td className="px-4 py-3 text-center font-medium">
-                              {item.quantity} {item.unit === 'Tablet' ? 'Tablets' : 'Strips'}
+                              {item.quantity} Tablets
                             </td>
                             <td className="px-4 py-3 text-right font-semibold text-[var(--text-primary)]">
-                              ₹{(item.price * item.quantity).toLocaleString()}
+                              {item.discount > 0 ? (
+                                <div className="text-right">
+                                  <p className="line-through text-xs text-gray-400">₹{(item.price * item.quantity).toLocaleString()}</p>
+                                  <p className="text-green-600 text-[10px] font-bold">-{item.discount}%</p>
+                                  <p>₹{(item.price * item.quantity * (1 - item.discount / 100)).toLocaleString()}</p>
+                                </div>
+                              ) : (
+                                `₹${(item.price * item.quantity).toLocaleString()}`
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -1848,7 +1976,7 @@ const Billing = () => {
                                 <div>
                                   <p className="text-xs font-bold text-gray-900 leading-snug">{item.matchedProduct.name}</p>
                                   <p className="text-[10px] text-gray-500 font-medium mt-0.5">
-                                    {item.matchedProduct.sku} • ₹{item.matchedProduct.price} • {item.matchedProduct.packaging || '15 Tablets / Strip'}
+                                    {item.matchedProduct.sku} • ₹{item.matchedProduct.price} • {item.matchedProduct.packaging || '1 Tablet'}
                                   </p>
                                 </div>
                               </div>
@@ -1861,7 +1989,7 @@ const Billing = () => {
                               </button>
                             </div>
                             <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-gray-150">
-                              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Quantity ({item.unit}):</span>
+                              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Quantity (Tablets):</span>
                               <div className="flex items-center gap-1.5">
                                 <button
                                   type="button"
@@ -2113,7 +2241,7 @@ const Billing = () => {
                         <div className="bg-green-50 border border-green-100 rounded-xl p-3 max-w-xs text-left">
                           <p className="text-[10px] uppercase tracking-wider text-green-700 font-bold">Try saying</p>
                           <p className="text-xs text-green-800 font-medium mt-1 leading-relaxed">
-                            "Paracetamol 2 strips, Ibuprofen 1 strip, for Ramesh mobile 9876543210"
+                            "Paracetamol 20 tablets, Ibuprofen 10 tablets, for Ramesh mobile 9876543210"
                           </p>
                         </div>
                       </div>
@@ -2312,16 +2440,24 @@ const Billing = () => {
                         {selectedBill.items.map((item, idx) => (
                           <tr key={idx} className="hover:bg-gray-50/50">
                             <td className="px-4 py-2.5 font-medium text-gray-900">
-                              {item.product?.name || "Deleted Product"} {item.unit && `(${item.unit})`}
+                              {item.product?.name || "Deleted Product"}
                             </td>
                             <td className="px-4 py-2.5 text-right text-gray-500">
                               ₹{item.price.toLocaleString()}
                             </td>
                             <td className="px-4 py-2.5 text-center font-medium text-gray-900">
-                              {item.quantity} {item.unit === 'Tablet' ? 'Tablets' : 'Strips'}
+                              {item.quantity} Tablets
                             </td>
                             <td className="px-4 py-2.5 text-right font-semibold text-gray-900">
-                              ₹{(item.price * item.quantity).toLocaleString()}
+                              {item.discount > 0 ? (
+                                <div className="text-right">
+                                  <p className="line-through text-[10px] text-gray-400">₹{(item.price * item.quantity).toLocaleString()}</p>
+                                  <p className="text-green-600 text-[9px] font-bold">-{item.discount}%</p>
+                                  <p>₹{(item.price * item.quantity * (1 - item.discount / 100)).toLocaleString()}</p>
+                                </div>
+                              ) : (
+                                `₹${(item.price * item.quantity).toLocaleString()}`
+                              )}
                             </td>
                           </tr>
                         ))}

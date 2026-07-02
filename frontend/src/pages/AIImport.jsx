@@ -76,6 +76,10 @@ const AIImport = () => {
       audioPreviewRef.current = null;
     }
     setPlayingRecordingId(null);
+
+    if (activeScanTab === "voice") {
+      startRecording();
+    }
   }, [activeScanTab]);
 
   useEffect(() => {
@@ -1029,10 +1033,12 @@ const AIImport = () => {
                   <thead>
                     <tr className="border-b border-[var(--border-soft)] bg-gray-50/70">
                       <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Product Name</th>
-                      <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Sku</th>
+                      <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Batch Number</th>
                       {importType === "inventory" && (
                         <>
+                          <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">HSN</th>
                           <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Category</th>
+                          <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Mfg Date</th>
                           <th className="text-left p-4 font-semibold text-[var(--text-primary)] text-sm">Expiry Date</th>
                         </>
                       )}
@@ -1115,8 +1121,26 @@ const AIImport = () => {
                               <td className="p-3">
                                 <input
                                   type="text"
+                                  value={item.hsn || ""}
+                                  onChange={(e) => handleFieldChange(index, "hsn", e.target.value)}
+                                  onBlur={handleFieldBlur}
+                                  className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="text"
                                   value={item.category || ""}
                                   onChange={(e) => handleFieldChange(index, "category", e.target.value)}
+                                  onBlur={handleFieldBlur}
+                                  className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="date"
+                                  value={item.mfgDate ? item.mfgDate.split('T')[0] : ''}
+                                  onChange={(e) => handleFieldChange(index, "mfgDate", e.target.value)}
                                   onBlur={handleFieldBlur}
                                   className="w-full bg-white border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                                 />

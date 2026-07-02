@@ -30,8 +30,10 @@ const createImportRecord = async (req, res) => {
         product.quantity += Number(item.quantity);
         product.price = Number(item.price);
         if (item.expiryDate) product.expiryDate = item.expiryDate;
-        if (item.packaging) product.packaging = item.packaging;
-        if (item.tabletsPerStrip) product.tabletsPerStrip = Number(item.tabletsPerStrip);
+        if (item.mfgDate) product.mfgDate = item.mfgDate;
+        if (item.hsn) product.hsn = item.hsn;
+        product.packaging = "1 Tablet";
+        product.tabletsPerStrip = 1;
         await product.save();
       } else {
         status = "New";
@@ -42,8 +44,10 @@ const createImportRecord = async (req, res) => {
           quantity: Number(item.quantity),
           price: Number(item.price),
           expiryDate: item.expiryDate || new Date(Date.now() + 365 * 2 * 24 * 60 * 60 * 1000),
-          packaging: item.packaging || "10 Tablets / Strip",
-          tabletsPerStrip: item.tabletsPerStrip !== undefined ? Number(item.tabletsPerStrip) : 10,
+          mfgDate: item.mfgDate || null,
+          hsn: item.hsn || null,
+          packaging: "1 Tablet",
+          tabletsPerStrip: 1,
         });
       }
 

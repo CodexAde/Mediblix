@@ -34,6 +34,14 @@ const productSchema = mongoose.Schema(
       type: Date,
       required: false,
     },
+    mfgDate: {
+      type: Date,
+      required: false,
+    },
+    hsn: {
+      type: String,
+      required: false,
+    },
     packaging: {
       type: String,
       default: "10 Tablets / Strip",

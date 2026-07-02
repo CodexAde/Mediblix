@@ -26,20 +26,8 @@ const ProductDetails = () => {
   }, [id]);
 
   const formatStock = (qty, tabletsPerStrip) => {
-    if (qty <= 0) return '0 Strips';
-    if (!tabletsPerStrip || tabletsPerStrip <= 1) {
-      return `${qty} Strips`;
-    }
-    const totalTablets = Math.round(qty * tabletsPerStrip);
-    const strips = Math.floor(totalTablets / tabletsPerStrip);
-    const tablets = totalTablets % tabletsPerStrip;
-    if (strips > 0 && tablets > 0) {
-      return `${strips} Strips, ${tablets} Tablets`;
-    } else if (strips > 0) {
-      return `${strips} Strips`;
-    } else {
-      return `${tablets} Tablets`;
-    }
+    if (qty <= 0) return '0 Tablets';
+    return `${qty} Tablets`;
   };
 
   const recentOrders = [
@@ -107,8 +95,8 @@ const ProductDetails = () => {
                     <p className="font-medium text-gray-900">{product.category}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Packaging</p>
-                    <p className="font-medium text-gray-900">{product.packaging || '10 Tablets / Strip'}</p>
+                    <p className="text-xs text-gray-500 mb-1">HSN</p>
+                    <p className="font-medium text-gray-900">{product.hsn || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Price</p>
@@ -116,17 +104,19 @@ const ProductDetails = () => {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Current Stock</p>
-                    <p className="font-medium text-green-600">{formatStock(product.quantity, product.tabletsPerStrip)}</p>
+                    <p className="font-medium text-green-600">{formatStock(product.quantity, 1)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Expiry Date</p>
-                    <p className="font-medium text-red-600">
-                      {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                    <p className="text-xs text-gray-500 mb-1">Mfg Date</p>
+                    <p className="font-medium text-gray-900 font-sans">
+                      {product.mfgDate ? new Date(product.mfgDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Tablets Per Strip</p>
-                    <p className="font-medium text-gray-900">{product.tabletsPerStrip || 10}</p>
+                    <p className="text-xs text-gray-500 mb-1">Expiry Date</p>
+                    <p className="font-medium text-red-600 font-sans">
+                      {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                    </p>
                   </div>
                 </div>
               </div>

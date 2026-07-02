@@ -23,9 +23,7 @@ const createSale = async (req, res) => {
           .json({ message: `Product not found: ${item.product}` });
       }
 
-      const orderQty = item.unit === "Tablet" 
-        ? item.quantity / (product.tabletsPerStrip || 10)
-        : item.quantity;
+      const orderQty = item.quantity;
 
       if (product.quantity < orderQty) {
         return res
@@ -37,15 +35,18 @@ const createSale = async (req, res) => {
       await product.save();
 
       const itemPrice = item.price || product.price;
+      const itemDiscount = Number(item.discount) || 0;
+      const itemSubtotal = itemPrice * item.quantity * (1 - itemDiscount / 100);
 
       saleItems.push({
         product: product._id,
         quantity: item.quantity,
         price: itemPrice,
-        unit: item.unit || "Strip",
+        unit: "Tablet",
+        discount: itemDiscount,
       });
 
-      totalAmount += itemPrice * item.quantity;
+      totalAmount += itemSubtotal;
     }
 
     let invoiceNumber = req.body.invoiceNumber;
