@@ -31,6 +31,10 @@ const saleSchema = mongoose.Schema(
           type: Number,
           default: 0,
         },
+        returnedQuantity: {
+          type: Number,
+          default: 0,
+        },
       },
     ],
     totalAmount: {

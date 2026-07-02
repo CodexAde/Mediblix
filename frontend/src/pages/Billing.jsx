@@ -42,7 +42,7 @@ const Billing = () => {
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'new-bill');
 
   useEffect(() => {
-    if (activeTab === 'history') {
+    if (activeTab === 'history' || activeTab === 'returns') {
       if (customer) {
         fetchCustomerBills(customer._id);
       } else {
@@ -81,6 +81,9 @@ const Billing = () => {
   const [showDirectAddRow, setShowDirectAddRow] = useState(false);
   const [directAddSearchQuery, setDirectAddSearchQuery] = useState('');
   const directAddInputRef = useRef(null);
+
+  const [selectedReturnBill, setSelectedReturnBill] = useState(null);
+  const [returnQuantities, setReturnQuantities] = useState({});
 
   const filteredProductsForDirectAdd = (queryText) => {
     if (!queryText) return [];
@@ -876,6 +879,25 @@ const Billing = () => {
     setCart(cart.filter(item => item._id !== productId));
   };
 
+  const handleProcessReturn = async (saleId, itemId) => {
+    const qtyToReturn = returnQuantities[itemId];
+    if (!qtyToReturn || qtyToReturn <= 0) {
+      showToast("Please enter a valid return quantity.", "error");
+      return;
+    }
+
+    try {
+      const updatedSale = await saleService.processReturn(saleId, itemId, qtyToReturn);
+      showToast("Return processed successfully and inventory updated!", "success");
+      setSelectedReturnBill(updatedSale);
+      setReturnQuantities(prev => ({ ...prev, [itemId]: '' }));
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Failed to process return.", "error");
+    }
+  };
+
   const subtotal = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.quantity), 0);
   const itemDiscountAmount = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.quantity * (item.discount || 0) / 100), 0);
   const totalDiscountAmount = itemDiscountAmount;
@@ -1036,7 +1058,8 @@ const Billing = () => {
             <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-[var(--border-soft)]">
               {[
                 { id: 'new-bill', label: 'New Bill (F1)', icon: ShoppingCart },
-                { id: 'drafts', label: 'Saved Drafts', icon: FileText, count: drafts.length }
+                { id: 'drafts', label: 'Saved Drafts', icon: FileText, count: drafts.length },
+                { id: 'returns', label: 'Returns', icon: RotateCcw }
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -1882,6 +1905,173 @@ const Billing = () => {
                                   className="p-1.5 bg-gray-50 border border-[var(--border-soft)] hover:border-green-600 text-gray-700 hover:text-green-700 rounded-lg transition-all cursor-pointer"
                                 >
                                   <Eye size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'returns' && (
+            <div className="h-full bg-white rounded-lg border border-[var(--border-soft)] flex flex-col min-h-0 p-6 overflow-y-auto">
+              {!customer ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] py-12">
+                  <Phone size={36} className="text-gray-300 mb-3" />
+                  <p className="text-sm font-semibold text-gray-700">Select Customer for Returns</p>
+                  <p className="text-xs text-gray-500 mt-1 max-w-sm text-center">
+                    Please search and select a customer above using their phone number to view purchase history and process returns.
+                  </p>
+                </div>
+              ) : selectedReturnBill ? (
+                <div className="flex-1 flex flex-col min-h-0 animate-fade-in">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h3 className="font-bold text-xl text-[var(--accent)]">Process Bill Return</h3>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">Invoice Number: {selectedReturnBill.invoiceNumber}</p>
+                      <p className="text-xs text-[var(--text-secondary)]">Date: {new Date(selectedReturnBill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-md text-xs font-semibold">Completed Sale</span>
+                      <p className="text-xs text-[var(--text-secondary)] mt-2">Customer: {selectedReturnBill.customer ? selectedReturnBill.customer.name : 'Walk-in Customer'}</p>
+                    </div>
+                  </div>
+
+                  <div className="border border-[var(--border-soft)] rounded-xl overflow-hidden mb-6 flex-shrink-0">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 text-[var(--text-secondary)] text-xs font-semibold border-b border-[var(--border-soft)]">
+                          <th className="px-4 py-3">Medicine Name</th>
+                          <th className="px-4 py-3 text-right">Sold Qty</th>
+                          <th className="px-4 py-3 text-right">Returned</th>
+                          <th className="px-4 py-3 text-right">Available Qty</th>
+                          <th className="px-4 py-3 text-center w-48">Return Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-soft)] text-sm">
+                        {selectedReturnBill.items.map((item, idx) => {
+                          const returnedQty = item.returnedQuantity || 0;
+                          const availableQty = item.quantity - returnedQty;
+                          const productName = item.product ? item.product.name : "Deleted Product";
+                          return (
+                            <tr key={idx} className="hover:bg-gray-50/50">
+                              <td className="px-4 py-3 font-semibold text-[var(--text-primary)]">
+                                {productName}
+                              </td>
+                              <td className="px-4 py-3 text-right font-medium">
+                                {item.quantity} Tablets
+                              </td>
+                              <td className="px-4 py-3 text-right font-medium text-red-500">
+                                {returnedQty} Tablets
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold text-green-700">
+                                {availableQty} Tablets
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {availableQty > 0 ? (
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max={availableQty}
+                                      placeholder="Qty"
+                                      value={returnQuantities[item._id] || ''}
+                                      onChange={(e) => {
+                                        const val = Math.max(1, Math.min(availableQty, Number(e.target.value)));
+                                        setReturnQuantities(prev => ({ ...prev, [item._id]: val || '' }));
+                                      }}
+                                      className="w-16 px-1.5 py-1 border border-gray-300 rounded text-xs text-center focus:outline-none focus:border-green-600 font-bold"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleProcessReturn(selectedReturnBill._id, item._id)}
+                                      className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded transition-all cursor-pointer shadow-sm"
+                                    >
+                                      Return
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs font-bold">
+                                    Fully Returned
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-auto pt-4 border-t border-[var(--border-soft)]">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReturnBill(null)}
+                      className="px-4 py-2 bg-gray-50 border border-[var(--border-soft)] hover:border-gray-400 text-gray-700 text-sm font-semibold rounded-lg transition-all cursor-pointer font-sans"
+                    >
+                      Back to Returns List
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-bold text-[var(--text-primary)]">Select Bill to Process Return</h2>
+                  </div>
+                  {loadingBills ? (
+                    <div className="flex-1 flex flex-col items-center justify-center py-12">
+                      <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : customerBills.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] py-12">
+                      <Package size={36} className="text-gray-300 mb-2" />
+                      <p className="text-sm font-medium">No past completed bills found for this customer.</p>
+                    </div>
+                  ) : (
+                    <div className="border border-[var(--border-soft)] rounded-xl overflow-hidden">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50 text-[var(--text-secondary)] text-xs font-semibold border-b border-[var(--border-soft)]">
+                            <th className="px-4 py-3">Invoice</th>
+                            <th className="px-4 py-3">Date</th>
+                            <th className="px-4 py-3 text-right">Items</th>
+                            <th className="px-4 py-3">Payment</th>
+                            <th className="px-4 py-3 text-right">Amount</th>
+                            <th className="px-4 py-3 text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border-soft)] text-sm">
+                          {customerBills.map((bill) => (
+                            <tr key={bill._id} className="hover:bg-gray-50/50">
+                              <td className="px-4 py-4 font-semibold text-[var(--text-primary)]">
+                                {bill.invoiceNumber}
+                              </td>
+                              <td className="px-4 py-4 text-[var(--text-secondary)] font-sans text-xs">
+                                {new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="px-4 py-4 text-right font-medium">
+                                {bill.items.reduce((sum, item) => sum + item.quantity, 0)} Tablets
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                  {bill.paymentMethod}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 text-right font-bold text-green-600">
+                                ₹{bill.totalAmount.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-4 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedReturnBill(bill)}
+                                  className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
+                                >
+                                  Process Return
                                 </button>
                               </td>
                             </tr>

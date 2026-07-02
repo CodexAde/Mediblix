@@ -146,11 +146,15 @@ const generateInvoice = async (req, res) => {
 
     doc.moveTo(50, 100).lineTo(545, 100).lineWidth(1).strokeColor('#e5e7eb').stroke();
 
+    const customerName = sale.customer ? sale.customer.name : 'Walk-in Customer';
+    const customerPhone = sale.customer ? `+91 ${sale.customer.mobile}` : 'N/A';
+    const customerEmail = sale.customer ? (sale.customer.email || 'Walk-in customer') : 'Walk-in customer';
+
     doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9.5).text('BILL TO', 50, 115);
-    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11.5).text(sale.customer.name, 50, 130);
+    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11.5).text(customerName, 50, 130);
     doc.fillColor('#4b5563').font('Helvetica').fontSize(9)
-      .text(`Phone: +91 ${sale.customer.mobile}`, 50, 146)
-      .text(`Email: ${sale.customer.email || 'Walk-in customer'}`, 50, 158);
+      .text(`Phone: ${customerPhone}`, 50, 146)
+      .text(`Email: ${customerEmail}`, 50, 158);
 
     doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9.5).text('PAYMENT DETAILS', 320, 115);
     doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11.5).text('Paid', 320, 130);
@@ -177,10 +181,11 @@ const generateInvoice = async (req, res) => {
       const positionY = position;
       const unitLabel = item.unit === "Tablet" ? " Tab" : " Strip";
       
+      const productName = item.product ? item.product.name : 'Deleted Product';
       doc
         .fontSize(9.5)
         .font('Helvetica-Bold').fillColor('#111827')
-        .text(item.product.name, 50, positionY)
+        .text(productName, 50, positionY)
         .font('Helvetica').fontSize(8.5).fillColor('#6b7280')
         .text(`Unit packaging: ${item.unit || "Strip"}`, 50, positionY + 13);
         
@@ -237,4 +242,45 @@ const generateInvoice = async (req, res) => {
   }
 };
 
-export { createSale, getSales, generateInvoice };
+const processReturn = async (req, res) => {
+  const { itemId, returnQuantity } = req.body;
+  const returnQty = Number(returnQuantity);
+
+  try {
+    const sale = await Sale.findById(req.params.id);
+    if (!sale) {
+      return res.status(404).json({ message: "Sale not found" });
+    }
+
+    const item = sale.items.find(i => i._id.toString() === itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Item not found in this sale" });
+    }
+
+    const availableToReturn = item.quantity - (item.returnedQuantity || 0);
+    if (returnQty <= 0 || returnQty > availableToReturn) {
+      return res.status(400).json({ message: `Invalid return quantity. Max returnable: ${availableToReturn} tablets.` });
+    }
+
+    item.returnedQuantity = (item.returnedQuantity || 0) + returnQty;
+    
+    const product = await Product.findById(item.product);
+    if (product) {
+      product.quantity += returnQty;
+      await product.save();
+    }
+
+    await sale.save();
+
+    const updatedSale = await Sale.findById(sale._id)
+      .populate("customer")
+      .populate("items.product");
+
+    res.json(updatedSale);
+  } catch (error) {
+    console.error("Error processing return:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { createSale, getSales, generateInvoice, processReturn };

@@ -17,8 +17,14 @@ const generateInvoice = async (saleId) => {
   return response.data;
 };
 
+const processReturn = async (saleId, itemId, returnQuantity) => {
+  const response = await api.post(`/sales/${saleId}/return`, { itemId, returnQuantity });
+  return response.data;
+};
+
 export default {
   createSale,
   getSales,
   generateInvoice,
+  processReturn,
 };
