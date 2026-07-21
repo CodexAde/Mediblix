@@ -35,6 +35,7 @@ const Billing = () => {
   const [isLastBillView, setIsLastBillView] = useState(false);
   const [loadingBills, setLoadingBills] = useState(false);
   const [billSearch, setBillSearch] = useState('');
+  const [returnSearchTerm, setReturnSearchTerm] = useState('');
   const [drafts, setDrafts] = useState([]);
   const [showDraftsModal, setShowDraftsModal] = useState(false);
   const [activeInvoiceNumber, setActiveInvoiceNumber] = useState('');
@@ -2149,7 +2150,7 @@ const Billing = () => {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col min-h-0">
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                     <div>
                       <h2 className="text-lg font-bold text-[var(--text-primary)]">Select Bill to Process Return</h2>
                       {customer ? (
@@ -2158,88 +2159,144 @@ const Billing = () => {
                         <p className="text-xs text-gray-500 font-medium mt-0.5">Showing all completed bills across customers</p>
                       )}
                     </div>
+                    <div className="relative w-full sm:w-72">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search invoice (e.g. Inv-0003), customer..."
+                        value={returnSearchTerm}
+                        onChange={(e) => setReturnSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-8 py-2 border border-[var(--border-soft)] rounded-xl focus:outline-none focus:border-green-600 text-xs font-medium bg-gray-50/50 focus:bg-white transition-all"
+                      />
+                      {returnSearchTerm && (
+                        <button
+                          type="button"
+                          onClick={() => setReturnSearchTerm('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {loadingBills ? (
-                    <div className="flex-1 flex flex-col items-center justify-center py-12">
-                      <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  ) : customerBills.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] py-12">
-                      <Package size={36} className="text-gray-300 mb-2" />
-                      <p className="text-sm font-medium">No past completed bills found.</p>
-                    </div>
-                  ) : (
-                    <div className="border border-[var(--border-soft)] rounded-xl overflow-hidden">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50 text-[var(--text-secondary)] text-xs font-semibold border-b border-[var(--border-soft)]">
-                            <th className="px-4 py-3">Invoice</th>
-                            <th className="px-4 py-3">Customer</th>
-                            <th className="px-4 py-3">Date</th>
-                            <th className="px-4 py-3 text-right">Items</th>
-                            <th className="px-4 py-3">Payment</th>
-                            <th className="px-4 py-3 text-right">Total & Refund</th>
-                            <th className="px-4 py-3 text-center">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-soft)] text-sm">
-                          {customerBills.map((bill) => {
-                            const billRefund = bill.items.reduce((sum, item) => {
-                              const retQty = item.returnedQuantity || 0;
-                              const effectivePrice = item.price * (1 - (item.discount || 0) / 100);
-                              return sum + (retQty * effectivePrice);
-                            }, 0);
 
-                            return (
-                              <tr key={bill._id} className="hover:bg-gray-50/50">
-                                <td className="px-4 py-4 font-semibold text-[var(--text-primary)]">
-                                  {bill.invoiceNumber}
-                                </td>
-                                <td className="px-4 py-4 text-[var(--text-secondary)]">
-                                  {bill.customer ? (
-                                    <div>
-                                      <p className="font-semibold text-[var(--text-primary)] text-xs">{bill.customer.name}</p>
-                                      <p className="text-[10px] text-gray-400">+91 {bill.customer.mobile}</p>
-                                    </div>
-                                  ) : (
-                                    <span className="text-xs text-gray-400">Walk-in Customer</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-4 text-[var(--text-secondary)] font-sans text-xs">
-                                  {new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </td>
-                                <td className="px-4 py-4 text-right font-medium">
-                                  {bill.items.reduce((sum, item) => sum + item.quantity, 0)} Tablets
-                                </td>
-                                <td className="px-4 py-4">
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                                    {bill.paymentMethod}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-right">
-                                  <p className="font-bold text-green-600">₹{bill.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                  {billRefund > 0 && (
-                                    <span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold inline-block mt-0.5">
-                                      -₹{billRefund.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Refunded
+                  {(() => {
+                    const filteredReturnBills = customerBills.filter((bill) => {
+                      if (!returnSearchTerm.trim()) return true;
+                      const query = returnSearchTerm.toLowerCase().trim();
+                      const matchInvoice = bill.invoiceNumber?.toLowerCase().includes(query);
+                      const matchCustomerName = bill.customer?.name?.toLowerCase().includes(query);
+                      const matchCustomerMobile = bill.customer?.mobile?.includes(query);
+                      const matchMedicine = bill.items?.some((item) => item.product?.name?.toLowerCase().includes(query));
+                      return matchInvoice || matchCustomerName || matchCustomerMobile || matchMedicine;
+                    });
+
+                    if (loadingBills) {
+                      return (
+                        <div className="flex-1 flex flex-col items-center justify-center py-12">
+                          <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      );
+                    }
+
+                    if (customerBills.length === 0) {
+                      return (
+                        <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] py-12">
+                          <Package size={36} className="text-gray-300 mb-2" />
+                          <p className="text-sm font-medium">No past completed bills found.</p>
+                        </div>
+                      );
+                    }
+
+                    if (filteredReturnBills.length === 0) {
+                      return (
+                        <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] py-12">
+                          <Search size={36} className="text-gray-300 mb-2" />
+                          <p className="text-sm font-medium">No bills match "{returnSearchTerm}"</p>
+                          <button
+                            type="button"
+                            onClick={() => setReturnSearchTerm('')}
+                            className="mt-3 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition-all"
+                          >
+                            Clear Search Filter
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="border border-[var(--border-soft)] rounded-xl overflow-hidden">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 text-[var(--text-secondary)] text-xs font-semibold border-b border-[var(--border-soft)]">
+                              <th className="px-4 py-3">Invoice</th>
+                              <th className="px-4 py-3">Customer</th>
+                              <th className="px-4 py-3">Date</th>
+                              <th className="px-4 py-3 text-right">Items</th>
+                              <th className="px-4 py-3">Payment</th>
+                              <th className="px-4 py-3 text-right">Total & Refund</th>
+                              <th className="px-4 py-3 text-center">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--border-soft)] text-sm">
+                            {filteredReturnBills.map((bill) => {
+                              const billRefund = bill.items.reduce((sum, item) => {
+                                const retQty = item.returnedQuantity || 0;
+                                const effectivePrice = item.price * (1 - (item.discount || 0) / 100);
+                                return sum + (retQty * effectivePrice);
+                              }, 0);
+
+                              return (
+                                <tr key={bill._id} className="hover:bg-gray-50/50">
+                                  <td className="px-4 py-4 font-semibold text-[var(--text-primary)]">
+                                    {bill.invoiceNumber}
+                                  </td>
+                                  <td className="px-4 py-4 text-[var(--text-secondary)]">
+                                    {bill.customer ? (
+                                      <div>
+                                        <p className="font-semibold text-[var(--text-primary)] text-xs">{bill.customer.name}</p>
+                                        <p className="text-[10px] text-gray-400">+91 {bill.customer.mobile}</p>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">Walk-in Customer</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-4 text-[var(--text-secondary)] font-sans text-xs">
+                                    {new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </td>
+                                  <td className="px-4 py-4 text-right font-medium">
+                                    {bill.items.reduce((sum, item) => sum + item.quantity, 0)} Tablets
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                      {bill.paymentMethod}
                                     </span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-4 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedReturnBill(bill)}
-                                    className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
-                                  >
-                                    Process Return
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                                  </td>
+                                  <td className="px-4 py-4 text-right">
+                                    <p className="font-bold text-green-600">₹{bill.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    {billRefund > 0 && (
+                                      <span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold inline-block mt-0.5">
+                                        -₹{billRefund.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Refunded
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-4 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedReturnBill(bill)}
+                                      className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
+                                    >
+                                      Process Return
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
