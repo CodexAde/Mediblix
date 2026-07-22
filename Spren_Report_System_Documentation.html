@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spren POS — Report System Documentation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green-700: #166534;
+      --green-600: #16a34a;
+      --green-100: #dcfce7;
+      --green-50: #f0fdf4;
+      --gray-900: #111827;
+      --gray-700: #374151;
+      --gray-500: #6b7280;
+      --gray-300: #d1d5db;
+      --gray-100: #f3f4f6;
+      --red-600: #dc2626;
+      --amber-600: #d97706;
+      --blue-600: #2563eb;
+      --purple-600: #9333ea;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--gray-900);
+      line-height: 1.7;
+      background: #fff;
+    }
+
+    /* ── Print Optimizations ── */
+    @media print {
+      body { font-size: 11pt; }
+      .page-break { page-break-before: always; }
+      .no-print { display: none !important; }
+      .cover-page { height: 100vh; }
+      section { page-break-inside: avoid; }
+      .report-card { page-break-inside: avoid; }
+    }
+
+    /* ── Cover Page ── */
+    .cover-page {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(165deg, #f0fdf4 0%, #fff 40%, #f0fdf4 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .cover-page::before {
+      content: '';
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(22,101,52,0.06) 0%, transparent 70%);
+    }
+    .cover-page::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: -80px;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(22,101,52,0.04) 0%, transparent 70%);
+    }
+    .cover-logo {
+      width: 80px; height: 80px;
+      background: var(--green-700);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 28px; font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 32px;
+      box-shadow: 0 8px 30px rgba(22,101,52,0.25);
+    }
+    .cover-title {
+      font-size: 42px; font-weight: 900;
+      color: var(--gray-900);
+      letter-spacing: -1.5px;
+      margin-bottom: 8px;
+    }
+    .cover-subtitle {
+      font-size: 18px; font-weight: 500;
+      color: var(--green-700);
+      margin-bottom: 40px;
+    }
+    .cover-meta {
+      font-size: 13px; color: var(--gray-500);
+      line-height: 2;
+    }
+    .cover-meta strong { color: var(--gray-700); }
+    .cover-badge {
+      margin-top: 40px;
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 24px;
+      background: var(--green-100);
+      color: var(--green-700);
+      border-radius: 100px;
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ── Content Pages ── */
+    .content {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 60px 40px;
+    }
+
+    h1 {
+      font-size: 28px; font-weight: 800;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    h2 {
+      font-size: 22px; font-weight: 700;
+      color: var(--green-700);
+      margin: 48px 0 16px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--green-100);
+    }
+    h3 {
+      font-size: 16px; font-weight: 700;
+      color: var(--gray-900);
+      margin: 24px 0 8px 0;
+    }
+
+    p { margin-bottom: 14px; color: var(--gray-700); font-size: 14px; }
+
+    .section-intro {
+      font-size: 15px;
+      color: var(--gray-500);
+      margin-bottom: 32px;
+      border-left: 3px solid var(--green-600);
+      padding-left: 16px;
+    }
+
+    /* ── Summary Stats Bar ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 32px 0;
+    }
+    .stat-card {
+      background: var(--gray-100);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-card .stat-value {
+      font-size: 28px; font-weight: 800;
+      color: var(--green-700);
+    }
+    .stat-card .stat-label {
+      font-size: 11px; font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* ── Report Cards ── */
+    .report-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      transition: box-shadow 0.2s;
+    }
+    .report-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+
+    .report-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .report-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .report-icon.inventory { background: #dcfce7; }
+    .report-icon.financial { background: #fef3c7; }
+    .report-icon.analytics { background: #ede9fe; }
+    .report-icon.supplier  { background: #dbeafe; }
+
+    .report-card-header .report-name {
+      font-size: 17px; font-weight: 700;
+      color: var(--gray-900);
+    }
+    .report-card-header .report-category {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .cat-inventory  { background: #dcfce7; color: #166534; }
+    .cat-financial  { background: #fef3c7; color: #92400e; }
+    .cat-analytics  { background: #ede9fe; color: #6b21a8; }
+    .cat-supplier   { background: #dbeafe; color: #1e40af; }
+
+    .report-card p.desc {
+      font-size: 13.5px;
+      color: var(--gray-500);
+      margin-bottom: 16px;
+      line-height: 1.65;
+    }
+
+    .fields-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .fields-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .field-tag {
+      font-size: 11.5px;
+      padding: 4px 12px;
+      background: var(--gray-100);
+      border-radius: 6px;
+      color: var(--gray-700);
+      font-weight: 500;
+    }
+
+    .kpi-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .kpi-chip {
+      flex: 1;
+      background: var(--green-50);
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-align: center;
+    }
+    .kpi-chip .kpi-label {
+      font-size: 10px; font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .kpi-chip .kpi-value {
+      font-size: 14px; font-weight: 800;
+      color: var(--green-700);
+      margin-top: 2px;
+    }
+
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13px;
+    }
+    thead th {
+      background: var(--green-700);
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    thead th:first-child { border-radius: 8px 0 0 0; }
+    thead th:last-child  { border-radius: 0 8px 0 0; }
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f3f4f6;
+      color: var(--gray-700);
+    }
+    tbody tr:nth-child(even) { background: #fafafa; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    /* ── Format Cards ── */
+    .format-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .format-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 24px 20px;
+      text-align: center;
+    }
+    .format-card .fmt-icon {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+      font-size: 22px;
+    }
+    .format-card.pdf .fmt-icon  { background: #fee2e2; }
+    .format-card.xlsx .fmt-icon { background: #dcfce7; }
+    .format-card.csv .fmt-icon  { background: #dbeafe; }
+    .format-card h4 { font-size: 15px; font-weight: 700; color: var(--gray-900); margin-bottom: 6px; }
+    .format-card p  { font-size: 12px; color: var(--gray-500); line-height: 1.5; margin-bottom: 0; }
+
+    /* ── Access Points ── */
+    .access-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .access-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .access-card h4 {
+      font-size: 14px; font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 6px;
+    }
+    .access-card p {
+      font-size: 12.5px; color: var(--gray-500);
+      margin-bottom: 0;
+    }
+    .access-card .access-path {
+      margin-top: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green-700);
+      background: var(--green-50);
+      padding: 6px 12px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    /* ── Footer ── */
+    .doc-footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--gray-300);
+      text-align: center;
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+
+    /* ── Print Button ── */
+    .print-btn {
+      position: fixed;
+      bottom: 32px; right: 32px;
+      background: var(--green-700);
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(22,101,52,0.35);
+      z-index: 100;
+      display: flex; align-items: center; gap: 8px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .print-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(22,101,52,0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Print Button -->
+  <button class="print-btn no-print" onclick="window.print()">
+    📄 Save as PDF (Ctrl+P)
+  </button>
+
+  <!-- ═══════════════ COVER PAGE ═══════════════ -->
+  <div class="cover-page">
+    <div class="cover-logo">Rx</div>
+    <div class="cover-title">Spren POS</div>
+    <div class="cover-subtitle">Report Generation System — Feature Documentation</div>
+    <div class="cover-meta">
+      <strong>Prepared by:</strong> Parth Pawar — Engineering Team<br />
+      <strong>Date:</strong> July 22, 2026<br />
+      <strong>Version:</strong> 1.0.0<br />
+      <strong>Classification:</strong> Internal — Product Feature Specification
+    </div>
+    <div class="cover-badge">✦ Production Ready — Fully Implemented</div>
+  </div>
+
+  <!-- ═══════════════ CONTENT ═══════════════ -->
+  <div class="content page-break">
+
+    <!-- ── Executive Summary ── -->
+    <h1>Executive Summary</h1>
+    <p class="section-intro">
+      This document details the comprehensive report generation system added to the Spren Pharmacy POS platform.
+      The system enables pharmacists, store managers, and business owners to generate, preview, and download
+      actionable business intelligence reports across inventory, financial, customer, and supplier domains —
+      all directly from the web dashboard with zero external tooling required.
+    </p>
+
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-value">9</div>
+        <div class="stat-label">Report Types</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Export Formats</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">4</div>
+        <div class="stat-label">Report Categories</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Access Points</div>
+      </div>
+    </div>
+
+    <p>
+      Reports are generated entirely on the client side using live database data, ensuring real-time accuracy
+      without requiring additional server infrastructure. Each report includes automated KPI summary metrics,
+      date-range filtering, and customizable field selections. All exports are branded with the Spren Pharmacy
+      identity for a professional, print-ready output.
+    </p>
+
+    <!-- ── Export Formats ── -->
+    <h2>Supported Export Formats</h2>
+    <div class="format-grid">
+      <div class="format-card pdf">
+        <div class="fmt-icon">📄</div>
+        <h4>PDF Document</h4>
+        <p>Professionally styled landscape A4 layout with branded header banner, KPI metric cards, gridded data tables, alternating row colors, and automatic page numbering.</p>
+      </div>
+      <div class="format-card xlsx">
+        <div class="fmt-icon">📊</div>
+        <h4>Excel Sheet (.xlsx)</h4>
+        <p>Structured workbook with title metadata block, summary metrics section, and full data table with column headers. Compatible with Microsoft Excel, Google Sheets, and LibreOffice.</p>
+      </div>
+      <div class="format-card csv">
+        <div class="fmt-icon">📝</div>
+        <h4>CSV Raw Data</h4>
+        <p>Clean comma-separated values file optimized for data analysis workflows, database imports, and third-party integrations. Universal compatibility across all platforms.</p>
+      </div>
+    </div>
+
+    <!-- ═══════ REPORT CATEGORY 1: INVENTORY ═══════ -->
+    <h2>Category 1 — Inventory &amp; Stock Reports</h2>
+    <p>These reports provide granular visibility into current stock levels, product catalog health, expiry risk, and inventory valuation across the pharmacy's entire product database.</p>
+
+    <!-- Report 1 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon inventory">📦</div>
+        <div>
+          <div class="report-name">1. Stock Summary Report</div>
+        </div>
+        <span class="report-category cat-inventory">Inventory</span>
+      </div>
+      <p class="desc">
+        A complete snapshot of the pharmacy's entire product catalog. Lists every registered product with its batch/SKU code,
+        category classification, HSN code for GST compliance, current quantity on hand, unit selling price, computed stock value
+        (quantity × price), and real-time availability status (In Stock / Low Stock / Out of Stock).
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">Batch / SKU</span>
+        <span class="field-tag">Product Name</span>
+        <span class="field-tag">Category</span>
+        <span class="field-tag">HSN Code</span>
+        <span class="field-tag">Quantity (Tablets)</span>
+        <span class="field-tag">Unit Price (₹)</span>
+        <span class="field-tag">Total Stock Value (₹)</span>
+        <span class="field-tag">Availability Status</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Total Products</div>
+          <div class="kpi-value">Catalog Count</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Total Units</div>
+          <div class="kpi-value">All Units in Stock</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Inventory Value</div>
+          <div class="kpi-value">₹ Total Valuation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report 2 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon inventory">⚠️</div>
+        <div>
+          <div class="report-name">2. Low Stock &amp; Out of Stock Alert Report</div>
+        </div>
+        <span class="report-category cat-inventory">Inventory</span>
+      </div>
+      <p class="desc">
+        Flags all products that have dropped below the critical stock threshold (≤15 units) or have reached zero inventory.
+        Each item includes a calculated reorder recommendation specifying how many units should be ordered to restore optimal
+        stock levels. Designed for daily or weekly procurement planning.
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">Batch / SKU</span>
+        <span class="field-tag">Product Name</span>
+        <span class="field-tag">Category</span>
+        <span class="field-tag">HSN Code</span>
+        <span class="field-tag">Current Stock</span>
+        <span class="field-tag">Unit Price (₹)</span>
+        <span class="field-tag">Alert Status</span>
+        <span class="field-tag">Reorder Recommendation</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Low Stock Items</div>
+          <div class="kpi-value">Critical Count</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Out of Stock</div>
+          <div class="kpi-value">Zero Inventory</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Action Required</div>
+          <div class="kpi-value">Total Items</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report 3 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon inventory">💊</div>
+        <div>
+          <div class="report-name">3. Product Valuation &amp; Expiry Risk Report</div>
+        </div>
+        <span class="report-category cat-inventory">Inventory</span>
+      </div>
+      <p class="desc">
+        Combines inventory valuation analysis with pharmaceutical expiry tracking. Each product displays its manufacturing date,
+        expiry date, and a computed expiry status — flagging items expiring within 90 days as at-risk and marking expired products.
+        Essential for regulatory compliance and minimizing inventory write-offs.
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">SKU</span>
+        <span class="field-tag">Product Name</span>
+        <span class="field-tag">Category</span>
+        <span class="field-tag">Manufacturing Date</span>
+        <span class="field-tag">Expiry Date</span>
+        <span class="field-tag">Quantity</span>
+        <span class="field-tag">Unit Price (₹)</span>
+        <span class="field-tag">Total Valuation (₹)</span>
+        <span class="field-tag">Expiry Status</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Total Valuation</div>
+          <div class="kpi-value">₹ Stock Worth</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Expiring ≤90 Days</div>
+          <div class="kpi-value">At-Risk Products</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Catalog Size</div>
+          <div class="kpi-value">Total Items</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ REPORT CATEGORY 2: FINANCIAL ═══════ -->
+    <h2 class="page-break">Category 2 — Financial &amp; Sales Reports</h2>
+    <p>These reports cover revenue analytics, tax compliance, payment reconciliation, and refund auditing — providing a complete financial picture of the pharmacy's operations.</p>
+
+    <!-- Report 4 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon financial">💰</div>
+        <div>
+          <div class="report-name">4. Financial Sales &amp; Revenue Summary</div>
+        </div>
+        <span class="report-category cat-financial">Financial</span>
+      </div>
+      <p class="desc">
+        A comprehensive revenue analysis listing every completed sale with invoice number, transaction date, customer name,
+        total items sold, payment method used, and total invoice amount. Supports date-range filtering for daily, weekly,
+        monthly, or custom period analysis. Computes aggregate KPIs including total net revenue, average order value, and total units sold.
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">Invoice Number</span>
+        <span class="field-tag">Transaction Date</span>
+        <span class="field-tag">Customer Name</span>
+        <span class="field-tag">Items Count</span>
+        <span class="field-tag">Payment Method</span>
+        <span class="field-tag">Total Amount (₹)</span>
+        <span class="field-tag">Payment Status</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Net Revenue</div>
+          <div class="kpi-value">₹ Total Income</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Total Sales</div>
+          <div class="kpi-value">Completed Orders</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Avg. Order Value</div>
+          <div class="kpi-value">₹ Per Transaction</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report 5 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon financial">🧾</div>
+        <div>
+          <div class="report-name">5. GST &amp; Tax Breakdown Report</div>
+        </div>
+        <span class="report-category cat-financial">Financial</span>
+      </div>
+      <p class="desc">
+        Designed for GST filing and tax compliance. Breaks down every invoice into its taxable component and applicable GST at the standard 12% pharmaceutical rate — split into CGST (6%) and SGST (6%). Aggregates total taxable sales, total GST collected, and gross invoice value across the selected date period.
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">Invoice Number</span>
+        <span class="field-tag">Date</span>
+        <span class="field-tag">Customer</span>
+        <span class="field-tag">Taxable Value (₹)</span>
+        <span class="field-tag">CGST @ 6% (₹)</span>
+        <span class="field-tag">SGST @ 6% (₹)</span>
+        <span class="field-tag">Total GST (₹)</span>
+        <span class="field-tag">Grand Total (₹)</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Taxable Sales</div>
+          <div class="kpi-value">₹ Pre-Tax Total</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">GST Collected</div>
+          <div class="kpi-value">₹ Tax Liability</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Gross Value</div>
+          <div class="kpi-value">₹ Invoice Total</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report 6 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon financial">💳</div>
+        <div>
+          <div class="report-name">6. Payment Method Settlement Report</div>
+        </div>
+        <span class="report-category cat-financial">Financial</span>
+      </div>
+      <p class="desc">
+        Aggregates all transactions by payment mode (Cash, Card, UPI, Net Banking) showing total invoice count,
+        collected amount, and percentage share of total revenue for each method. Useful for reconciling daily cash
+        drawers, verifying digital payment settlements, and understanding customer payment preferences.
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">Payment Mode</span>
+        <span class="field-tag">Total Invoices</span>
+        <span class="field-tag">Collected Amount (₹)</span>
+        <span class="field-tag">% Share of Revenue</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Total Settled</div>
+          <div class="kpi-value">₹ All Methods</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Transactions</div>
+          <div class="kpi-value">Total Count</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report 7 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon financial">🔄</div>
+        <div>
+          <div class="report-name">7. Sales Returns &amp; Refund Audit Report</div>
+        </div>
+        <span class="report-category cat-financial">Financial</span>
+      </div>
+      <p class="desc">
+        Tracks all product returns processed through the system. Lists the original sale invoice number, return date,
+        specific returned product, returned quantity, calculated refund value, and restocking status. Provides aggregate
+        metrics for total refund claims, total returned units, and total refunded monetary value — critical for accounting
+        reconciliation and identifying return patterns.
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">Sale Invoice #</span>
+        <span class="field-tag">Return Date</span>
+        <span class="field-tag">Returned Product</span>
+        <span class="field-tag">Returned Quantity</span>
+        <span class="field-tag">Refund Value (₹)</span>
+        <span class="field-tag">Restock Status</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Refund Claims</div>
+          <div class="kpi-value">Total Returns</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Returned Units</div>
+          <div class="kpi-value">Total Qty</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Refunded Value</div>
+          <div class="kpi-value">₹ Total Refunds</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ REPORT CATEGORY 3: ANALYTICS ═══════ -->
+    <h2 class="page-break">Category 3 — Customer Analytics</h2>
+    <p>Customer-centric reports for understanding purchasing behavior, lifetime value, and building targeted engagement strategies.</p>
+
+    <!-- Report 8 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon analytics">👥</div>
+        <div>
+          <div class="report-name">8. Customer Sales &amp; Ledger Report</div>
+        </div>
+        <span class="report-category cat-analytics">Analytics</span>
+      </div>
+      <p class="desc">
+        A full customer directory with transaction analytics. Each customer entry includes their contact details (name, mobile, email),
+        total number of completed orders, cumulative lifetime spend amount, and calculated average basket size. Enables identification
+        of high-value customers, dormant accounts, and supports CRM-driven marketing decisions.
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">Customer Name</span>
+        <span class="field-tag">Mobile Number</span>
+        <span class="field-tag">Email Address</span>
+        <span class="field-tag">Total Orders</span>
+        <span class="field-tag">Lifetime Spend (₹)</span>
+        <span class="field-tag">Average Basket (₹)</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Total Customers</div>
+          <div class="kpi-value">Registry Count</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Cumulative Spend</div>
+          <div class="kpi-value">₹ All Customers</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Avg per Customer</div>
+          <div class="kpi-value">₹ Mean Spend</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ REPORT CATEGORY 4: SUPPLIERS ═══════ -->
+    <h2>Category 4 — Supplier &amp; Procurement</h2>
+    <p>Reports covering purchase order management and supplier relationship tracking for procurement optimization.</p>
+
+    <!-- Report 9 -->
+    <div class="report-card">
+      <div class="report-card-header">
+        <div class="report-icon supplier">🚚</div>
+        <div>
+          <div class="report-name">9. Purchase Orders &amp; Supplier Summary</div>
+        </div>
+        <span class="report-category cat-supplier">Supplier</span>
+      </div>
+      <p class="desc">
+        Consolidates all purchase orders raised with suppliers. Each PO shows the order number, supplier name, order date,
+        current fulfillment status (Pending / Approved / Delivered), total line items, and total order value. Summarizes
+        aggregate procurement expenses and outstanding order counts for budget forecasting and supply chain management.
+      </p>
+      <div class="fields-label">Included Data Fields</div>
+      <div class="fields-grid">
+        <span class="field-tag">PO Number</span>
+        <span class="field-tag">Supplier Name</span>
+        <span class="field-tag">Order Date</span>
+        <span class="field-tag">Fulfillment Status</span>
+        <span class="field-tag">Total Items</span>
+        <span class="field-tag">Order Value (₹)</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-label">Total POs</div>
+          <div class="kpi-value">Order Count</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-label">Total Expenses</div>
+          <div class="kpi-value">₹ Procurement Cost</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ FEATURE DETAILS ═══════ -->
+    <h2 class="page-break">Interactive Features &amp; Customization Options</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Description</th>
+          <th>Benefit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Date Range Filtering</strong></td>
+          <td>Filter financial, sales, and return reports by custom "Date From" and "Date To" range</td>
+          <td>Isolate daily, weekly, monthly, or quarterly data for focused analysis</td>
+        </tr>
+        <tr>
+          <td><strong>Live Summary Preview</strong></td>
+          <td>Real-time KPI metric cards that update before downloading based on current database state</td>
+          <td>Verify data accuracy before generating the export, eliminating wasted outputs</td>
+        </tr>
+        <tr>
+          <td><strong>Record Count Badge</strong></td>
+          <td>Displays the number of matching records for the selected report type and filters</td>
+          <td>Instant visibility into report size and scope</td>
+        </tr>
+        <tr>
+          <td><strong>Financial Metrics Toggle</strong></td>
+          <td>Option to include or exclude price and revenue columns from the export</td>
+          <td>Create sanitized reports for non-financial stakeholders</td>
+        </tr>
+        <tr>
+          <td><strong>HSN &amp; Batch Details Toggle</strong></td>
+          <td>Option to include or exclude HSN codes and batch tracking identifiers</td>
+          <td>Simplified reports for quick stock checks vs. detailed compliance reports</td>
+        </tr>
+        <tr>
+          <td><strong>Supplier Info Toggle</strong></td>
+          <td>Option to include or exclude supplier attribution from reports</td>
+          <td>Control data exposure when sharing reports externally</td>
+        </tr>
+        <tr>
+          <td><strong>KPI Banner Toggle</strong></td>
+          <td>Option to include or exclude the summary metrics header section in PDF exports</td>
+          <td>Clean tabular-only outputs when metrics aren't needed</td>
+        </tr>
+        <tr>
+          <td><strong>Branded PDF Output</strong></td>
+          <td>Every PDF features a Spren Pharmacy branded header banner, store identity, and page numbering</td>
+          <td>Professional, print-ready documents suitable for regulatory submissions</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ═══════ ACCESS POINTS ═══════ -->
+    <h2>Access Points</h2>
+    <p>The report system can be accessed from three locations within the Spren POS application:</p>
+
+    <div class="access-grid">
+      <div class="access-card">
+        <h4>📊 Stock Manager Dashboard</h4>
+        <p>Click "AI Analytics Report" in the Quick Actions panel to open the full report generator modal with all 9 report types, date filtering, and format selection.</p>
+        <div class="access-path">Navigation → Dashboard → AI Analytics Report</div>
+      </div>
+      <div class="access-card">
+        <h4>📦 Inventory Page</h4>
+        <p>Click the "Export" button in the page header to open the Reports & Export Center with dual tabs — Full Report Generator and Quick Inventory Export.</p>
+        <div class="access-path">Navigation → Inventory → Export Button</div>
+      </div>
+      <div class="access-card">
+        <h4>➕ Add Product Modal</h4>
+        <p>Click the expandable "Quick Report Downloads" section below the AI Import and Manual Register options for instant report generation.</p>
+        <div class="access-path">Any "Add Product" Button → Quick Report Downloads</div>
+      </div>
+      <div class="access-card">
+        <h4>🔗 Technology Stack</h4>
+        <p>Built with <strong>jsPDF</strong> + <strong>jspdf-autotable</strong> for PDF generation, <strong>SheetJS (xlsx)</strong> for Excel exports, and native Blob API for CSV. Zero server-side dependencies.</p>
+        <div class="access-path">Client-Side Generation — No API Required</div>
+      </div>
+    </div>
+
+    <!-- ═══════ SUMMARY TABLE ═══════ -->
+    <h2 class="page-break">Complete Report Matrix</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Report Name</th>
+          <th>Category</th>
+          <th>Data Source</th>
+          <th>Date Filter</th>
+          <th>Formats</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Stock Summary Report</td>
+          <td>Inventory</td>
+          <td>Products DB</td>
+          <td>—</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Low Stock & Out of Stock Alert</td>
+          <td>Inventory</td>
+          <td>Products DB</td>
+          <td>—</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Product Valuation & Expiry</td>
+          <td>Inventory</td>
+          <td>Products DB</td>
+          <td>—</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Financial Sales & Revenue</td>
+          <td>Financial</td>
+          <td>Sales DB</td>
+          <td>✅ Yes</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>GST & Tax Breakdown</td>
+          <td>Financial</td>
+          <td>Sales DB</td>
+          <td>✅ Yes</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Payment Method Settlement</td>
+          <td>Financial</td>
+          <td>Sales DB</td>
+          <td>✅ Yes</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>Sales Returns & Refund Audit</td>
+          <td>Financial</td>
+          <td>Sales DB</td>
+          <td>—</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>Customer Sales & Ledger</td>
+          <td>Analytics</td>
+          <td>Customers + Sales DB</td>
+          <td>—</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td>Purchase Orders & Supplier</td>
+          <td>Supplier</td>
+          <td>Purchase Orders DB</td>
+          <td>—</td>
+          <td>PDF, Excel, CSV</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── Footer ── -->
+    <div class="doc-footer">
+      <strong>Spren Pharmacy POS</strong> — Report System Documentation v1.0.0<br />
+      Prepared on July 22, 2026 &nbsp;|&nbsp; Confidential — Internal Use Only<br />
+      © 2026 Spren Pharmacy Management System. All rights reserved.
+    </div>
+
+  </div>
+</body>
+</html>
