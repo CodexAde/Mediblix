@@ -1,9 +1,22 @@
-import { useEffect, useRef } from "react";
-import { X, Sparkles, Edit3 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, Sparkles, Edit3, FileText, Table, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import productService from "../../services/productService";
+import {
+  prepareReportData,
+  downloadPDFReport,
+  downloadExcelReport,
+  downloadCSVReport,
+  REPORT_TYPES,
+} from "../../utils/reportGenerator";
 
 const AddProductChoiceModal = ({ isOpen, onClose, onManualSelect }) => {
   const modalRef = useRef(null);
+  const navigate = useNavigate();
+  const [showReports, setShowReports] = useState(false);
+  const [selectedReport, setSelectedReport] = useState("stock_summary");
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,9 +61,35 @@ const AddProductChoiceModal = ({ isOpen, onClose, onManualSelect }) => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (showReports && products.length === 0) {
+      setLoadingProducts(true);
+      productService
+        .getProducts()
+        .then((data) => setProducts(data))
+        .catch(() => {})
+        .finally(() => setLoadingProducts(false));
+    }
+  }, [showReports]);
 
   if (!isOpen) return null;
+
+  const handleQuickDownload = (format) => {
+    const prepared = prepareReportData({
+      reportType: selectedReport,
+      products,
+    });
+
+    if (prepared.rows.length === 0) {
+      alert("No data available for this report. Make sure you have products in inventory.");
+      return;
+    }
+
+    if (format === "PDF") downloadPDFReport(prepared);
+    else if (format === "Excel") downloadExcelReport(prepared);
+    else if (format === "CSV") downloadCSVReport(prepared);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -59,7 +98,7 @@ const AddProductChoiceModal = ({ isOpen, onClose, onManualSelect }) => {
         onClick={onClose}
       />
       
-      <div ref={modalRef} className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl transform transition-all animate-toast">
+      <div ref={modalRef} className="relative bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-lg shadow-2xl transform transition-all animate-toast max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Add Product</h2>
@@ -115,6 +154,98 @@ const AddProductChoiceModal = ({ isOpen, onClose, onManualSelect }) => {
             </span>
           </button>
         </div>
+
+        {/* Divider */}
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowReports(!showReports)}
+              className="bg-white px-4 py-1 text-xs font-semibold text-gray-500 hover:text-green-700 border border-gray-200 rounded-full transition-all cursor-pointer flex items-center gap-1.5 hover:border-green-300 hover:bg-green-50"
+            >
+              <FileText size={13} />
+              Quick Report Downloads
+              {showReports ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Expandable Report Section */}
+        {showReports && (
+          <div className="space-y-3 animate-fadeIn">
+            {/* Report Type Selector */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Report Type</label>
+              <select
+                value={selectedReport}
+                onChange={(e) => setSelectedReport(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all cursor-pointer text-gray-800 font-medium"
+              >
+                <optgroup label="📦 Inventory & Stock">
+                  {REPORT_TYPES.filter((r) => r.category === "Inventory").map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="💰 Financial & Sales">
+                  {REPORT_TYPES.filter((r) => r.category === "Financial").map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="👥 Analytics & Suppliers">
+                  {REPORT_TYPES.filter((r) => r.category === "Analytics" || r.category === "Suppliers").map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+
+            {/* Download Format Buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => handleQuickDownload("PDF")}
+                disabled={loadingProducts}
+                className="flex flex-col items-center justify-center p-3 bg-red-50/60 border border-red-100 rounded-xl hover:border-red-300 hover:shadow-sm transition-all group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                  <FileText className="text-red-600" size={16} />
+                </div>
+                <span className="text-xs font-bold text-gray-800">PDF</span>
+                <span className="text-[10px] text-gray-400">.pdf</span>
+              </button>
+
+              <button
+                onClick={() => handleQuickDownload("Excel")}
+                disabled={loadingProducts}
+                className="flex flex-col items-center justify-center p-3 bg-green-50/60 border border-green-100 rounded-xl hover:border-green-300 hover:shadow-sm transition-all group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                  <Table className="text-green-600" size={16} />
+                </div>
+                <span className="text-xs font-bold text-gray-800">Excel</span>
+                <span className="text-[10px] text-gray-400">.xlsx</span>
+              </button>
+
+              <button
+                onClick={() => handleQuickDownload("CSV")}
+                disabled={loadingProducts}
+                className="flex flex-col items-center justify-center p-3 bg-blue-50/60 border border-blue-100 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                  <FileSpreadsheet className="text-blue-600" size={16} />
+                </div>
+                <span className="text-xs font-bold text-gray-800">CSV</span>
+                <span className="text-[10px] text-gray-400">.csv</span>
+              </button>
+            </div>
+
+            {loadingProducts && (
+              <p className="text-[11px] text-gray-400 text-center">Loading inventory data...</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

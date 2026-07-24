@@ -47,8 +47,9 @@ const Navbar = () => {
       </div>
 
       <div className="absolute left-1/2 -translate-x-1/2">
-        <Link to="/billing" className="text-xl font-bold text-[var(--text-primary)] hover:opacity-80 transition-opacity">
-          SPREN
+        <Link to="/billing" className="flex items-center gap-2 text-xl font-extrabold text-[var(--text-primary)] hover:opacity-80 transition-opacity">
+          <img src="/spren-logo.svg" alt="Spren Logo" className="w-7 h-7 rounded-lg shadow-xs" />
+          <span>SPREN</span>
         </Link>
       </div>
 
