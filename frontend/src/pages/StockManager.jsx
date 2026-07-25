@@ -26,6 +26,8 @@ const StockManager = () => {
   const handleActionClick = (action) => {
     if (action === 'add-product') {
       setIsChoiceOpen(true);
+    } else if (action === 'activity-calendar') {
+      navigate('/calendar');
     } else {
       setActiveModal(action);
     }

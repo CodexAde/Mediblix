@@ -27,8 +27,10 @@ const RecentMovements = () => {
 
         const dynamicMovements = [];
 
+        const importSkus = new Set();
         importHistory.forEach(record => {
           record.items.forEach((item, idx) => {
+            importSkus.add(item.sku);
             dynamicMovements.push({
               id: `import-${record._id}-${item.sku}-${idx}`,
               product: item.name,
@@ -37,9 +39,24 @@ const RecentMovements = () => {
               quantity: item.quantity,
               time: record.createdAt,
               location: 'Warehouse A',
-              user: 'System',
+              user: record.fileName === 'Manual Entry' ? 'Manual Entry' : 'System',
               reference: record.fileName
             });
+          });
+        });
+
+        dbProducts.forEach((product) => {
+          if (importSkus.has(product.sku)) return;
+          dynamicMovements.push({
+            id: `manual-${product._id}`,
+            product: product.name,
+            productId: product._id,
+            type: 'In',
+            quantity: product.quantity,
+            time: product.createdAt,
+            location: 'Warehouse A',
+            user: 'Manual Entry',
+            reference: 'Manual Entry',
           });
         });
 

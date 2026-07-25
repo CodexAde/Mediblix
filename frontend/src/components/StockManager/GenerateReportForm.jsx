@@ -23,6 +23,10 @@ const GenerateReportForm = ({ onClose }) => {
     hsnDetails: true,
     supplierInfo: true,
     summaryMetrics: true,
+    includeExpiry: true,
+    customerContact: true,
+    reorderAdvice: true,
+    profitMargins: true,
   });
 
   const [loadingData, setLoadingData] = useState(false);
@@ -155,27 +159,11 @@ const GenerateReportForm = ({ onClose }) => {
             onChange={(e) => setSelectedReportType(e.target.value)}
             className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all cursor-pointer text-gray-800 font-medium"
           >
-            <optgroup label="📦 Inventory & Stock Reports">
-              {REPORT_TYPES.filter((r) => r.category === 'Inventory').map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="💰 Financial & Sales Reports">
-              {REPORT_TYPES.filter((r) => r.category === 'Financial').map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="👥 Customer Analytics & Suppliers">
-              {REPORT_TYPES.filter((r) => r.category === 'Analytics' || r.category === 'Suppliers').map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </optgroup>
+            {REPORT_TYPES.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -270,6 +258,10 @@ const GenerateReportForm = ({ onClose }) => {
               { key: 'hsnDetails', label: 'HSN & Batch Codes' },
               { key: 'supplierInfo', label: 'Supplier Details' },
               { key: 'summaryMetrics', label: 'Include KPI Metric Banner' },
+              { key: 'includeExpiry', label: 'Product Expiry Dates & Alerts' },
+              { key: 'customerContact', label: 'Customer Contact Details' },
+              { key: 'reorderAdvice', label: 'Smart Reorder Recommendations' },
+              { key: 'profitMargins', label: 'Margin & Profit Estimates' },
             ].map((opt) => (
               <label key={opt.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors">
                 <input

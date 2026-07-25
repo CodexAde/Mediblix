@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext';
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, Calendar } from 'lucide-react';
 
 const MobileDock = () => {
   const { isMobile } = useDevice();
@@ -10,6 +10,7 @@ const MobileDock = () => {
 
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/calendar', icon: Calendar, label: 'Calendar' },
     { path: '/inventory', icon: Package, label: 'Inventory' },
     { path: '/orders', icon: ShoppingCart, label: 'Orders' },
     { path: '/customers', icon: Users, label: 'Customers' },

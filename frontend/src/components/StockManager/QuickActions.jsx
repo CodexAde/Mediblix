@@ -1,9 +1,10 @@
-import { Plus, ShoppingCart, Clock, Sparkles } from 'lucide-react';
+import { Plus, ShoppingCart, Clock, Sparkles, Calendar } from 'lucide-react';
 
 const QuickActions = ({ onActionClick }) => {
   const quickActions = [
     { id: 'add-product', icon: Plus, label: 'Add New Product', description: 'Register new inventory item', isAI: false },
     { id: 'purchase-order', icon: ShoppingCart, label: 'Create Purchase Order', description: 'Order from suppliers', isAI: false },
+    { id: 'activity-calendar', icon: Calendar, label: 'Activity Calendar', description: 'Audit daily stock and operations', isAI: false },
     { id: 'bill-history', icon: Clock, label: 'Bill History', description: 'View and manage past sales bills', isAI: false },
     { id: 'generate-report', icon: Sparkles, label: 'Ai Analytics Report', description: 'Generate smart insights & forecasts', isAI: true },
   ];

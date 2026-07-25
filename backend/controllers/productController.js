@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import ImportHistory from "../models/ImportHistory.js";
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -80,6 +81,26 @@ const createProduct = async (req, res) => {
     });
 
     if (product) {
+      const qty = Number(quantity) || 0;
+      const unitPrice = Number(price) || 0;
+
+      await ImportHistory.create({
+        fileName: "Manual Entry",
+        totalProducts: 1,
+        totalQuantity: qty,
+        totalValue: qty * unitPrice,
+        items: [
+          {
+            name: product.name,
+            sku: product.sku,
+            category: product.category,
+            quantity: qty,
+            price: unitPrice,
+            status: "New",
+          },
+        ],
+      });
+
       res.status(201).json(product);
     } else {
       res.status(400);

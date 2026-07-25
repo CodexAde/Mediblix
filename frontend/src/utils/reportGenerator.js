@@ -74,12 +74,14 @@ export const prepareReportData = ({
         { header: "Batch/SKU", key: "sku" },
         { header: "Product Name", key: "name" },
         { header: "Category", key: "category" },
-        { header: "HSN Code", key: "hsn" },
+        options.hsnDetails && { header: "HSN Code", key: "hsn" },
         { header: "Quantity", key: "quantity" },
-        { header: "Unit Price", key: "price" },
-        { header: "Stock Value", key: "totalValue" },
+        options.priceDetails && { header: "Unit Price", key: "price" },
+        options.priceDetails && { header: "Stock Value", key: "totalValue" },
         { header: "Status", key: "status" },
-      ];
+        options.includeExpiry && { header: "Expiry Date", key: "expiryDate" },
+        options.reorderAdvice && { header: "Reorder Qty", key: "reorder" },
+      ].filter(Boolean);
 
       let totalQty = 0;
       let totalValue = 0;
@@ -91,23 +93,34 @@ export const prepareReportData = ({
         totalQty += qty;
         totalValue += val;
 
-        return {
+        const row = {
           sku: p.sku || "N/A",
           name: p.name || "Unknown Product",
           category: p.category || "General",
-          hsn: p.hsn || "N/A",
           quantity: `${qty} Tablets`,
-          price: formatCurrency(price),
-          totalValue: formatCurrency(val),
           status: p.status || (qty > 10 ? "In Stock" : qty > 0 ? "Low Stock" : "Out of Stock"),
         };
+
+        if (options.hsnDetails) row.hsn = p.hsn || "N/A";
+        if (options.priceDetails) {
+          row.price = formatCurrency(price);
+          row.totalValue = formatCurrency(val);
+        }
+        if (options.includeExpiry) {
+          row.expiryDate = formatDate(p.expiryDate);
+        }
+        if (options.reorderAdvice) {
+          row.reorder = qty < 10 ? `${30 - qty} Units` : "Optimal";
+        }
+
+        return row;
       });
 
       summaryMetrics = [
         { label: "Total Unique Products", value: products.length },
         { label: "Total Units in Stock", value: `${totalQty} Units` },
-        { label: "Total Inventory Valuation", value: formatCurrency(totalValue) },
-      ];
+        options.priceDetails && { label: "Total Inventory Valuation", value: formatCurrency(totalValue) },
+      ].filter(Boolean);
       break;
     }
 
@@ -117,12 +130,13 @@ export const prepareReportData = ({
         { header: "Batch/SKU", key: "sku" },
         { header: "Product Name", key: "name" },
         { header: "Category", key: "category" },
-        { header: "HSN Code", key: "hsn" },
+        options.hsnDetails && { header: "HSN Code", key: "hsn" },
         { header: "Current Stock", key: "quantity" },
-        { header: "Unit Price", key: "price" },
+        options.priceDetails && { header: "Unit Price", key: "price" },
         { header: "Status", key: "status" },
-        { header: "Reorder Recommendation", key: "reorder" },
-      ];
+        options.reorderAdvice && { header: "Reorder Recommendation", key: "reorder" },
+        options.includeExpiry && { header: "Expiry Date", key: "expiryDate" },
+      ].filter(Boolean);
 
       const lowStockItems = products.filter(
         (p) => (p.quantity || 0) <= 15 || p.status === "Low Stock" || p.status === "Out of Stock"
@@ -136,16 +150,24 @@ export const prepareReportData = ({
         if (qty === 0) outOfStockCount++;
         else criticalCount++;
 
-        return {
+        const row = {
           sku: p.sku || "N/A",
           name: p.name || "Unknown",
           category: p.category || "General",
-          hsn: p.hsn || "N/A",
           quantity: `${qty} Tablets`,
-          price: formatCurrency(p.price || 0),
           status: qty === 0 ? "Out of Stock" : "Low Stock Alert",
-          reorder: qty === 0 ? "Urgent Reorder (+100)" : `Reorder (+${50 - qty})`,
         };
+
+        if (options.hsnDetails) row.hsn = p.hsn || "N/A";
+        if (options.priceDetails) row.price = formatCurrency(p.price || 0);
+        if (options.reorderAdvice) {
+          row.reorder = qty === 0 ? "Urgent Reorder (+100)" : `Reorder (+${50 - qty})`;
+        }
+        if (options.includeExpiry) {
+          row.expiryDate = formatDate(p.expiryDate);
+        }
+
+        return row;
       });
 
       summaryMetrics = [
@@ -162,13 +184,14 @@ export const prepareReportData = ({
         { header: "SKU", key: "sku" },
         { header: "Product Name", key: "name" },
         { header: "Category", key: "category" },
-        { header: "Mfg Date", key: "mfgDate" },
-        { header: "Expiry Date", key: "expiryDate" },
+        options.includeExpiry && { header: "Mfg Date", key: "mfgDate" },
+        options.includeExpiry && { header: "Expiry Date", key: "expiryDate" },
         { header: "Quantity", key: "quantity" },
-        { header: "Unit Price", key: "price" },
-        { header: "Valuation", key: "valuation" },
-        { header: "Expiry Status", key: "expiryStatus" },
-      ];
+        options.priceDetails && { header: "Unit Price", key: "price" },
+        options.priceDetails && { header: "Valuation", key: "valuation" },
+        options.includeExpiry && { header: "Expiry Status", key: "expiryStatus" },
+        options.reorderAdvice && { header: "Reorder Suggestion", key: "reorder" },
+      ].filter(Boolean);
 
       const today = new Date();
       let totalVal = 0;
@@ -191,24 +214,34 @@ export const prepareReportData = ({
           }
         }
 
-        return {
+        const row = {
           sku: p.sku || "N/A",
           name: p.name || "Unknown",
           category: p.category || "General",
-          mfgDate: formatDate(p.mfgDate),
-          expiryDate: formatDate(p.expiryDate),
           quantity: `${qty} Tablets`,
-          price: formatCurrency(price),
-          valuation: formatCurrency(val),
-          expiryStatus: expStatus,
         };
+
+        if (options.includeExpiry) {
+          row.mfgDate = formatDate(p.mfgDate);
+          row.expiryDate = formatDate(p.expiryDate);
+          row.expiryStatus = expStatus;
+        }
+        if (options.priceDetails) {
+          row.price = formatCurrency(price);
+          row.valuation = formatCurrency(val);
+        }
+        if (options.reorderAdvice) {
+          row.reorder = qty < 20 ? "Place Reorder" : "Optimal Stock";
+        }
+
+        return row;
       });
 
       summaryMetrics = [
-        { label: "Total Stock Valuation", value: formatCurrency(totalVal) },
-        { label: "Expiring within 90 Days", value: `${expiringSoonCount} Products` },
+        options.priceDetails && { label: "Total Stock Valuation", value: formatCurrency(totalVal) },
+        options.includeExpiry && { label: "Expiring within 90 Days", value: `${expiringSoonCount} Products` },
         { label: "Total Catalog Items", value: products.length },
-      ];
+      ].filter(Boolean);
       break;
     }
 
@@ -220,42 +253,54 @@ export const prepareReportData = ({
         { header: "Customer Name", key: "customer" },
         { header: "Items Count", key: "itemsCount" },
         { header: "Payment Method", key: "paymentMethod" },
-        { header: "Total Amount", key: "totalAmount" },
+        options.priceDetails && { header: "Total Amount", key: "totalAmount" },
+        options.profitMargins && { header: "Est. Net Margin (18%)", key: "profit" },
         { header: "Status", key: "status" },
-      ];
+      ].filter(Boolean);
 
       const filteredSales = filterByDateRange(sales, "createdAt", dateFrom, dateTo);
 
       let totalRev = 0;
       let totalItemsSold = 0;
+      let totalProfit = 0;
 
       rows = filteredSales.map((s) => {
         const amt = s.totalAmount || 0;
         totalRev += amt;
+        const profit = amt * 0.18; // 18% estimated margin
+        totalProfit += profit;
         const itemsCount = (s.items || []).reduce((acc, item) => acc + (item.quantity || 1), 0);
         totalItemsSold += itemsCount;
 
         const customerName = s.customer ? (typeof s.customer === "object" ? s.customer.name : "Registered Customer") : "Walk-in Customer";
 
-        return {
+        const row = {
           invoiceNumber: s.invoiceNumber || `INV-${s._id?.substring(0, 6)}`,
           date: formatDate(s.createdAt),
           customer: customerName,
           itemsCount: `${itemsCount} Units`,
           paymentMethod: s.paymentMethod || "Cash",
-          totalAmount: formatCurrency(amt),
           status: "Paid",
         };
+
+        if (options.priceDetails) {
+          row.totalAmount = formatCurrency(amt);
+        }
+        if (options.profitMargins) {
+          row.profit = formatCurrency(profit);
+        }
+
+        return row;
       });
 
       const avgOrderValue = filteredSales.length ? totalRev / filteredSales.length : 0;
 
       summaryMetrics = [
-        { label: "Total Net Revenue", value: formatCurrency(totalRev) },
+        options.priceDetails && { label: "Total Net Revenue", value: formatCurrency(totalRev) },
+        options.profitMargins && { label: "Est. Net Profit", value: formatCurrency(totalProfit) },
         { label: "Total Completed Sales", value: filteredSales.length },
-        { label: "Average Order Value", value: formatCurrency(avgOrderValue) },
-        { label: "Total Units Sold", value: `${totalItemsSold} Units` },
-      ];
+        options.priceDetails && { label: "Average Order Value", value: formatCurrency(avgOrderValue) },
+      ].filter(Boolean);
       break;
     }
 
@@ -265,12 +310,12 @@ export const prepareReportData = ({
         { header: "Invoice #", key: "invoiceNumber" },
         { header: "Date", key: "date" },
         { header: "Customer", key: "customer" },
-        { header: "Taxable Value", key: "taxableValue" },
-        { header: "CGST (6%)", key: "cgst" },
-        { header: "SGST (6%)", key: "sgst" },
-        { header: "Total GST (12%)", key: "totalTax" },
-        { header: "Grand Total", key: "grandTotal" },
-      ];
+        options.priceDetails && { header: "Taxable Value", key: "taxableValue" },
+        options.hsnDetails && { header: "CGST (6%)", key: "cgst" },
+        options.hsnDetails && { header: "SGST (6%)", key: "sgst" },
+        options.hsnDetails && { header: "Total GST (12%)", key: "totalTax" },
+        options.priceDetails && { header: "Grand Total", key: "grandTotal" },
+      ].filter(Boolean);
 
       const filteredSales = filterByDateRange(sales, "createdAt", dateFrom, dateTo);
 
@@ -280,7 +325,6 @@ export const prepareReportData = ({
 
       rows = filteredSales.map((s) => {
         const total = s.totalAmount || 0;
-        // Standard pharma GST calculation assumption: 12% GST inclusive
         const taxable = total / 1.12;
         const gst = total - taxable;
         const halfGst = gst / 2;
@@ -291,23 +335,30 @@ export const prepareReportData = ({
 
         const customerName = s.customer ? (typeof s.customer === "object" ? s.customer.name : "Customer") : "Walk-in Customer";
 
-        return {
+        const row = {
           invoiceNumber: s.invoiceNumber || `INV-${s._id?.substring(0, 6)}`,
           date: formatDate(s.createdAt),
           customer: customerName,
-          taxableValue: formatCurrency(taxable),
-          cgst: formatCurrency(halfGst),
-          sgst: formatCurrency(halfGst),
-          totalTax: formatCurrency(gst),
-          grandTotal: formatCurrency(total),
         };
+
+        if (options.priceDetails) {
+          row.taxableValue = formatCurrency(taxable);
+          row.grandTotal = formatCurrency(total);
+        }
+        if (options.hsnDetails) {
+          row.cgst = formatCurrency(halfGst);
+          row.sgst = formatCurrency(halfGst);
+          row.totalTax = formatCurrency(gst);
+        }
+
+        return row;
       });
 
       summaryMetrics = [
-        { label: "Total Taxable Sales", value: formatCurrency(totalTaxable) },
-        { label: "Total GST Collected", value: formatCurrency(totalGstAmt) },
-        { label: "Gross Invoice Value", value: formatCurrency(grandTotalSum) },
-      ];
+        options.priceDetails && { label: "Total Taxable Sales", value: formatCurrency(totalTaxable) },
+        options.hsnDetails && { label: "Total GST Collected", value: formatCurrency(totalGstAmt) },
+        options.priceDetails && { label: "Gross Invoice Value", value: formatCurrency(grandTotalSum) },
+      ].filter(Boolean);
       break;
     }
 
@@ -316,9 +367,9 @@ export const prepareReportData = ({
       columns = [
         { header: "Payment Mode", key: "mode" },
         { header: "Total Invoices", key: "count" },
-        { header: "Collected Amount", key: "amount" },
+        options.priceDetails && { header: "Collected Amount", key: "amount" },
         { header: "% Share of Revenue", key: "share" },
-      ];
+      ].filter(Boolean);
 
       const filteredSales = filterByDateRange(sales, "createdAt", dateFrom, dateTo);
 
@@ -337,18 +388,23 @@ export const prepareReportData = ({
       rows = Object.keys(modeStats).map((mode) => {
         const stat = modeStats[mode];
         const share = grandTotal > 0 ? ((stat.total / grandTotal) * 100).toFixed(1) : "0";
-        return {
+        const row = {
           mode,
           count: stat.count,
-          amount: formatCurrency(stat.total),
           share: `${share}%`,
         };
+
+        if (options.priceDetails) {
+          row.amount = formatCurrency(stat.total);
+        }
+
+        return row;
       });
 
       summaryMetrics = [
-        { label: "Total Settled Amount", value: formatCurrency(grandTotal) },
+        options.priceDetails && { label: "Total Settled Amount", value: formatCurrency(grandTotal) },
         { label: "Total Transactions", value: filteredSales.length },
-      ];
+      ].filter(Boolean);
       break;
     }
 
@@ -359,9 +415,9 @@ export const prepareReportData = ({
         { header: "Date", key: "date" },
         { header: "Returned Product", key: "product" },
         { header: "Returned Qty", key: "returnedQty" },
-        { header: "Refund Value", key: "refundValue" },
+        options.priceDetails && { header: "Refund Value", key: "refundValue" },
         { header: "Status", key: "status" },
-      ];
+      ].filter(Boolean);
 
       let totalReturnedQty = 0;
       let totalRefundAmt = 0;
@@ -373,14 +429,19 @@ export const prepareReportData = ({
             totalReturnedQty += item.returnedQuantity;
             totalRefundAmt += refund;
 
-            rows.push({
+            const row = {
               invoiceNumber: s.invoiceNumber || `INV-${s._id?.substring(0, 6)}`,
               date: formatDate(s.createdAt),
               product: item.product?.name || "Product Item",
               returnedQty: `${item.returnedQuantity} Tablets`,
-              refundValue: formatCurrency(refund),
               status: "Restocked / Refunded",
-            });
+            };
+
+            if (options.priceDetails) {
+              row.refundValue = formatCurrency(refund);
+            }
+
+            rows.push(row);
           }
         });
       });
@@ -388,8 +449,8 @@ export const prepareReportData = ({
       summaryMetrics = [
         { label: "Total Refund Claims", value: rows.length },
         { label: "Total Returned Units", value: `${totalReturnedQty} Units` },
-        { label: "Total Refunded Value", value: formatCurrency(totalRefundAmt) },
-      ];
+        options.priceDetails && { label: "Total Refunded Value", value: formatCurrency(totalRefundAmt) },
+      ].filter(Boolean);
       break;
     }
 
@@ -397,12 +458,12 @@ export const prepareReportData = ({
       title = "Customer Sales & Ledger Report";
       columns = [
         { header: "Customer Name", key: "name" },
-        { header: "Mobile Number", key: "mobile" },
-        { header: "Email Address", key: "email" },
+        options.customerContact && { header: "Mobile Number", key: "mobile" },
+        options.customerContact && { header: "Email Address", key: "email" },
         { header: "Total Orders", key: "orders" },
-        { header: "Lifetime Spend", key: "spend" },
-        { header: "Average Basket", key: "avgBasket" },
-      ];
+        options.priceDetails && { header: "Lifetime Spend", key: "spend" },
+        options.priceDetails && { header: "Average Basket", key: "avgBasket" },
+      ].filter(Boolean);
 
       let totalCustomersCount = customers.length;
       let totalLifetimeSpend = 0;
@@ -413,21 +474,29 @@ export const prepareReportData = ({
         totalLifetimeSpend += spend;
         const avg = custSales.length ? spend / custSales.length : 0;
 
-        return {
+        const row = {
           name: c.name || "Customer",
-          mobile: c.mobile ? `+91 ${c.mobile}` : "N/A",
-          email: c.email || "N/A",
           orders: custSales.length,
-          spend: formatCurrency(spend),
-          avgBasket: formatCurrency(avg),
         };
+
+        if (options.customerContact) {
+          row.mobile = c.mobile ? `+91 ${c.mobile}` : "N/A";
+          row.email = c.email || "N/A";
+        }
+
+        if (options.priceDetails) {
+          row.spend = formatCurrency(spend);
+          row.avgBasket = formatCurrency(avg);
+        }
+
+        return row;
       });
 
       summaryMetrics = [
         { label: "Total Customers", value: totalCustomersCount },
-        { label: "Cumulative Customer Spend", value: formatCurrency(totalLifetimeSpend) },
-        { label: "Avg Spend per Customer", value: formatCurrency(totalCustomersCount ? totalLifetimeSpend / totalCustomersCount : 0) },
-      ];
+        options.priceDetails && { label: "Cumulative Customer Spend", value: formatCurrency(totalLifetimeSpend) },
+        options.priceDetails && { label: "Avg Spend per Customer", value: formatCurrency(totalCustomersCount ? totalLifetimeSpend / totalCustomersCount : 0) },
+      ].filter(Boolean);
       break;
     }
 
@@ -439,8 +508,9 @@ export const prepareReportData = ({
         { header: "Order Date", key: "orderDate" },
         { header: "Status", key: "status" },
         { header: "Total Items", key: "itemsCount" },
-        { header: "Total Order Value", key: "totalValue" },
-      ];
+        options.priceDetails && { header: "Total Order Value", key: "totalValue" },
+        options.includeExpiry && { header: "Expected Delivery", key: "expectedDelivery" },
+      ].filter(Boolean);
 
       let totalPoCost = 0;
 
@@ -449,20 +519,28 @@ export const prepareReportData = ({
         totalPoCost += cost;
         const itemCount = po.items ? po.items.length : 0;
 
-        return {
+        const row = {
           poNumber: po.poNumber || `PO-${po._id?.substring(0, 6)}`,
           supplier: po.supplierName || po.supplier?.name || "Supplier Partner",
           orderDate: formatDate(po.createdAt || po.orderDate),
           status: po.status || "Pending",
           itemsCount: `${itemCount} Items`,
-          totalValue: formatCurrency(cost),
         };
+
+        if (options.priceDetails) {
+          row.totalValue = formatCurrency(cost);
+        }
+        if (options.includeExpiry) {
+          row.expectedDelivery = formatDate(po.expectedDeliveryDate);
+        }
+
+        return row;
       });
 
       summaryMetrics = [
         { label: "Total Purchase Orders", value: purchaseOrders.length },
-        { label: "Total Order Expenses", value: formatCurrency(totalPoCost) },
-      ];
+        options.priceDetails && { label: "Total Order Expenses", value: formatCurrency(totalPoCost) },
+      ].filter(Boolean);
       break;
     }
 

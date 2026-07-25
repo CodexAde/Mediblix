@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext';
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, Boxes } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, Boxes, Calendar } from 'lucide-react';
 
 const Navbar = () => {
   const { isMobile } = useDevice();
@@ -10,7 +10,7 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/stock', label: 'Dashboard', icon: Boxes, isPrimary: true },
-    // { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/calendar', label: 'Calendar', icon: Calendar },
     { path: '/inventory', label: 'Inventory', icon: Package },
   ];
 
@@ -48,7 +48,7 @@ const Navbar = () => {
 
       <div className="absolute left-1/2 -translate-x-1/2">
         <Link to="/billing" className="flex items-center gap-2 text-xl font-extrabold text-[var(--text-primary)] hover:opacity-80 transition-opacity">
-          <img src="/spren-logo.svg" alt="Spren Logo" className="w-7 h-7 rounded-lg shadow-xs" />
+          <img src="/spren-logo.png" alt="Spren Logo" className="w-9 h-9 object-contain" />
           <span>SPREN</span>
         </Link>
       </div>

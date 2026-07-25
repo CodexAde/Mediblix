@@ -32,6 +32,7 @@ const LoginPage = () => {
       <div className="flex flex-col justify-center items-center p-6 lg:p-12 relative bg-[#F8FAFF]">
         <div className="w-full max-w-[380px]">
           <div className="mb-8 text-left">
+            <img src="/spren-logo.png" alt="Spren Logo" className="w-16 h-16 object-contain mb-4" />
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold mb-4 tracking-wider uppercase">
               <Package size={10} />
               Inventory System

@@ -16,6 +16,7 @@ import CustomerDetails from './pages/CustomerDetails';
 import LoginPage from './pages/Login';
 import AIImport from './pages/AIImport';
 import Suppliers from './pages/Suppliers';
+import Calendar from './pages/Calendar';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -42,6 +43,7 @@ function App() {
                       <Route path="/" element={<LandingPage />} />
                       <Route path="/stock" element={<StockManager />} />
                       <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/calendar" element={<Calendar />} />
                       <Route path="/inventory" element={<Inventory />} />
                       <Route path="/orders" element={<Orders />} />
                       <Route path="/customers" element={<Customers />} />
