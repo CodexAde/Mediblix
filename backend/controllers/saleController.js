@@ -264,14 +264,6 @@ const processReturn = async (req, res) => {
 
     item.returnedQuantity = (item.returnedQuantity || 0) + returnQty;
     
-    // Recalculate total refund amount across all items
-    const totalRefund = sale.items.reduce((sum, i) => {
-      const retQty = i.returnedQuantity || 0;
-      const effectivePrice = i.price * (1 - (i.discount || 0) / 100);
-      return sum + (retQty * effectivePrice);
-    }, 0);
-    sale.refundAmount = totalRefund;
-
     const product = await Product.findById(item.product);
     if (product) {
       product.quantity += returnQty;

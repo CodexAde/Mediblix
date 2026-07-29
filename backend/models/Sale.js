@@ -41,10 +41,6 @@ const saleSchema = mongoose.Schema(
       type: Number,
       required: true,
     },
-    refundAmount: {
-      type: Number,
-      default: 0,
-    },
     paymentMethod: {
       type: String,
       enum: ["Cash", "Card", "Online", "UPI"],

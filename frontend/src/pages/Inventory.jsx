@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, History } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, History, MoreVertical, FileDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import productService from '../services/productService';
+import importHistoryService from '../services/importHistoryService';
+import { downloadPDFReport } from '../utils/reportGenerator'; // CHANGED: reuse the existing report PDF generator instead of raw jsPDF calls
 import AddProductDrawer from '../components/Inventory/AddProductDrawer';
 import ExportModal from '../components/Inventory/ExportModal';
 import ImportHistoryDrawer from '../components/Inventory/ImportHistoryDrawer';
@@ -17,6 +19,8 @@ const Inventory = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
   const navigate = useNavigate();
 
   const categories = ['All', 'Analgesics', 'Antibiotics', 'Diabetes', 'Vitamins', 'Cardiology', 'Antihistamines', 'Antacids', 'Antivirals'];
@@ -24,6 +28,18 @@ const Inventory = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   const fetchProducts = async () => {
     try {
@@ -44,6 +60,70 @@ const Inventory = () => {
       } catch (error) {
         console.error("Failed to delete product", error);
       }
+    }
+  };
+
+  // CHANGED: now builds a payload in the exact same {title, columns, rows, summaryMetrics}
+  // shape used everywhere else in the app, then calls the SAME downloadPDFReport()
+  // function your other reports already use — no new PDF logic, no changes to
+  // reportGenerator.js.
+  const handleDownloadInvoice = async (product) => {
+    try {
+      // Try to find the import record this product's SKU came from, purely
+      // to enrich the invoice with a reference line — optional, never blocks generation.
+      let matchedRecord = null;
+      try {
+        const history = await importHistoryService.getImportHistory();
+        matchedRecord = history.find((record) =>
+          record.items.some((item) => item.sku === product.sku)
+        );
+      } catch (err) {
+        console.error("Could not fetch import history for invoice reference", err);
+      }
+
+      const qty = product.quantity || 0;
+      const price = product.price || 0;
+      const totalValue = qty * price;
+
+      const columns = [
+        { header: "Field", key: "field" },
+        { header: "Value", key: "value" },
+      ];
+
+      const rows = [
+        { field: "Product Name", value: product.name },
+        { field: "SKU", value: product.sku },
+        { field: "Category", value: product.category },
+        { field: "HSN Code", value: product.hsn || "N/A" },
+        { field: "Batch/Packaging", value: product.packaging || "N/A" },
+        { field: "Quantity", value: `${qty} Tablets` },
+        { field: "Unit Price", value: `₹${price}` },
+        { field: "Status", value: product.status },
+        { field: "Mfg Date", value: product.mfgDate ? new Date(product.mfgDate).toLocaleDateString('en-IN') : "N/A" },
+        { field: "Expiry Date", value: product.expiryDate ? new Date(product.expiryDate).toLocaleDateString('en-IN') : "N/A" },
+        ...(matchedRecord
+          ? [
+              { field: "Source Import File", value: matchedRecord.fileName },
+              { field: "Imported On", value: new Date(matchedRecord.createdAt).toLocaleDateString('en-IN') },
+            ]
+          : []),
+      ];
+
+      const summaryMetrics = [
+        { label: "Quantity", value: `${qty} Tablets` },
+        { label: "Unit Price", value: `₹${price}` },
+        { label: "Total Value", value: `₹${totalValue.toLocaleString('en-IN')}` },
+      ];
+
+      downloadPDFReport({
+        title: `Invoice - ${product.name}`,
+        columns,
+        rows,
+        summaryMetrics,
+      });
+    } catch (error) {
+      console.error("Failed to generate invoice", error);
+      alert("Failed to generate invoice. Please try again.");
     }
   };
 
@@ -83,7 +163,7 @@ const Inventory = () => {
               onClick={() => setIsHistoryDrawerOpen(true)}
             >
               <History size={18} />
-              Import History
+              Invoice Import History
             </button>
             <button 
               className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer"
@@ -212,15 +292,47 @@ const Inventory = () => {
                         {product.status}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors"
-                          onClick={(e) => { e.stopPropagation(); handleDelete(product._id); }}
+                    <td className="p-4 relative">
+                      <div className="flex items-center justify-center">
+                        <button
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === product._id ? null : product._id);
+                          }}
                         >
-                          <Trash2 size={18} />
+                          <MoreVertical size={18} />
                         </button>
                       </div>
+
+                      {openMenuId === product._id && (
+                        <div
+                          ref={menuRef}
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-4 top-12 z-20 w-48 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+                        >
+                          <button
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              handleDownloadInvoice(product);
+                            }}
+                          >
+                            <FileDown size={16} />
+                            Download Invoice
+                          </button>
+                          <button
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              handleDelete(product._id);
+                            }}
+                          >
+                            <Trash2 size={16} />
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
