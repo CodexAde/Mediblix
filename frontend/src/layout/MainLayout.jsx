@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext';
 import Navbar from '../components/Navbar';
 import MobileDock from '../components/MobileDock';
+import MedAgentWidget from '../components/MedAgent/MedAgentWidget';
 
 const MainLayout = ({ children }) => {
   const { isMobile } = useDevice();
@@ -36,6 +37,8 @@ const MainLayout = ({ children }) => {
       >
         <MobileDock />
       </div>
+
+      {!isAIImport && <MedAgentWidget />}
     </div>
   );
 };

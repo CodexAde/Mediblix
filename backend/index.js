@@ -11,6 +11,7 @@ import aiRoutes from "./routes/aiRoutes.js";
 import importHistoryRoutes from "./routes/importHistoryRoutes.js";
 import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js";
 import supplierRoutes from "./routes/supplierRoutes.js";
+import medAgentRoutes from "./routes/medAgentRoutes.js";
 import Supplier from "./models/Supplier.js";
 import PurchaseOrder from "./models/PurchaseOrder.js";
 
@@ -111,6 +112,7 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/import-history", importHistoryRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/suppliers", supplierRoutes);
+app.use("/api/medagent", medAgentRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date() });
