@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useDevice } from '../context/DeviceContext';
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, Boxes, Calendar } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, Boxes, FileSpreadsheet } from 'lucide-react';
 
 const Navbar = () => {
   const { isMobile } = useDevice();
@@ -10,7 +10,7 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/stock', label: 'Dashboard', icon: Boxes, isPrimary: true },
-    { path: '/calendar', label: 'Calendar', icon: Calendar },
+    { path: '/audits', label: 'Audits & Reports', icon: FileSpreadsheet },
     { path: '/inventory', label: 'Inventory', icon: Package },
   ];
 

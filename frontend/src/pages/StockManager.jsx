@@ -27,7 +27,9 @@ const StockManager = () => {
     if (action === 'add-product') {
       setIsChoiceOpen(true);
     } else if (action === 'activity-calendar') {
-      navigate('/calendar');
+      navigate('/audits?tab=activity-calendar');
+    } else if (action === 'generate-report') {
+      navigate('/audits?tab=reports');
     } else {
       setActiveModal(action);
     }

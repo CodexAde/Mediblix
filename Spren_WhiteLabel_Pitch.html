@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spren AI — Pharmacy Billing & Inventory Operating System</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 0mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+      background-color: #f8fafc;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      page-break-after: always;
+      position: relative;
+      background-color: #ffffff;
+      padding: 16mm 18mm 16mm 18mm;
+      overflow: hidden;
+    }
+
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    .hero-banner {
+      background: linear-gradient(135deg, #166534 0%, #052e16 100%);
+      color: #ffffff;
+      padding: 32px 34px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 18px 30px -8px rgba(22, 101, 52, 0.35);
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+      pointer-events: none;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 8px;
+      letter-spacing: -0.4px;
+    }
+
+    .hero-sub {
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+      line-height: 1.5;
+      max-width: 95%;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .metric-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-top: 4px solid #166534;
+      border-radius: 14px;
+      padding: 14px 12px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .metric-val {
+      font-size: 19px;
+      font-weight: 800;
+      color: #166534;
+      margin-bottom: 2px;
+    }
+
+    .metric-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    .overview-card {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 1px solid #bbf7d0;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+    }
+
+    .overview-head {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #166534;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .overview-body {
+      font-size: 11.5px;
+      color: #164e63;
+      line-height: 1.55;
+    }
+
+    .pillar-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .pillar-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    }
+
+    .pillar-icon-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .icon-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: #dcfce7;
+      color: #166534;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .pillar-name {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .pillar-desc-text {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.45;
+    }
+
+    .sec-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .sec-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sec-num {
+      background: #166534;
+      color: #ffffff;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10.5px;
+      font-weight: 800;
+    }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .dash-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: 0 5px 14px rgba(0,0,0,0.03);
+    }
+
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+
+    .dash-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dash-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .dash-tag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 16px;
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
+    .dash-intro {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .feature-list {
+      list-style: none;
+    }
+
+    .feature-list li {
+      position: relative;
+      padding-left: 16px;
+      margin-bottom: 6px;
+      font-size: 10.5px;
+      color: #334155;
+      line-height: 1.4;
+    }
+
+    .feature-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #166534;
+      font-weight: 800;
+      font-size: 10.5px;
+    }
+
+    .ai-tag {
+      background: #4f46e5;
+      color: #ffffff;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+
+    .ai-box {
+      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+      border: 1px solid #ddd6fe;
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+
+    .ai-box-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #4c1d95;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ai-box-desc {
+      font-size: 11px;
+      color: #5b21b6;
+      line-height: 1.5;
+    }
+
+    .tech-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #166534;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+    }
+
+    .tech-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .tech-desc {
+      font-size: 10.5px;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    .contact-banner {
+      background: linear-gradient(135deg, #166534 0%, #052e16 100%);
+      color: #ffffff;
+      padding: 16px 20px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+    }
+
+    .contact-banner-title {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .contact-banner-sub {
+      font-size: 11px;
+      color: #dcfce7;
+    }
+
+    .contact-banner-link {
+      color: #ffffff;
+      font-weight: 800;
+      text-decoration: underline;
+      font-size: 12px;
+    }
+
+    .page-footer {
+      position: absolute;
+      bottom: 12mm;
+      left: 18mm;
+      right: 18mm;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9.5px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: EXECUTIVE OVERVIEW & PILLARS -->
+  <div class="page">
+    <div class="hero-banner">
+      <div class="hero-pill">✨ Spren AI Pharmacy Operating System</div>
+      <h1 class="hero-title">Next-Gen Pharmacy Billing & Inventory AI Platform</h1>
+      <p class="hero-sub">Transforming retail and hospital pharmacies with Voice-Powered Billing, AI OCR Supplier Inwarding, Automated Purchase Orders, Real-Time Sales Analytics, and GST Tax Compliance.</p>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-val">80%</div>
+        <div class="metric-lbl">Faster Checkout</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val">2.5 Hrs</div>
+        <div class="metric-lbl">Saved Daily / Store</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val">100%</div>
+        <div class="metric-lbl">AI OCR Accuracy</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val">0%</div>
+        <div class="metric-lbl">Expired Stock Losses</div>
+      </div>
+    </div>
+
+    <div class="overview-card">
+      <div class="overview-head">⚡ Executive Product Overview</div>
+      <p class="overview-body">Spren AI eliminates daily pharmacy operational friction. By pairing real-time voice speech-to-cart technology with computer vision invoice scanning, Spren enables pharmacists to create bills in under 20 seconds, automatically ingest distributor bills from Cipla, Sun Pharma, Dr. Reddy's, etc., and maintain complete stock control without manual data entry errors.</p>
+    </div>
+
+    <div class="pillar-row">
+      <div class="pillar-box">
+        <div class="pillar-icon-row">
+          <div class="icon-badge">🎙️</div>
+          <div class="pillar-name">Voice-Activated Billing</div>
+        </div>
+        <p class="pillar-desc-text">Speak medicine names naturally in regional accents. Speech-to-cart engine parses products, assigns active batches, and calculates prices in under 1 second.</p>
+      </div>
+
+      <div class="pillar-box">
+        <div class="pillar-icon-row">
+          <div class="icon-badge">📑</div>
+          <div class="pillar-name">AI OCR Distributor Import</div>
+        </div>
+        <p class="pillar-desc-text">Snap paper distributor invoices. AI reads medicine names, batch numbers, MRP, HSN, and expiry dates directly into inventory without keying.</p>
+      </div>
+
+      <div class="pillar-box">
+        <div class="pillar-icon-row">
+          <div class="icon-badge">📊</div>
+          <div class="pillar-name">Sales & Revenue Intelligence</div>
+        </div>
+        <p class="pillar-desc-text">360-degree store dashboard tracking monthly revenue graphs, weekly sales velocity, category distributions, and top-selling product rankings.</p>
+      </div>
+
+      <div class="pillar-box">
+        <div class="pillar-icon-row">
+          <div class="icon-badge">⚠️</div>
+          <div class="pillar-name">Automated Reorder Control</div>
+        </div>
+        <p class="pillar-desc-text">Proactive low-stock warnings when inventory drops below critical thresholds (≤15 units). One-click reorder creation prevents lost sales.</p>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>Spren AI Technologies — Enterprise Product Brochure</span>
+      <span>Page 1 of 3</span>
+    </div>
+  </div>
+
+  <!-- PAGE 2: CORE MODULES & DASHBOARD BREAKDOWN -->
+  <div class="page">
+    <div class="sec-head">
+      <div class="sec-title">
+        <div class="sec-num">1</div>
+        Spren AI Product Modules & Feature Architecture
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <!-- Card 1 -->
+      <div class="dash-card">
+        <div class="dash-header">
+          <div class="dash-title-wrap">
+            <span style="font-size: 16px;">🎙️</span>
+            <span class="dash-title">AI Voice & Quick Billing</span>
+          </div>
+          <span class="dash-tag">Counter Operations</span>
+        </div>
+        <p class="dash-intro">High-speed counter checkout module powered by speech processing and instant customer phone lookup.</p>
+        <ul class="feature-list">
+          <li>Multi-language speech-to-cart natural language engine <span class="ai-tag">AI</span></li>
+          <li>Instant customer profile retrieval & past billing history</li>
+          <li>FEFO batch selection (First-Expiry-First-Out logic)</li>
+          <li>Multi-payment support (Cash, UPI, Credit Card) & digital receipt sharing</li>
+        </ul>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="dash-card">
+        <div class="dash-header">
+          <div class="dash-title-wrap">
+            <span style="font-size: 16px;">📦</span>
+            <span class="dash-title">Smart Inventory Control</span>
+          </div>
+          <span class="dash-tag">Stock Management</span>
+        </div>
+        <p class="dash-intro">Real-time stock tracking across tablets, strips, bottles, and batch variations with zero manual discrepancies.</p>
+        <ul class="feature-list">
+          <li>Automated strip-to-tablet stock unit conversion</li>
+          <li>Batch-level expiry tracking & near-expiry waste alerts <span class="ai-tag">AI</span></li>
+          <li>Category classification (Analgesics, Antibiotics, Diabetes)</li>
+          <li>Low-stock reorder point recommendations (≤15 units)</li>
+        </ul>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="dash-card">
+        <div class="dash-header">
+          <div class="dash-title-wrap">
+            <span style="font-size: 16px;">📄</span>
+            <span class="dash-title">AI Supplier Bill & PO Inward</span>
+          </div>
+          <span class="dash-tag">Procurement</span>
+        </div>
+        <p class="dash-intro">Automated inwarding of distributor invoices and one-click purchase order generation.</p>
+        <ul class="feature-list">
+          <li>Computer vision paper invoice OCR & auto-ingestion <span class="ai-tag">AI</span></li>
+          <li>Automatic distributor mapping (Cipla, Sun Pharma, Lupin)</li>
+          <li>Discrepancy detection between PO and supplier bill</li>
+          <li>One-click automated purchase order dispatch</li>
+        </ul>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="dash-card">
+        <div class="dash-header">
+          <div class="dash-title-wrap">
+            <span style="font-size: 16px;">📈</span>
+            <span class="dash-title">Analytics, Reports & GST</span>
+          </div>
+          <span class="dash-tag">Tax & Reporting</span>
+        </div>
+        <p class="dash-intro">Comprehensive reporting suite for store finances, tax statutory filings, and customer refill CRM.</p>
+        <ul class="feature-list">
+          <li>HSN code mapping & exportable GSTR-1 / GSTR-3B tax reports</li>
+          <li>Revenue velocity charts & category profit margin analysis</li>
+          <li>Schedule H1 prescription drug logging & audit trails</li>
+          <li>Automated WhatsApp/SMS chronic medication refill reminders</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec-head" style="margin-top: 10px;">
+      <div class="sec-title">
+        <div class="sec-num">2</div>
+        Operational Comparison: Legacy Software vs. Spren AI
+      </div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-title" style="color: #166534;">⚡ Billing Speed: 20 Seconds vs 4 Minutes</div>
+      <div class="tech-desc">Legacy systems require manual typing of drug names and batch numbers during rush hours. Spren AI voice commands process full customer orders in under 20 seconds.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-title" style="color: #166534;">⚡ Stock Entry: Instant OCR Scan vs 60 Mins Typing</div>
+      <div class="tech-desc">Entering stock from distributor paper invoices takes 1 hour per bill manually. Spren AI OCR scans PDF or paper bills, extracting MRP, expiry, and GST in seconds.</div>
+    </div>
+
+    <div class="page-footer">
+      <span>Spren AI Technologies — Enterprise Product Architecture</span>
+      <span>Page 2 of 3</span>
+    </div>
+  </div>
+
+  <!-- PAGE 3: AI INNOVATION, ARCHITECTURE & CONTACT -->
+  <div class="page">
+    <div class="sec-head">
+      <div class="sec-title">
+        <div class="sec-num">3</div>
+        AI Engines & Technology Architecture
+      </div>
+    </div>
+
+    <div class="ai-box">
+      <div class="ai-box-title">
+        <span>🤖 Spren Voice & Computer Vision Core</span>
+        <span style="font-size: 10px; background: #6d28d9; color: #fff; padding: 2px 8px; border-radius: 12px;">Proprietary AI</span>
+      </div>
+      <p class="ai-box-desc">Built with state-of-the-art speech processing and optical character recognition trained on thousands of pharmaceutical product catalogs and Indian distributor invoice layouts. Ensures 100% data extraction precision for batch numbers, expiry dates, HSN codes, and pricing rules.</p>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-title">🔒 Enterprise Security & Cloud Synchronization</div>
+      <div class="tech-desc">Bank-grade end-to-end encryption with continuous cloud backups. Offline fallback guarantees uninterrupted counter billing even during internet outages.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-title">🏛️ Statutory Tax, HSN & Drug License Compliance</div>
+      <div class="tech-desc">Fully compliant with Indian GST laws, Schedule H/H1 drug logging, license expiry tracking, and accountant-ready exportable financial statements.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-title">🏢 Multi-Location & Chain Store Scalability</div>
+      <div class="tech-desc">Centralized multi-branch inventory management. Transfer stock seamlessly between branches and monitor real-time performance across all store locations.</div>
+    </div>
+
+    <div class="tech-card">
+      <div class="tech-title">⚡ 10-Minute Onboarding & Zero Hardware Change</div>
+      <div class="tech-desc">Browser-based SaaS platform running on any laptop, desktop, or tablet. Zero expensive hardware investments required.</div>
+    </div>
+
+    <!-- Contact Us Banner -->
+    <div class="contact-banner">
+      <div>
+        <div class="contact-banner-title">Ready to Upgrade Your Pharmacy to Spren AI?</div>
+        <div class="contact-banner-sub">Get started with a 14-day free trial or request a custom enterprise walkthrough.</div>
+      </div>
+      <div>
+        <a href="mailto:business@codevern.com" class="contact-banner-link">business@codevern.com</a>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>Spren AI Technologies — Enterprise Sales Brochure</span>
+      <span>Page 3 of 3</span>
+    </div>
+  </div>
+
+</body>
+</html>
