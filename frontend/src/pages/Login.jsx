@@ -5,8 +5,8 @@ import { useNavigate } from 'react-router-dom';
 // Image used directly from public folder
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@spren.com');
+  const [password, setPassword] = useState('SprenPassword123');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
   const [error, setError] = useState('');
