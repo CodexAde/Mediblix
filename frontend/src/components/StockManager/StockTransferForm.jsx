@@ -7,9 +7,9 @@ const StockTransferForm = ({ onClose }) => {
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">Select Product</label>
           <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-green-600 transition-all cursor-pointer">
-            <option>iPhone 15 Pro</option>
-            <option>Samsung Galaxy S24</option>
-            <option>MacBook Pro M3</option>
+            <option>Calpol 650</option>
+            <option>Mox 500</option>
+            <option>Limcee 500</option>
           </select>
         </div>
         <div>

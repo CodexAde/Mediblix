@@ -22,76 +22,75 @@ connectDB().then(async () => {
     const count = await Supplier.countDocuments();
     if (count === 0) {
       await Supplier.create({
-        name: "Apple Inc.",
-        email: "sales@apple.com",
-        phone: "+1 (555) 234-5678",
-        address: "One Apple Park Way, Cupertino, CA 95014"
+        name: "Cipla Pharmaceuticals",
+        email: "info@cipla.com",
+        phone: "9876543210",
+        address: "Peninsula Chambers, Ganpatrao Kadam Marg, Lower Parel, Mumbai, Maharashtra 400013"
       });
       await Supplier.create({
-        name: "Samsung Electronics",
-        email: "sales@samsung.com",
-        phone: "+1 (555) 345-6789",
-        address: "Samsung Highway, Electronics District, KR 12345"
+        name: "Sun Pharma Industries",
+        email: "contact@sunpharma.com",
+        phone: "8765432109",
+        address: "Sun House, CTS No. 201 B/1, Western Express Highway, Goregaon East, Mumbai, Maharashtra 400063"
       });
       await Supplier.create({
-        name: "Tech Supplies Inc.",
-        email: "contact@techsupplies.com",
-        phone: "+1 (555) 123-4567",
-        address: "123 Supplier Street, Tech City, NY 10001"
+        name: "Dr. Reddy's Laboratories",
+        email: "support@drreddys.com",
+        phone: "7654321098",
+        address: "8-2-337, Road No. 3, Banjara Hills, Hyderabad, Telangana 500034"
       });
       await Supplier.create({
-        name: "Sony Corporation",
-        email: "sales@sony.com",
-        phone: "+1 (555) 456-7890",
-        address: "1-7-1 Konan, Minato-ku, Tokyo 108-0075"
+        name: "Lupin Ltd.",
+        email: "contact@lupin.com",
+        phone: "6543210987",
+        address: "Kalpataru Inspire, Off Western Express Highway, Santacruz East, Mumbai, Maharashtra 400055"
       });
       await Supplier.create({
-        name: "Audio World",
-        email: "sales@audioworld.com",
-        phone: "+1 (555) 567-8901",
-        address: "456 Sound Boulevard, Audio Valley, CA 90210"
+        name: "Torrent Pharmaceuticals",
+        email: "info@torrentpharma.com",
+        phone: "5432109876",
+        address: "Torrent House, Off Ashram Road, Ahmedabad, Gujarat 380009"
       });
       await Supplier.create({
-        name: "Screen Guard Co.",
-        email: "orders@screenguard.com",
-        phone: "+1 (555) 678-9012",
-        address: "789 Protection Street, Screen City, TX 75001"
+        name: "Zydus Lifesciences",
+        email: "contact@zyduslife.com",
+        phone: "4321098765",
+        address: "Zydus Corporate Park, Scheme No. 63, Khoraj, Gandhinagar, Gujarat 382210"
       });
       await Supplier.create({
-        name: "Case Pro Ltd.",
-        email: "sales@casepro.com",
-        phone: "+1 (555) 789-0123",
-        address: "101 Protection Lane, Shield Town, WA 98001"
+        name: "Alkem Laboratories",
+        email: "contact@alkem.com",
+        phone: "3210987654",
+        address: "Alkem House, Senapati Bapat Marg, Lower Parel, Mumbai, Maharashtra 400013"
       });
+    }
 
-      const orderCount = await PurchaseOrder.countDocuments();
-      if (orderCount === 0) {
-        await PurchaseOrder.create({
-          supplierName: "Tech Supplies Inc.",
-          supplierEmail: "contact@techsupplies.com",
-          supplierPhone: "+1 (555) 123-4567",
-          deliveryAddress: "123 Supplier Street, Tech City, NY 10001",
-          items: [
-            { productName: "USB-C Cables", sku: "CBL-USBC", quantity: 200, price: 50 },
-            { productName: "Power Adapters", sku: "PWR-ADPT", quantity: 100, price: 150 },
-            { productName: "Phone Cases", sku: "CASE-PHN", quantity: 300, price: 50 }
-          ],
-          totalAmount: 45000,
-          status: "Delivered"
-        });
-        await PurchaseOrder.create({
-          supplierName: "Apple Inc.",
-          supplierEmail: "sales@apple.com",
-          supplierPhone: "+1 (555) 234-5678",
-          deliveryAddress: "One Apple Park Way, Cupertino, CA 95014",
-          items: [
-            { productName: "iPhone 15 Pro", sku: "APL-IP15", quantity: 100, price: 999 },
-            { productName: "AirPods Pro", sku: "APL-APP", quantity: 200, price: 249 }
-          ],
-          totalAmount: 149700,
-          status: "In Transit"
-        });
-      }
+    const orderCount = await PurchaseOrder.countDocuments();
+    if (orderCount === 0) {
+      await PurchaseOrder.create({
+        supplierName: "Cipla Pharmaceuticals",
+        supplierEmail: "info@cipla.com",
+        supplierPhone: "9876543210",
+        deliveryAddress: "Peninsula Chambers, Ganpatrao Kadam Marg, Lower Parel, Mumbai, Maharashtra 400013",
+        items: [
+          { productName: "Calpol 650", sku: "PHR-CAL650", quantity: 500, price: 32 },
+          { productName: "Limcee 500", sku: "PHR-LIMC500", quantity: 300, price: 42 }
+        ],
+        totalAmount: 28600,
+        status: "Delivered"
+      });
+      await PurchaseOrder.create({
+        supplierName: "Sun Pharma Industries",
+        supplierEmail: "contact@sunpharma.com",
+        supplierPhone: "8765432109",
+        deliveryAddress: "Sun House, CTS No. 201 B/1, Western Express Highway, Goregaon East, Mumbai, Maharashtra 400063",
+        items: [
+          { productName: "Mox 500", sku: "PHR-MOX500", quantity: 200, price: 115 },
+          { productName: "Pan 40", sku: "PHR-PAN40", quantity: 150, price: 122 }
+        ],
+        totalAmount: 41300,
+        status: "In Transit"
+      });
     }
   } catch (err) {
     console.error(err);

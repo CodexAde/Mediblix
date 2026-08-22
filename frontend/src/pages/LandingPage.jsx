@@ -64,8 +64,8 @@ const LandingPage = () => {
   ];
 
   const recentActivity = [
-    { text: 'Stock alert: "iPhone 15" is running low', status: 'warning' },
-    { text: 'New shipment received from Apple Inc.', status: 'success' },
+    { text: 'Stock alert: "Calpol 650" is running low', status: 'warning' },
+    { text: 'New shipment received from Cipla Pharmaceuticals', status: 'success' },
     { text: 'Purchase order #PO-003 approved', status: 'success' },
   ];
 

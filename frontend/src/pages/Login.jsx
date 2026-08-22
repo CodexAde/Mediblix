@@ -62,7 +62,7 @@ const LoginPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@renix.com"
+                  placeholder="admin@Spren.com"
                   className="w-full pl-10 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-gray-900 text-sm focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-600 transition-all placeholder:text-gray-300 shadow-sm"
                   required
                 />
@@ -106,16 +106,16 @@ const LoginPage = () => {
 
           {/* Simple Codevern Branding */}
           <div className="mt-12 text-center">
-             <p className="text-[11px] font-medium text-gray-400 tracking-wide uppercase">
-               Powered by <span className="text-green-600 font-black">Spren</span>
-             </p>
+            <p className="text-[11px] font-medium text-gray-400 tracking-wide uppercase">
+              Powered by <span className="text-green-600 font-black">Spren</span>
+            </p>
           </div>
         </div>
       </div>
 
       {/* Right Column: Illustration (Hidden on mobile) */}
       <div className="hidden lg:block relative bg-[#16a34a] overflow-hidden">
-        {/* Wavy Patterns matching Renix Blue */}
+        {/* Wavy Patterns matching Spren Blue */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <path d="M0,40 Q25,20 50,40 T100,40 V100 H0 Z" fill="white" />
@@ -126,21 +126,21 @@ const LoginPage = () => {
         <div className="relative h-full flex flex-col items-center justify-center p-12">
           {/* Main Visual Container */}
           <div className="bg-white/10 backdrop-blur-3xl rounded-[3rem] p-10 w-full max-w-[500px] border border-white/20 shadow-2xl relative flex flex-col items-center">
-            
+
             <h2 className="text-3xl font-black text-white leading-tight mb-8 text-center">
-              Scale your business with Renix <br /> 
+              Scale your business with Spren <br />
               <span className="text-green-200">Inventory management.</span> 🚀
             </h2>
 
             <div className="relative w-full max-w-[380px]">
               <div className="bg-white/5 p-1.5 rounded-3xl">
-                <img 
-                  src="/login_illustration.png" 
-                  alt="Renix Dashboard" 
+                <img
+                  src="/login_illustration.png"
+                  alt="Spren Dashboard"
                   className="w-full rounded-[1.5rem] object-cover shadow-2xl border border-white/10"
                 />
               </div>
-              
+
               {/* Simple Badges */}
               <div className="absolute -left-6 bottom-8 bg-white p-3 rounded-2xl shadow-xl flex items-center gap-2 border border-green-50">
                 <span className="text-lg">🤝</span>

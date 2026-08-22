@@ -205,7 +205,7 @@ const Suppliers = () => {
                   onChange={handleInputChange}
                   required
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all text-sm"
-                  placeholder="e.g. Apple Inc."
+                  placeholder="e.g. Cipla Pharmaceuticals"
                 />
               </div>
 
@@ -220,7 +220,7 @@ const Suppliers = () => {
                   onChange={handleInputChange}
                   required
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all text-sm"
-                  placeholder="e.g. sales@apple.com"
+                  placeholder="e.g. info@cipla.com"
                 />
               </div>
 
@@ -250,7 +250,7 @@ const Suppliers = () => {
                   required
                   rows={3}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all resize-none text-sm"
-                  placeholder="e.g. One Apple Park Way, Cupertino, CA 95014"
+                  placeholder="e.g. Peninsula Chambers, Lower Parel, Mumbai, Maharashtra 400013"
                 />
               </div>
 
