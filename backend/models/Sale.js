@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const saleSchema = mongoose.Schema(
   {
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+    },
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
@@ -49,7 +54,6 @@ const saleSchema = mongoose.Schema(
     invoiceNumber: {
       type: String,
       required: true,
-      unique: true,
     },
   },
   {

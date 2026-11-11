@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const purchaseOrderSchema = mongoose.Schema(
   {
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+    },
     supplierName: {
       type: String,
       required: true,

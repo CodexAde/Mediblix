@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const importHistorySchema = mongoose.Schema(
   {
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+    },
     fileName: {
       type: String,
       required: true,

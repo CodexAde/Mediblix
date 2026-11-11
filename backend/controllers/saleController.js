@@ -1,22 +1,20 @@
 import Sale from "../models/Sale.js";
 import Product from "../models/Product.js";
 import Customer from "../models/Customer.js";
+import Organization from "../models/Organization.js";
 import PDFDocument from "pdfkit";
-import fs from "fs";
-import path from "path";
+import { getTenantQuery, getTenantContext } from "../utils/tenantHelper.js";
 
-// @desc    Create a new sale
-// @route   POST /api/sales
-// @access  Public
 const createSale = async (req, res) => {
   const { customerId, items, paymentMethod } = req.body;
 
   try {
+    const orgId = await getTenantContext(req);
     let totalAmount = 0;
     const saleItems = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.product);
+      const product = await Product.findOne({ _id: item.product, organization: orgId });
       if (!product) {
         return res
           .status(404)
@@ -51,12 +49,12 @@ const createSale = async (req, res) => {
 
     let invoiceNumber = req.body.invoiceNumber;
     if (invoiceNumber) {
-      const existingSale = await Sale.findOne({ invoiceNumber });
+      const existingSale = await Sale.findOne({ invoiceNumber, organization: orgId });
       if (existingSale) {
         return res.status(400).json({ message: "Invoice number already exists" });
       }
     } else {
-      const lastSale = await Sale.findOne().sort({ invoiceNumber: -1 });
+      const lastSale = await Sale.findOne({ organization: orgId }).sort({ invoiceNumber: -1 });
       let nextNum = 1;
       if (lastSale && lastSale.invoiceNumber) {
         const match = lastSale.invoiceNumber.match(/Inv-(\d+)/i);
@@ -64,10 +62,11 @@ const createSale = async (req, res) => {
           nextNum = parseInt(match[1], 10) + 1;
         }
       }
-      invoiceNumber = `Inv-${String(nextNum).padStart(4, '0')}`;
+      invoiceNumber = `Inv-${String(nextNum).padStart(4, "0")}`;
     }
 
     const sale = await Sale.create({
+      organization: orgId,
       customer: customerId,
       items: saleItems,
       totalAmount,
@@ -81,20 +80,17 @@ const createSale = async (req, res) => {
 
     res.status(201).json(sale);
   } catch (error) {
-    console.error("Error creating sale:", error);
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: error.message });
     }
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Get all sales
-// @route   GET /api/sales
-// @access  Public
 const getSales = async (req, res) => {
   try {
-    const query = {};
+    const tenantQuery = await getTenantQuery(req);
+    const query = { ...tenantQuery };
     if (req.query.customer) {
       query.customer = req.query.customer;
     }
@@ -104,22 +100,26 @@ const getSales = async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(sales);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Generate Invoice PDF
-// @route   GET /api/sales/:id/invoice
-// @access  Public
 const generateInvoice = async (req, res) => {
   try {
-    const sale = await Sale.findById(req.params.id)
+    const tenantQuery = await getTenantQuery(req);
+    const sale = await Sale.findOne({ _id: req.params.id, ...tenantQuery })
       .populate("customer")
       .populate("items.product");
 
     if (!sale) {
       return res.status(404).json({ message: "Sale not found" });
     }
+
+    const org = sale.organization ? await Organization.findById(sale.organization) : null;
+    const orgName = org ? org.name : "Spren Pharmacy";
+    const orgAddress = org && org.address ? org.address : "Main Street Hub";
+    const orgPhone = org && org.contactPhone ? org.contactPhone : "+91 99999 88888";
+    const orgEmail = org && org.contactEmail ? org.contactEmail : "support@spren.com";
 
     const doc = new PDFDocument({ margin: 50 });
 
@@ -131,74 +131,60 @@ const generateInvoice = async (req, res) => {
 
     doc.pipe(res);
 
-    doc.lineWidth(1.5).strokeColor('#166534').roundedRect(50, 45, 36, 36, 6).stroke();
-    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(16).text('Rx', 50, 55, { width: 36, align: 'center' });
+    doc.lineWidth(1.5).strokeColor("#166534").roundedRect(50, 45, 36, 36, 6).stroke();
+    doc.fillColor("#166534").font("Helvetica-Bold").fontSize(16).text("Rx", 50, 55, { width: 36, align: "center" });
 
-    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(16).text('Spren Pharmacy', 98, 45);
-    doc.fillColor('#6b7280').font('Helvetica').fontSize(8.5)
-      .text('123 Main Street, New York, NY 10025', 98, 63)
-      .text('Phone: +91 99999 88888 | support@spren.com', 98, 73);
+    doc.fillColor("#111827").font("Helvetica-Bold").fontSize(16).text(orgName, 98, 45);
+    doc.fillColor("#6b7280").font("Helvetica").fontSize(8.5)
+      .text(orgAddress, 98, 63)
+      .text(`Phone: ${orgPhone} | ${orgEmail}`, 98, 73);
 
-    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(20).text('INVOICE', 400, 43, { align: 'right', width: 145 });
-    doc.fillColor('#4b5563').font('Helvetica').fontSize(9)
-      .text(`Invoice No: ${sale.invoiceNumber}`, 400, 65, { align: 'right', width: 145 })
-      .text(`Date: ${new Date(sale.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 400, 77, { align: 'right', width: 145 });
+    doc.fillColor("#166534").font("Helvetica-Bold").fontSize(20).text("TAX INVOICE", 400, 45, { align: "right" });
+    doc.fillColor("#6b7280").font("Helvetica").fontSize(9)
+      .text(`Invoice #: ${sale.invoiceNumber}`, 400, 68, { align: "right" })
+      .text(`Date: ${new Date(sale.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`, 400, 80, { align: "right" })
+      .text(`Payment: ${sale.paymentMethod}`, 400, 92, { align: "right" });
 
-    doc.moveTo(50, 100).lineTo(545, 100).lineWidth(1).strokeColor('#e5e7eb').stroke();
+    doc.moveTo(50, 110).lineTo(545, 110).lineWidth(1).strokeColor("#e5e7eb").stroke();
 
-    const customerName = sale.customer ? sale.customer.name : 'Walk-in Customer';
-    const customerPhone = sale.customer ? `+91 ${sale.customer.mobile}` : 'N/A';
-    const customerEmail = sale.customer ? (sale.customer.email || 'Walk-in customer') : 'Walk-in customer';
+    const customer = sale.customer || { name: "Cash Customer", mobile: "N/A" };
+    doc.fillColor("#111827").font("Helvetica-Bold").fontSize(10).text("BILLED TO:", 50, 122);
+    doc.font("Helvetica-Bold").fontSize(10).text(customer.name, 50, 136);
+    doc.font("Helvetica").fontSize(9).fillColor("#4b5563")
+      .text(`Phone: ${customer.mobile}`, 50, 149)
+      .text(`Email: ${customer.email || "N/A"}`, 50, 161);
 
-    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9.5).text('BILL TO', 50, 115);
-    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11.5).text(customerName, 50, 130);
-    doc.fillColor('#4b5563').font('Helvetica').fontSize(9)
-      .text(`Phone: ${customerPhone}`, 50, 146)
-      .text(`Email: ${customerEmail}`, 50, 158);
+    const tableTop = 185;
+    doc.fillColor("#f3f4f6").rect(50, tableTop, 495, 22).fill();
 
-    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9.5).text('PAYMENT DETAILS', 320, 115);
-    doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11.5).text('Paid', 320, 130);
-    doc.fillColor('#4b5563').font('Helvetica').fontSize(9)
-      .text(`Method: ${sale.paymentMethod}`, 320, 146)
-      .text(`Ref ID: #${sale._id.toString().slice(-8).toUpperCase()}`, 320, 158);
+    doc.fillColor("#374151").font("Helvetica-Bold").fontSize(8.5)
+      .text("#", 56, tableTop + 6, { width: 20 })
+      .text("Item / Medicine", 80, tableTop + 6, { width: 170 })
+      .text("Packaging", 255, tableTop + 6, { width: 75 })
+      .text("Qty", 335, tableTop + 6, { width: 35, align: "center" })
+      .text("Rate", 375, tableTop + 6, { width: 45, align: "right" })
+      .text("Disc%", 425, tableTop + 6, { width: 35, align: "right" })
+      .text("Amount", 465, tableTop + 6, { width: 75, align: "right" });
 
-    doc.moveTo(50, 180).lineTo(545, 180).lineWidth(1).strokeColor('#e5e7eb').stroke();
+    let position = tableTop + 24;
 
-    const tableHeaderY = 195;
-    
-    doc.fillColor('#6b7280').font('Helvetica-Bold').fontSize(8.5);
-    doc.text("ITEMS & DESCRIPTION", 50, tableHeaderY);
-    doc.text("PRICE", 270, tableHeaderY, { width: 80, align: "right" });
-    doc.text("QTY", 360, tableHeaderY, { width: 60, align: "right" });
-    doc.text("TOTAL", 440, tableHeaderY, { width: 100, align: "right" });
+    sale.items.forEach((item, index) => {
+      const prodName = item.product ? item.product.name : "Unknown Item";
+      const pkg = item.product ? (item.product.packaging || "10 Tablets / Strip") : "Tablet";
+      const itemPrice = item.price || 0;
+      const disc = item.discount || 0;
+      const lineTotal = itemPrice * item.quantity * (1 - disc / 100);
 
-    doc.moveTo(50, tableHeaderY + 12).lineTo(545, tableHeaderY + 12).lineWidth(1).strokeColor('#111827').stroke();
+      doc.font("Helvetica").fontSize(8.5).fillColor("#1f2937")
+        .text(String(index + 1), 56, position + 6, { width: 20 })
+        .text(prodName, 80, position + 6, { width: 170 })
+        .text(pkg, 255, position + 6, { width: 75 })
+        .text(String(item.quantity), 335, position + 6, { width: 35, align: "center" })
+        .text(`Rs. ${itemPrice.toFixed(2)}`, 375, position + 6, { width: 45, align: "right" })
+        .text(`${disc}%`, 425, position + 6, { width: 35, align: "right" })
+        .text(`Rs. ${lineTotal.toFixed(2)}`, 465, position + 6, { width: 75, align: "right" });
 
-    doc.font("Helvetica").fillColor('#1f2937');
-    let position = tableHeaderY + 22;
-
-    sale.items.forEach((item) => {
-      const positionY = position;
-      const unitLabel = item.unit === "Tablet" ? " Tab" : " Strip";
-      
-      const productName = item.product ? item.product.name : 'Deleted Product';
-      doc
-        .fontSize(9.5)
-        .font('Helvetica-Bold').fillColor('#111827')
-        .text(productName, 50, positionY)
-        .font('Helvetica').fontSize(8.5).fillColor('#6b7280')
-        .text(`Unit packaging: ${item.unit || "Strip"}`, 50, positionY + 13);
-        
-      doc
-        .font('Helvetica').fontSize(9.5).fillColor('#374151')
-        .text(`Rs. ${item.price}`, 270, positionY + 4, { width: 80, align: "right" })
-        .text(`${item.quantity}${unitLabel}`, 360, positionY + 4, { width: 60, align: "right" })
-        .font('Helvetica-Bold').fillColor('#111827')
-        .text(`Rs. ${item.price * item.quantity}`, 440, positionY + 4, { width: 100, align: "right" });
-
-      doc.moveTo(50, positionY + 28).lineTo(545, positionY + 28).lineWidth(0.5).strokeColor('#f3f4f6').stroke();
-
-      position += 38;
+      position += 24;
     });
 
     const summaryY = position + 10;
@@ -206,39 +192,37 @@ const generateInvoice = async (req, res) => {
     const cgst = ((sale.totalAmount - taxableValue) / 2).toFixed(2);
     const sgst = cgst;
 
-    doc.font("Helvetica").fontSize(9).fillColor('#4b5563')
+    doc.font("Helvetica").fontSize(9).fillColor("#4b5563")
       .text("Taxable Value", 350, summaryY, { width: 80, align: "right" })
       .text("CGST @ 9%", 350, summaryY + 14, { width: 80, align: "right" })
       .text("SGST @ 9%", 350, summaryY + 28, { width: 80, align: "right" });
 
-    doc.font("Helvetica-Bold").fontSize(9).fillColor('#111827')
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#111827")
       .text(`Rs. ${taxableValue}`, 440, summaryY, { width: 100, align: "right" })
       .text(`Rs. ${cgst}`, 440, summaryY + 14, { width: 100, align: "right" })
       .text(`Rs. ${sgst}`, 440, summaryY + 28, { width: 100, align: "right" });
 
     const totalBannerY = summaryY + 46;
-    doc.fillColor('#eaf5ed').rect(350, totalBannerY, 195, 28).fill();
-    
-    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(10.5)
+    doc.fillColor("#eaf5ed").rect(350, totalBannerY, 195, 28).fill();
+
+    doc.fillColor("#166534").font("Helvetica-Bold").fontSize(10.5)
       .text("Grand Total", 365, totalBannerY + 9)
-      .text(`Rs. ${sale.totalAmount}`, 440, totalBannerY + 9, { width: 100, align: "right" });
+      .text(`Rs. ${sale.totalAmount.toFixed(2)}`, 440, totalBannerY + 9, { width: 100, align: "right" });
 
     const footerY = totalBannerY + 80;
+    doc.moveTo(50, footerY - 15).lineTo(545, footerY - 15).lineWidth(1).strokeColor("#e5e7eb").stroke();
 
-    doc.moveTo(50, footerY - 15).lineTo(545, footerY - 15).lineWidth(1).strokeColor('#e5e7eb').stroke();
-
-    doc.font("Helvetica-Bold").fontSize(8.5).fillColor('#374151')
-      .text("Terms & Conditions:", 50, footerY);
-    doc.font("Helvetica").fontSize(8).fillColor('#6b7280')
+    doc.font("Helvetica-Bold").fontSize(8.5).fillColor("#374151").text("Terms & Conditions:", 50, footerY);
+    doc.font("Helvetica").fontSize(8).fillColor("#6b7280")
       .text("1. Medicines once sold cannot be returned without a valid batch verification.", 50, footerY + 14)
       .text("2. Please store medicines as per directed guidelines. Keep out of reach of children.", 50, footerY + 24);
 
-    doc.font("Helvetica-Oblique").fontSize(9.5).fillColor('#166534')
-      .text("Thank you for choosing Spren Pharmacy. Get well soon!", 50, footerY + 50, { align: "center", width: 495 });
+    doc.font("Helvetica-Oblique").fontSize(9.5).fillColor("#166534")
+      .text(`Thank you for choosing ${orgName}. Get well soon!`, 50, footerY + 50, { align: "center", width: 495 });
 
     doc.end();
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -247,12 +231,13 @@ const processReturn = async (req, res) => {
   const returnQty = Number(returnQuantity);
 
   try {
-    const sale = await Sale.findById(req.params.id);
+    const tenantQuery = await getTenantQuery(req);
+    const sale = await Sale.findOne({ _id: req.params.id, ...tenantQuery });
     if (!sale) {
       return res.status(404).json({ message: "Sale not found" });
     }
 
-    const item = sale.items.find(i => i._id.toString() === itemId);
+    const item = sale.items.find((i) => i._id.toString() === itemId);
     if (!item) {
       return res.status(404).json({ message: "Item not found in this sale" });
     }
@@ -263,7 +248,7 @@ const processReturn = async (req, res) => {
     }
 
     item.returnedQuantity = (item.returnedQuantity || 0) + returnQty;
-    
+
     const product = await Product.findById(item.product);
     if (product) {
       product.quantity += returnQty;
@@ -278,8 +263,7 @@ const processReturn = async (req, res) => {
 
     res.json(updatedSale);
   } catch (error) {
-    console.error("Error processing return:", error);
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 

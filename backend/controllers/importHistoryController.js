@@ -1,12 +1,14 @@
 import ImportHistory from "../models/ImportHistory.js";
 import Product from "../models/Product.js";
+import { getTenantQuery, getTenantContext } from "../utils/tenantHelper.js";
 
 const getImportHistory = async (req, res) => {
   try {
-    const history = await ImportHistory.find({}).sort({ createdAt: -1 });
+    const tenantQuery = await getTenantQuery(req);
+    const history = await ImportHistory.find(tenantQuery).sort({ createdAt: -1 });
     res.json(history);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -18,12 +20,13 @@ const createImportRecord = async (req, res) => {
   }
 
   try {
+    const orgId = await getTenantContext(req);
     let totalQuantity = 0;
     let totalValue = 0;
     const processedItems = [];
 
     for (const item of items) {
-      let product = await Product.findOne({ sku: item.sku });
+      let product = await Product.findOne({ sku: item.sku, organization: orgId });
       let status = "Updated";
 
       if (product) {
@@ -38,6 +41,7 @@ const createImportRecord = async (req, res) => {
       } else {
         status = "New";
         product = await Product.create({
+          organization: orgId,
           name: item.name,
           sku: item.sku,
           category: item.category || "General",
@@ -65,6 +69,7 @@ const createImportRecord = async (req, res) => {
     }
 
     const importRecord = await ImportHistory.create({
+      organization: orgId,
       fileName,
       totalProducts: items.length,
       totalQuantity,
@@ -74,20 +79,21 @@ const createImportRecord = async (req, res) => {
 
     res.status(201).json(importRecord);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
 const deleteImportRecord = async (req, res) => {
   try {
-    const record = await ImportHistory.findById(req.params.id);
+    const tenantQuery = await getTenantQuery(req);
+    const record = await ImportHistory.findOne({ _id: req.params.id, ...tenantQuery });
     if (!record) {
       return res.status(404).json({ message: "Import record not found" });
     }
     await record.deleteOne();
     res.json({ message: "Import history record deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 

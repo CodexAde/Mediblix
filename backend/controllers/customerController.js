@@ -1,28 +1,24 @@
 import Customer from "../models/Customer.js";
+import { getTenantQuery, getTenantContext } from "../utils/tenantHelper.js";
 
-// @desc    Get all customers
-// @route   GET /api/customers
-// @access  Public
 const getCustomers = async (req, res) => {
   try {
-    const customers = await Customer.find({}).sort({ createdAt: -1 });
+    const tenantQuery = await getTenantQuery(req);
+    const customers = await Customer.find(tenantQuery).sort({ createdAt: -1 });
     res.json(customers);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Create a customer
-// @route   POST /api/customers
-// @access  Public
 const createCustomer = async (req, res) => {
   const { name, mobile, email } = req.body;
 
   try {
-    const customerExists = await Customer.findOne({ mobile });
+    const orgId = await getTenantContext(req);
+    const customerExists = await Customer.findOne({ mobile, organization: orgId });
 
     if (customerExists) {
-      // Update existing customer info if needed, or just return existing
       customerExists.name = name || customerExists.name;
       customerExists.email = email || customerExists.email;
       const updatedCustomer = await customerExists.save();
@@ -30,6 +26,7 @@ const createCustomer = async (req, res) => {
     }
 
     const customer = await Customer.create({
+      organization: orgId,
       name,
       mobile,
       email,
@@ -42,16 +39,14 @@ const createCustomer = async (req, res) => {
       throw new Error("Invalid customer data");
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Search customers
-// @route   GET /api/customers/search?q=query
-// @access  Public
 const searchCustomers = async (req, res) => {
   const { q } = req.query;
   try {
+    const tenantQuery = await getTenantQuery(req);
     const keyword = q
       ? {
           $or: [
@@ -62,16 +57,17 @@ const searchCustomers = async (req, res) => {
         }
       : {};
 
-    const customers = await Customer.find({ ...keyword });
+    const customers = await Customer.find({ ...keyword, ...tenantQuery });
     res.json(customers);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
 const getCustomerById = async (req, res) => {
   try {
-    const customer = await Customer.findById(req.params.id).populate({
+    const tenantQuery = await getTenantQuery(req);
+    const customer = await Customer.findOne({ _id: req.params.id, ...tenantQuery }).populate({
       path: "purchaseHistory",
       populate: {
         path: "items.product",
@@ -84,7 +80,7 @@ const getCustomerById = async (req, res) => {
       res.status(404).json({ message: "Customer not found" });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 

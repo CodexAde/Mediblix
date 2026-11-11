@@ -1,40 +1,35 @@
 import Product from "../models/Product.js";
 import ImportHistory from "../models/ImportHistory.js";
+import { getTenantQuery, getTenantContext } from "../utils/tenantHelper.js";
 
-// @desc    Get all products
-// @route   GET /api/products
-// @access  Public
 const getProducts = async (req, res) => {
   try {
-    const products = await Product.find({});
+    const tenantQuery = await getTenantQuery(req);
+    const products = await Product.find(tenantQuery);
     res.json(products);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Get single product by ID or SKU
-// @route   GET /api/products/:id
-// @access  Public
 const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const tenantQuery = await getTenantQuery(req);
+    const product = await Product.findOne({ _id: req.params.id, ...tenantQuery });
     if (product) {
       res.json(product);
     } else {
       res.status(404).json({ message: "Product not found" });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Search products
-// @route   GET /api/products/search?q=query
-// @access  Public
 const searchProducts = async (req, res) => {
   const { q } = req.query;
   try {
+    const tenantQuery = await getTenantQuery(req);
     const keyword = q
       ? {
           $or: [
@@ -45,28 +40,27 @@ const searchProducts = async (req, res) => {
         }
       : {};
 
-    const products = await Product.find({ ...keyword });
+    const products = await Product.find({ ...keyword, ...tenantQuery });
     res.json(products);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Create a product
-// @route   POST /api/products
-// @access  Public
 const createProduct = async (req, res) => {
   const { name, sku, category, price, quantity, status, expiryDate, mfgDate, hsn, packaging, tabletsPerStrip } = req.body;
 
   try {
-    const productExists = await Product.findOne({ sku });
+    const orgId = await getTenantContext(req);
+    const productExists = await Product.findOne({ sku, organization: orgId });
 
     if (productExists) {
       res.status(400);
-      throw new Error("Product already exists");
+      throw new Error("Product already exists with this SKU in this organization");
     }
 
     const product = await Product.create({
+      organization: orgId,
       name,
       sku,
       category,
@@ -85,6 +79,7 @@ const createProduct = async (req, res) => {
       const unitPrice = Number(price) || 0;
 
       await ImportHistory.create({
+        organization: orgId,
         fileName: "Manual Entry",
         totalProducts: 1,
         totalQuantity: qty,
@@ -107,18 +102,16 @@ const createProduct = async (req, res) => {
       throw new Error("Invalid product data");
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Update a product
-// @route   PUT /api/products/:id
-// @access  Public
 const updateProduct = async (req, res) => {
   const { name, sku, category, price, quantity, status, expiryDate, mfgDate, hsn, packaging, tabletsPerStrip } = req.body;
 
   try {
-    const product = await Product.findById(req.params.id);
+    const tenantQuery = await getTenantQuery(req);
+    const product = await Product.findOne({ _id: req.params.id, ...tenantQuery });
 
     if (product) {
       product.name = name || product.name;
@@ -140,16 +133,14 @@ const updateProduct = async (req, res) => {
       throw new Error("Product not found");
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
-// @desc    Delete a product
-// @route   DELETE /api/products/:id
-// @access  Public
 const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const tenantQuery = await getTenantQuery(req);
+    const product = await Product.findOne({ _id: req.params.id, ...tenantQuery });
 
     if (product) {
       await product.deleteOne();
@@ -159,7 +150,7 @@ const deleteProduct = async (req, res) => {
       throw new Error("Product not found");
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
