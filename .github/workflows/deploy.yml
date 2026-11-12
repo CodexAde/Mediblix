@@ -53,26 +53,29 @@ jobs:
         run: |
           VITE_BACKEND_URL="${{ steps.vars.outputs.BACKEND_URL }}" npm --prefix frontend run build
 
-      - name: Setup SSH Key
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add Server to Known Hosts
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SERVER_HOST || '13.207.109.182' }} >> ~/.ssh/known_hosts
 
       - name: Deploy Frontend Assets to Server
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }} "sudo mkdir -p ${{ steps.vars.outputs.WEB_ROOT }} && sudo chown -R ${{ secrets.SERVER_USER || 'ubuntu' }}:${{ secrets.SERVER_USER || 'ubuntu' }} ${{ steps.vars.outputs.WEB_ROOT }}"
-          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key" frontend/dist/ ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }}:${{ steps.vars.outputs.WEB_ROOT }}/
+          ssh ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }} "sudo mkdir -p ${{ steps.vars.outputs.WEB_ROOT }} && sudo chown -R ${{ secrets.SERVER_USER || 'ubuntu' }}:${{ secrets.SERVER_USER || 'ubuntu' }} ${{ steps.vars.outputs.WEB_ROOT }}"
+          rsync -avz --delete frontend/dist/ ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }}:${{ steps.vars.outputs.WEB_ROOT }}/
 
       - name: Deploy Backend Application
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }} "mkdir -p ${{ steps.vars.outputs.DEPLOY_DIR }}/backend"
-          rsync -avz --delete --exclude 'node_modules' --exclude '.env' -e "ssh -i ~/.ssh/deploy_key" backend/ ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }}:${{ steps.vars.outputs.DEPLOY_DIR }}/backend/
+          ssh ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }} "mkdir -p ${{ steps.vars.outputs.DEPLOY_DIR }}/backend"
+          rsync -avz --delete --exclude 'node_modules' --exclude '.env' backend/ ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }}:${{ steps.vars.outputs.DEPLOY_DIR }}/backend/
 
       - name: Configure and Start Backend via PM2
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }} "bash -s" << 'EOF'
+          ssh ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }} "bash -s" << 'EOF'
             set -e
             cd ${{ steps.vars.outputs.DEPLOY_DIR }}/backend
 
@@ -101,4 +104,4 @@ jobs:
 
       - name: Verify Backend Health
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }} "curl -s -f http://127.0.0.1:${{ steps.vars.outputs.BACKEND_PORT }}/api/health || true"
+          ssh ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST || '13.207.109.182' }} "curl -s -f http://127.0.0.1:${{ steps.vars.outputs.BACKEND_PORT }}/api/health || true"
