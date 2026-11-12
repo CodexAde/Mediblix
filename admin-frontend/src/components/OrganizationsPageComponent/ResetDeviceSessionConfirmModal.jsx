@@ -77,3 +77,4 @@ const ResetDeviceSessionConfirmModal = ({
 };
 
 export default ResetDeviceSessionConfirmModal;
+
