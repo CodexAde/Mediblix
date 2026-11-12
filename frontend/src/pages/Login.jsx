@@ -20,7 +20,10 @@ const LoginPage = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      const msg = err.message || 'Invalid email or password';
+      if (!msg.toLowerCase().includes('expired') && !msg.toLowerCase().includes('frozen')) {
+        setError(msg);
+      }
     } finally {
       setIsSubmitting(false);
     }

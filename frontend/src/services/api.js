@@ -39,7 +39,23 @@ api.interceptors.response.use(
       if (msg.toLowerCase().includes("frozen")) {
         window.dispatchEvent(
           new CustomEvent("Mediblix:account_frozen", {
-            detail: { message: msg },
+            detail: {
+              message: msg,
+              organizationName: error.response.data?.organizationName,
+            },
+          })
+        );
+      } else if (
+        msg.toLowerCase().includes("expired") ||
+        error.response.data?.isExpired
+      ) {
+        window.dispatchEvent(
+          new CustomEvent("Mediblix:subscription_expired", {
+            detail: {
+              message: msg,
+              organizationName: error.response.data?.organizationName,
+              expiresAt: error.response.data?.expiresAt,
+            },
           })
         );
       }
