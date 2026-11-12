@@ -39,20 +39,30 @@ connectDB().then(async () => {
       });
     }
 
-    const superadmin = await User.findOne({ email: "adarshrpandey10@gmail.com" });
+    const adminEmail = process.env.ADMIN_EMAIL || "adarshrpandey10@gmail.com";
+    const adminPassword = process.env.ADMIN_PASSWORD || "Admin@Mediblix2026";
+
+    const superadmin = await User.findOne({ email: adminEmail });
     if (!superadmin) {
       await User.create({
         name: "Super Admin",
-        email: "adarshrpandey10@gmail.com",
-        password: "Admin@Mediblix2026",
+        email: adminEmail,
+        password: adminPassword,
         role: "superadmin",
         isAdmin: true,
         organization: null,
       });
     } else {
+      let needsSave = false;
       if (superadmin.role !== "superadmin") {
         superadmin.role = "superadmin";
+        needsSave = true;
+      }
+      if (!superadmin.isAdmin) {
         superadmin.isAdmin = true;
+        needsSave = true;
+      }
+      if (needsSave) {
         await superadmin.save();
       }
     }
