@@ -22,10 +22,14 @@ import {
   AlertTriangle,
   History,
   CalendarDays,
+  KeyRound,
 } from "lucide-react";
 import adminOrgService from "../services/adminOrgService";
 import FreezeConfirmModal from "../components/OrganizationsPageComponent/FreezeConfirmModal";
 import FreezeSuccessModal from "../components/OrganizationsPageComponent/FreezeSuccessModal";
+import ResetCredentialsConfirmModal from "../components/OrganizationsPageComponent/ResetCredentialsConfirmModal";
+import ResetCredentialsSuccessModal from "../components/OrganizationsPageComponent/ResetCredentialsSuccessModal";
+import ResetDeviceSessionConfirmModal from "../components/OrganizationsPageComponent/ResetDeviceSessionConfirmModal";
 
 const OrganizationDetailsPage = () => {
   const { id } = useParams();
@@ -39,6 +43,15 @@ const OrganizationDetailsPage = () => {
   const [selectedPlan, setSelectedPlan] = useState("Monthly");
   const [customDays, setCustomDays] = useState(30);
   const [expiryDateInput, setExpiryDateInput] = useState("");
+
+  const [resetCredsModalOpen, setResetCredsModalOpen] = useState(false);
+  const [resetCredsLoading, setResetCredsLoading] = useState(false);
+  const [resetCredsSuccessData, setResetCredsSuccessData] = useState({
+    isOpen: false,
+    organization: null,
+    credentialsData: null,
+  });
+  const [resetDeviceModalOpen, setResetDeviceModalOpen] = useState(false);
 
   const [successModalData, setSuccessModalData] = useState({
     isOpen: false,
@@ -93,20 +106,22 @@ const OrganizationDetailsPage = () => {
     }
   };
 
-  const handleResetPassword = async () => {
+  const handleConfirmResetPassword = async () => {
     if (!data?.organization) return;
-    const confirm = window.confirm(
-      `Generate new admin credentials for ${data.organization.name}?`
-    );
-    if (!confirm) return;
-
     try {
+      setResetCredsLoading(true);
       const result = await adminOrgService.resetOrgPassword(data.organization._id);
-      alert(
-        `Credentials Generated:\n\nEmail: ${result.credentials.email}\nNew Password: ${result.credentials.password}`
-      );
+      setResetCredsModalOpen(false);
+      setResetCredsSuccessData({
+        isOpen: true,
+        organization: data.organization,
+        credentialsData: result,
+      });
+      await fetchDetails();
     } catch (err) {
       alert(err.message || "Failed to reset password");
+    } finally {
+      setResetCredsLoading(false);
     }
   };
 
@@ -143,16 +158,11 @@ const OrganizationDetailsPage = () => {
     }
   };
 
-  const handleResetDeviceSession = async () => {
-    const confirm = window.confirm(
-      `Reset device session for ${data.organization.name}? Any active device terminal will be logged out and the pharmacy can log in on a fresh device.`
-    );
-    if (!confirm) return;
-
+  const handleConfirmResetDeviceSession = async () => {
     try {
       setResettingDevice(true);
-      const res = await adminOrgService.resetDeviceSession(id);
-      alert(res.message || "Device session reset successfully");
+      await adminOrgService.resetDeviceSession(id);
+      setResetDeviceModalOpen(false);
       await fetchDetails();
     } catch (err) {
       alert(err.message || "Failed to reset device session");
@@ -212,7 +222,7 @@ const OrganizationDetailsPage = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={handleResetPassword}
+            onClick={() => setResetCredsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer text-sm font-medium"
           >
             <RotateCcw size={15} />
@@ -448,7 +458,7 @@ const OrganizationDetailsPage = () => {
               </div>
               <button
                 disabled={resettingDevice}
-                onClick={handleResetDeviceSession}
+                onClick={() => setResetDeviceModalOpen(true)}
                 className="text-xs font-bold px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-xl transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
               >
                 <RefreshCw size={12} className={resettingDevice ? "animate-spin" : ""} />
@@ -528,6 +538,104 @@ const OrganizationDetailsPage = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] overflow-hidden shadow-xs">
+        <div className="p-4 bg-[var(--bg-main)] border-b border-[var(--border-soft)] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+              <KeyRound size={18} />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                Organization Access PIN & Security Versioning
+              </h2>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Active credentials, disabled historical PINs, and session versioning
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setResetCredsModalOpen(true)}
+            className="text-xs font-bold px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <KeyRound size={13} />
+            <span>Generate New PIN</span>
+          </button>
+        </div>
+
+        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200/70">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                <ShieldCheck size={15} className="text-emerald-700" />
+                Current Active PIN
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between bg-white px-3.5 py-2.5 rounded-xl border border-emerald-100 shadow-xs">
+              <span className="font-mono text-base font-bold text-gray-900 select-all">
+                {orgAdmin?.lastPassword || "••••••••••••"}
+              </span>
+              {orgAdmin?.lastPassword && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(orgAdmin.lastPassword);
+                    alert("Active PIN copied to clipboard!");
+                  }}
+                  className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold cursor-pointer"
+                >
+                  Copy PIN
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-500 mt-2">
+              Security Session Version: <span className="font-mono font-bold text-gray-800">v{orgAdmin?.sessionVersion || 1}</span> • Active terminals authenticate with this version.
+            </p>
+          </div>
+
+          <div className="p-4 bg-gray-50/70 rounded-xl border border-gray-200/70">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                <History size={14} className="text-gray-500" />
+                Previous Disabled PINs History
+              </span>
+              <span className="text-[11px] text-gray-400">
+                {(orgAdmin?.passwordHistory || []).length} Archived
+              </span>
+            </div>
+
+            {(!orgAdmin?.passwordHistory || orgAdmin.passwordHistory.length === 0) ? (
+              <p className="text-xs text-gray-400 py-4 text-center bg-white rounded-xl border border-gray-100">
+                No previous PINs deactivated yet.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                {orgAdmin.passwordHistory.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 bg-white border border-gray-100 rounded-xl flex items-center justify-between text-xs"
+                  >
+                    <div>
+                      <p className="font-mono text-gray-400 line-through text-xs font-semibold">
+                        {item.pin}
+                      </p>
+                      <p className="text-[10px] text-gray-400">
+                        Deactivated on {new Date(item.deactivatedAt).toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                      Disabled
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -638,6 +746,35 @@ const OrganizationDetailsPage = () => {
         organization={successModalData.organization}
         actionType={successModalData.actionType}
         onClose={() => setSuccessModalData({ isOpen: false, organization: null, actionType: "Frozen" })}
+      />
+
+      <ResetCredentialsConfirmModal
+        isOpen={resetCredsModalOpen}
+        organization={data?.organization}
+        loading={resetCredsLoading}
+        onClose={() => setResetCredsModalOpen(false)}
+        onConfirm={handleConfirmResetPassword}
+      />
+
+      <ResetCredentialsSuccessModal
+        isOpen={resetCredsSuccessData.isOpen}
+        organization={resetCredsSuccessData.organization}
+        credentialsData={resetCredsSuccessData.credentialsData}
+        onClose={() =>
+          setResetCredsSuccessData({
+            isOpen: false,
+            organization: null,
+            credentialsData: null,
+          })
+        }
+      />
+
+      <ResetDeviceSessionConfirmModal
+        isOpen={resetDeviceModalOpen}
+        organization={data?.organization}
+        loading={resettingDevice}
+        onClose={() => setResetDeviceModalOpen(false)}
+        onConfirm={handleConfirmResetDeviceSession}
       />
     </div>
   );

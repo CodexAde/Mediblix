@@ -139,7 +139,7 @@ const authUser = asyncHandler(async (req, res) => {
     role: user.role || (user.isAdmin ? "superadmin" : "staff"),
     isAdmin: user.isAdmin,
     organization: user.organization || null,
-    token: generateToken(user._id),
+    token: generateToken(user._id, user.sessionVersion || 1),
     sessionKey,
     activeDevice: user.activeDeviceInfo,
   });

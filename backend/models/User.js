@@ -16,6 +16,17 @@ const userSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    lastPassword: {
+      type: String,
+      default: "",
+    },
+    passwordHistory: [
+      {
+        pin: { type: String, default: "" },
+        deactivatedAt: { type: Date, default: Date.now },
+        status: { type: String, default: "Disabled" },
+      },
+    ],
     role: {
       type: String,
       enum: ["superadmin", "org_admin", "staff"],
@@ -30,6 +41,10 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       required: true,
       default: false,
+    },
+    sessionVersion: {
+      type: Number,
+      default: 1,
     },
     activeSessionKey: {
       type: String,

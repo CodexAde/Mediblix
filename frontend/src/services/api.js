@@ -34,6 +34,24 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response && error.response.status === 401) {
+      const msg = error.response.data?.message || "";
+      if (
+        error.response.data?.isSessionRevoked ||
+        msg.toLowerCase().includes("session") ||
+        msg.toLowerCase().includes("not authorized")
+      ) {
+        localStorage.removeItem("userInfo");
+        localStorage.removeItem("active_device_session");
+        window.dispatchEvent(
+          new CustomEvent("Mediblix:session_revoked", {
+            detail: {
+              message: msg || "Session revoked by administrator. Please log in again.",
+            },
+          })
+        );
+      }
+    }
     if (error.response && error.response.status === 403) {
       const msg = error.response.data?.message || "";
       if (msg.toLowerCase().includes("frozen")) {

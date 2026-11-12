@@ -4,6 +4,8 @@ import OrganizationTable from "../components/OrganizationsPageComponent/Organiza
 import CreateOrganizationModal from "../components/OrganizationsPageComponent/CreateOrganizationModal";
 import FreezeConfirmModal from "../components/OrganizationsPageComponent/FreezeConfirmModal";
 import FreezeSuccessModal from "../components/OrganizationsPageComponent/FreezeSuccessModal";
+import ResetCredentialsConfirmModal from "../components/OrganizationsPageComponent/ResetCredentialsConfirmModal";
+import ResetCredentialsSuccessModal from "../components/OrganizationsPageComponent/ResetCredentialsSuccessModal";
 import adminOrgService from "../services/adminOrgService";
 
 const OrganizationsPage = () => {
@@ -16,6 +18,15 @@ const OrganizationsPage = () => {
   const [isFreezeModalOpen, setIsFreezeModalOpen] = useState(false);
   const [selectedOrgForFreeze, setSelectedOrgForFreeze] = useState(null);
   const [freezeLoading, setFreezeLoading] = useState(false);
+
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [selectedOrgForReset, setSelectedOrgForReset] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccessData, setResetSuccessData] = useState({
+    isOpen: false,
+    organization: null,
+    credentialsData: null,
+  });
 
   const [successModalData, setSuccessModalData] = useState({
     isOpen: false,
@@ -74,19 +85,27 @@ const OrganizationsPage = () => {
     }
   };
 
-  const handleResetPassword = async (org) => {
-    const confirm = window.confirm(
-      `Generate new admin credentials for ${org.name}?`
-    );
-    if (!confirm) return;
+  const handleResetPassword = (org) => {
+    setSelectedOrgForReset(org);
+    setIsResetModalOpen(true);
+  };
 
+  const handleConfirmResetPassword = async (org) => {
     try {
+      setResetLoading(true);
       const res = await adminOrgService.resetOrgPassword(org._id);
-      alert(
-        `Credentials Generated:\n\nEmail: ${res.credentials.email}\nNew Password: ${res.credentials.password}`
-      );
+      setIsResetModalOpen(false);
+      setSelectedOrgForReset(null);
+      setResetSuccessData({
+        isOpen: true,
+        organization: org,
+        credentialsData: res,
+      });
+      await fetchOrganizations();
     } catch (error) {
       alert(error.message || "Failed to reset password");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -188,6 +207,30 @@ const OrganizationsPage = () => {
         organization={successModalData.organization}
         actionType={successModalData.actionType}
         onClose={() => setSuccessModalData({ isOpen: false, organization: null, actionType: "Frozen" })}
+      />
+
+      <ResetCredentialsConfirmModal
+        isOpen={isResetModalOpen}
+        organization={selectedOrgForReset}
+        loading={resetLoading}
+        onClose={() => {
+          setIsResetModalOpen(false);
+          setSelectedOrgForReset(null);
+        }}
+        onConfirm={handleConfirmResetPassword}
+      />
+
+      <ResetCredentialsSuccessModal
+        isOpen={resetSuccessData.isOpen}
+        organization={resetSuccessData.organization}
+        credentialsData={resetSuccessData.credentialsData}
+        onClose={() =>
+          setResetSuccessData({
+            isOpen: false,
+            organization: null,
+            credentialsData: null,
+          })
+        }
       />
     </div>
   );

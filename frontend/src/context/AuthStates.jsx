@@ -52,14 +52,56 @@ const AuthState = (props) => {
       setIsExpiredModalOpen(true);
     };
 
+    const handleSessionRevokedEvent = (e) => {
+      localStorage.removeItem("userInfo");
+      localStorage.removeItem("active_device_session");
+      setUser(null);
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    };
+
     window.addEventListener("Mediblix:account_frozen", handleFrozenEvent);
     window.addEventListener("Mediblix:subscription_expired", handleExpiredEvent);
+    window.addEventListener("Mediblix:session_revoked", handleSessionRevokedEvent);
 
     return () => {
       window.removeEventListener("Mediblix:account_frozen", handleFrozenEvent);
       window.removeEventListener("Mediblix:subscription_expired", handleExpiredEvent);
+      window.removeEventListener("Mediblix:session_revoked", handleSessionRevokedEvent);
     };
   }, []);
+
+  useEffect(() => {
+    if (!user || user.role === "superadmin") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const userInfoStr = localStorage.getItem("userInfo");
+        if (!userInfoStr) return;
+        const parsed = JSON.parse(userInfoStr);
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
+        const activeSession = localStorage.getItem("active_device_session") || "";
+        await axios.get(`${backendUrl}/api/users/me`, {
+          headers: {
+            Authorization: `Bearer ${parsed.token}`,
+            "x-device-session": activeSession,
+          },
+        });
+      } catch (err) {
+        if (err.response?.status === 401) {
+          localStorage.removeItem("userInfo");
+          localStorage.removeItem("active_device_session");
+          setUser(null);
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
+        }
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   const login = async (email, password) => {
     try {

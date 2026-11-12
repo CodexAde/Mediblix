@@ -120,6 +120,8 @@ const getOrganizations = asyncHandler(async (req, res) => {
         activeDeviceName: orgAdmin?.activeDeviceInfo?.deviceName || null,
         hasActiveSession: !!orgAdmin?.activeSessionKey,
         conflictAttemptsCount: orgAdmin?.conflictAttemptsCount || 0,
+        lastPassword: orgAdmin?.lastPassword || null,
+        passwordHistory: orgAdmin?.passwordHistory || [],
       };
     })
   );
@@ -249,6 +251,7 @@ const createOrganization = asyncHandler(async (req, res) => {
     name: contactPerson.trim(),
     email: contactEmail.trim().toLowerCase(),
     password: initialPassword,
+    lastPassword: initialPassword,
     role: "org_admin",
     isAdmin: true,
     organization: org._id,
@@ -341,6 +344,7 @@ const resetOrgDeviceSession = asyncHandler(async (req, res) => {
 
   for (const user of users) {
     user.activeSessionKey = null;
+    user.sessionVersion = (user.sessionVersion || 1) + 1;
     user.conflictAttemptsCount = 0;
     user.deviceAccessLogs = user.deviceAccessLogs || [];
     user.deviceAccessLogs.unshift({
@@ -396,20 +400,56 @@ const resetOrgPassword = asyncHandler(async (req, res) => {
     throw new Error("Admin user for this organization not found");
   }
 
+  const previousPin = orgAdmin.lastPassword || "Previously Set Password";
+
+  orgAdmin.passwordHistory = orgAdmin.passwordHistory || [];
+  if (orgAdmin.lastPassword) {
+    orgAdmin.passwordHistory.unshift({
+      pin: orgAdmin.lastPassword,
+      deactivatedAt: new Date(),
+      status: "Disabled",
+    });
+    if (orgAdmin.passwordHistory.length > 15) {
+      orgAdmin.passwordHistory = orgAdmin.passwordHistory.slice(0, 15);
+    }
+  }
+
   const generatedPassword =
     newPassword && newPassword.trim()
       ? newPassword.trim()
       : "Mediblix@" + crypto.randomBytes(4).toString("hex");
 
+  orgAdmin.lastPassword = generatedPassword;
   orgAdmin.password = generatedPassword;
+  orgAdmin.activeSessionKey = null;
+  orgAdmin.sessionVersion = (orgAdmin.sessionVersion || 1) + 1;
+
+  orgAdmin.deviceAccessLogs = orgAdmin.deviceAccessLogs || [];
+  orgAdmin.deviceAccessLogs.unshift({
+    attemptedAt: new Date(),
+    ip: req.ip || "Admin Console",
+    userAgent: "Admin Console",
+    deviceName: "Platform Administrator",
+    status: "Session_Invalidated",
+    details: "Credentials reset. Previous PIN disabled and active session invalidated.",
+  });
+  if (orgAdmin.deviceAccessLogs.length > 50) {
+    orgAdmin.deviceAccessLogs = orgAdmin.deviceAccessLogs.slice(0, 50);
+  }
+
   await orgAdmin.save();
 
   res.json({
-    message: "Password reset successfully",
+    message: "Credentials reset successfully. Previous PIN has been disabled.",
     credentials: {
       email: orgAdmin.email,
       password: generatedPassword,
     },
+    previousCredentials: {
+      password: previousPin,
+      status: "Disabled",
+    },
+    passwordHistory: orgAdmin.passwordHistory,
   });
 });
 

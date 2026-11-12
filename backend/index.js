@@ -141,9 +141,16 @@ app.use("/api/medagent", medAgentRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
+  const msg = err.message || "An unexpected error occurred";
   res.status(statusCode).json({
-    message: err.message || "An unexpected error occurred",
-    isFrozen: (err.message || "").toLowerCase().includes("frozen"),
+    message: msg,
+    isFrozen: msg.toLowerCase().includes("frozen"),
+    isSessionRevoked:
+      msg.toLowerCase().includes("session") &&
+      (msg.toLowerCase().includes("revoked") ||
+        msg.toLowerCase().includes("reset") ||
+        msg.toLowerCase().includes("expired") ||
+        msg.toLowerCase().includes("another device")),
   });
 });
 

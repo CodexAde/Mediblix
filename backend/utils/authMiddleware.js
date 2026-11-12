@@ -39,15 +39,33 @@ const protect = asyncHandler(async (req, res, next) => {
         throw new Error("Organization subscription has expired. Please contact administrator.");
       }
 
+      if (
+        req.user.role !== "superadmin" &&
+        decoded.sessionVersion !== undefined &&
+        req.user.sessionVersion !== undefined &&
+        decoded.sessionVersion !== req.user.sessionVersion
+      ) {
+        res.status(401);
+        throw new Error("Session revoked by administrator. Please log in again.");
+      }
+
       const clientSession = req.headers["x-device-session"];
       if (
         req.user.role !== "superadmin" &&
-        req.user.activeSessionKey &&
-        clientSession &&
-        clientSession !== req.user.activeSessionKey
+        req.user.organization?.singleDeviceEnforced !== false
       ) {
-        res.status(401);
-        throw new Error("Device session expired or active on another device.");
+        if (!req.user.activeSessionKey && clientSession) {
+          res.status(401);
+          throw new Error("Device session reset by administrator. Please log in again.");
+        }
+        if (
+          req.user.activeSessionKey &&
+          clientSession &&
+          clientSession !== req.user.activeSessionKey
+        ) {
+          res.status(401);
+          throw new Error("Device session expired or active on another device.");
+        }
       }
 
       next();
