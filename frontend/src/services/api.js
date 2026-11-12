@@ -22,6 +22,12 @@ api.interceptors.request.use((config) => {
       console.error(e);
     }
   }
+
+  const deviceSession = localStorage.getItem("active_device_session");
+  if (deviceSession) {
+    config.headers["x-device-session"] = deviceSession;
+  }
+
   return config;
 });
 

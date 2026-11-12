@@ -35,6 +35,16 @@ const resetOrgPassword = async (id, newPassword) => {
   return response.data;
 };
 
+const updateSubscription = async (id, subscriptionData) => {
+  const response = await adminApi.patch(`/organizations/${id}/subscription`, subscriptionData);
+  return response.data;
+};
+
+const resetDeviceSession = async (id) => {
+  const response = await adminApi.post(`/organizations/${id}/reset-device-session`);
+  return response.data;
+};
+
 export default {
   getStats,
   getOrganizations,
@@ -43,5 +53,6 @@ export default {
   updateOrganization,
   toggleOrganizationStatus,
   resetOrgPassword,
+  updateSubscription,
+  resetDeviceSession,
 };
-

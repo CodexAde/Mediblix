@@ -6,6 +6,8 @@ import {
   getOrganizationById,
   createOrganization,
   updateOrganization,
+  updateOrgSubscription,
+  resetOrgDeviceSession,
   toggleOrganizationStatus,
   resetOrgPassword,
 } from "../controllers/adminController.js";
@@ -20,7 +22,8 @@ router.post("/organizations", protect, superAdminOnly, createOrganization);
 router.get("/organizations/:id", protect, superAdminOnly, getOrganizationById);
 router.put("/organizations/:id", protect, superAdminOnly, updateOrganization);
 router.patch("/organizations/:id/status", protect, superAdminOnly, toggleOrganizationStatus);
+router.patch("/organizations/:id/subscription", protect, superAdminOnly, updateOrgSubscription);
+router.post("/organizations/:id/reset-device-session", protect, superAdminOnly, resetOrgDeviceSession);
 router.post("/organizations/:id/reset-password", protect, superAdminOnly, resetOrgPassword);
 
 export default router;
-

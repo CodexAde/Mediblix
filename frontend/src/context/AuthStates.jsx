@@ -40,18 +40,24 @@ const AuthState = (props) => {
 
   const login = async (email, password) => {
     try {
+      const activeSession = localStorage.getItem("active_device_session") || "";
       const config = {
         headers: {
           "Content-Type": "application/json",
+          "x-device-session": activeSession,
         },
       };
 
       const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
       const { data } = await axios.post(
         `${backendUrl}/api/users/login`,
-        { email, password },
+        { email, password, activeSessionKey: activeSession },
         config
       );
+
+      if (data.sessionKey) {
+        localStorage.setItem("active_device_session", data.sessionKey);
+      }
 
       localStorage.setItem("userInfo", JSON.stringify(data));
       setUser(data);
@@ -64,10 +70,8 @@ const AuthState = (props) => {
       const resData = err.response?.data;
       const resMsg = typeof resData === "string" ? resData : resData?.message || "";
       const isFrozen =
-        err.response?.status === 403 ||
-        resData?.isFrozen ||
-        resMsg.toLowerCase().includes("frozen") ||
-        (err.message || "").toLowerCase().includes("frozen");
+        err.response?.status === 403 &&
+        (resData?.isFrozen || resMsg.toLowerCase().includes("frozen"));
 
       if (isFrozen) {
         if (resData?.organizationName) {
@@ -87,10 +91,31 @@ const AuthState = (props) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("userInfo");
-    setUser(null);
-    setIsFrozenModalOpen(false);
+  const logout = async () => {
+    try {
+      const userInfoStr = localStorage.getItem("userInfo");
+      const activeSession = localStorage.getItem("active_device_session");
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
+        await axios.post(
+          `${backendUrl}/api/users/logout`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${userInfo.token}`,
+              "x-device-session": activeSession || "",
+            },
+          }
+        );
+      }
+    } catch (e) {
+    } finally {
+      localStorage.removeItem("userInfo");
+      localStorage.removeItem("active_device_session");
+      setUser(null);
+      setIsFrozenModalOpen(false);
+    }
   };
 
   return (

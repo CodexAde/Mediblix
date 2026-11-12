@@ -29,6 +29,27 @@ const protect = asyncHandler(async (req, res, next) => {
         throw new Error("Organization is frozen. Please contact administrator.");
       }
 
+      if (
+        req.user.role !== "superadmin" &&
+        req.user.organization &&
+        req.user.organization.subscriptionExpiresAt &&
+        new Date(req.user.organization.subscriptionExpiresAt) < new Date()
+      ) {
+        res.status(403);
+        throw new Error("Organization subscription has expired. Please contact administrator.");
+      }
+
+      const clientSession = req.headers["x-device-session"];
+      if (
+        req.user.role !== "superadmin" &&
+        req.user.activeSessionKey &&
+        clientSession &&
+        clientSession !== req.user.activeSessionKey
+      ) {
+        res.status(401);
+        throw new Error("Device session expired or active on another device.");
+      }
+
       next();
     } catch (error) {
       res.status(401);
@@ -64,4 +85,3 @@ const resolveOrganization = async (req) => {
 };
 
 export { protect, superAdminOnly, resolveOrganization };
-

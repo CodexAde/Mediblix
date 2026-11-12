@@ -31,6 +31,40 @@ const userSchema = mongoose.Schema(
       required: true,
       default: false,
     },
+    activeSessionKey: {
+      type: String,
+      default: null,
+    },
+    activeDeviceInfo: {
+      deviceName: { type: String, default: "" },
+      ip: { type: String, default: "" },
+      userAgent: { type: String, default: "" },
+      lastActiveAt: { type: Date, default: Date.now },
+      loggedInAt: { type: Date, default: Date.now },
+    },
+    deviceAccessLogs: [
+      {
+        attemptedAt: { type: Date, default: Date.now },
+        ip: { type: String, default: "" },
+        userAgent: { type: String, default: "" },
+        deviceName: { type: String, default: "" },
+        status: {
+          type: String,
+          enum: [
+            "Success",
+            "Blocked_Device_Conflict",
+            "Session_Invalidated",
+            "Logged_Out",
+          ],
+          default: "Success",
+        },
+        details: { type: String, default: "" },
+      },
+    ],
+    conflictAttemptsCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
