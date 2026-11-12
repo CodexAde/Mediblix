@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Building2, Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import StatCards from "../components/DashboardComponent/StatCards";
 import RecentOrgsList from "../components/DashboardComponent/RecentOrgsList";
 import CreateOrganizationModal from "../components/OrganizationsPageComponent/CreateOrganizationModal";
@@ -41,78 +40,38 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Platform Dashboard
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">
+            Dashboard
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Real-time multi-tenant health, organizations, and resource metrics.
+          <p className="text-[var(--text-secondary)] mt-1">
+            Platform health, tenancy status, and aggregated system metrics
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={fetchData}
             disabled={loading}
-            className="btn-secondary text-xs"
-            title="Refresh Data"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer text-sm font-medium"
           >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             <span>Refresh</span>
           </button>
+
           <button
             onClick={() => setIsModalOpen(true)}
-            className="btn-primary text-xs"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer text-sm"
           >
-            <Plus size={16} />
-            <span>New Organization</span>
+            <Plus size={18} />
+            <span>Add Organization</span>
           </button>
         </div>
       </div>
 
       <StatCards stats={stats} loading={loading} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <RecentOrgsList organizations={organizations} loading={loading} />
-        </div>
-
-        <div className="space-y-4">
-          <div className="spren-card p-6">
-            <h2 className="text-sm font-bold text-slate-900 mb-2">
-              Quick Admin Actions
-            </h2>
-            <p className="text-xs text-slate-500 mb-4">
-              Rapid provisioning and tenancy operations.
-            </p>
-
-            <div className="space-y-2">
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="w-full py-2.5 px-3 rounded-lg border border-slate-200 text-left hover:bg-slate-50 flex items-center justify-between text-xs font-semibold text-slate-800 transition-colors"
-              >
-                <span>Add New Pharmacy Tenant</span>
-                <Plus size={14} className="text-emerald-700" />
-              </button>
-
-              <Link
-                to="/organizations"
-                className="w-full py-2.5 px-3 rounded-lg border border-slate-200 text-left hover:bg-slate-50 flex items-center justify-between text-xs font-semibold text-slate-800 transition-colors"
-              >
-                <span>Manage Status & Freezes</span>
-                <Building2 size={14} className="text-blue-600" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="spren-card p-6 bg-gradient-to-br from-emerald-900 to-slate-900 text-white">
-            <h3 className="font-bold text-sm text-emerald-300">
-              Tenancy Isolation Guard
-            </h3>
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              Every newly created organization operates in isolated namespaces. Products, stock levels, sales billing, and customers are strictly scoped to the tenant.
-            </p>
-          </div>
-        </div>
+      <div className="space-y-4">
+        <RecentOrgsList organizations={organizations} loading={loading} />
       </div>
 
       <CreateOrganizationModal
@@ -125,4 +84,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-

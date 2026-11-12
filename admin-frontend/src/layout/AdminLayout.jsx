@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
-  LayoutDashboard,
+  Boxes,
   Building2,
   LogOut,
+  User,
   Menu,
   X,
-  User,
-  Sparkles,
-  CircleDot,
+  ShieldCheck,
 } from "lucide-react";
 import { useAdminAuth } from "../context/AdminAuthStates";
 
@@ -24,126 +23,117 @@ const AdminLayout = () => {
   };
 
   const navItems = [
-    { label: "Dashboard", path: "/", icon: LayoutDashboard },
-    { label: "Organizations", path: "/organizations", icon: Building2 },
+    { path: "/", label: "Dashboard", icon: Boxes },
+    { path: "/organizations", label: "Organizations", icon: Building2 },
   ];
 
+  const isActive = (path) => {
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(path);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row antialiased">
-      <div className="md:hidden flex items-center justify-between px-5 py-3.5 bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-            Rx
-          </div>
-          <div>
-            <h1 className="font-bold text-slate-900 leading-none text-sm tracking-tight">Spren Admin</h1>
-            <p className="text-[10px] text-slate-500 font-medium">Control Center</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg"
-        >
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </div>
+    <div className="w-screen h-screen overflow-hidden bg-[var(--bg-main)] flex flex-col">
+      <nav className="h-[60px] w-full flex items-center justify-between px-4 lg:px-6 border-b border-[var(--border-soft)] bg-[var(--bg-card)] flex-shrink-0 z-40 relative">
+        <div className="flex items-center gap-1.5 lg:gap-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
 
-      <aside
-        className={`${
-          mobileMenuOpen ? "block" : "hidden"
-        } md:block md:w-64 bg-slate-950 text-slate-200 flex flex-col flex-shrink-0 z-40 md:sticky md:top-0 md:h-screen border-r border-slate-900 shadow-xl`}
-      >
-        <div className="p-5 border-b border-slate-900/80 hidden md:flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white flex items-center justify-center font-extrabold text-sm shadow-md ring-1 ring-emerald-500/30">
-            Rx
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-sm tracking-tight text-white">Spren Admin</h1>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60">
-                PRO
-              </span>
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
+                  active
+                    ? "bg-[var(--accent)] text-white shadow-xs"
+                    : "text-[var(--text-primary)] hover:text-[var(--accent)] hover:bg-[var(--accent-light)]/40"
+                }`}
+              >
+                <Icon size={16} />
+                <span className="hidden md:inline">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-xl font-extrabold text-[var(--text-primary)] hover:opacity-90 transition-opacity"
+          >
+            <img
+              src="/Mediblix-logo.png"
+              alt="Mediblix Logo"
+              className="w-9 h-9 object-contain"
+            />
+            <span>Mediblix</span>
+          </Link>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[var(--accent-light)] text-[var(--accent)] border border-[var(--accent)]/20">
+            Admin
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 lg:gap-3">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-lg bg-[var(--bg-main)] border border-[var(--border-soft)]">
+            <div className="w-6 h-6 rounded-full bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center font-bold text-xs">
+              <User size={13} />
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Multi-Tenant Console</p>
+            <div className="text-left">
+              <p className="text-xs font-semibold text-[var(--text-primary)] leading-none truncate max-w-[130px]">
+                {adminUser?.name || "Super Admin"}
+              </p>
+            </div>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-soft)] hover:border-red-300 hover:text-red-600 hover:bg-red-50 text-[var(--text-secondary)] text-sm font-medium transition-all cursor-pointer"
+            title="Sign Out"
+          >
+            <LogOut size={15} />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-1.5 text-[var(--text-primary)] hover:bg-[var(--border-soft)]/50 rounded-lg cursor-pointer"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
 
-        <div className="px-4 pt-4 pb-2">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
-            Navigation
-          </p>
-          <nav className="space-y-1">
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute top-[60px] left-0 right-0 bg-[var(--bg-card)] border-b border-[var(--border-soft)] p-3 space-y-1 shadow-lg">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive =
-                item.path === "/"
-                  ? location.pathname === "/"
-                  : location.pathname.startsWith(item.path);
-
+              const active = isActive(item.path);
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
-                    isActive
-                      ? "bg-emerald-800/90 text-white shadow-sm ring-1 ring-emerald-600/40"
-                      : "text-slate-300 hover:bg-slate-900 hover:text-white"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+                    active
+                      ? "bg-[var(--accent)] text-white"
+                      : "text-[var(--text-primary)] hover:bg-[var(--border-soft)]/40"
                   }`}
                 >
-                  <Icon
-                    size={17}
-                    className={
-                      isActive
-                        ? "text-emerald-300"
-                        : "text-slate-400 group-hover:text-slate-200"
-                    }
-                  />
+                  <Icon size={16} />
                   <span>{item.label}</span>
                 </Link>
               );
             })}
-          </nav>
-        </div>
-
-        <div className="px-4 py-3 mx-4 mt-auto mb-2 rounded-xl bg-slate-900/90 border border-slate-800/80">
-          <div className="flex items-center gap-2 mb-1">
-            <CircleDot size={12} className="text-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-semibold text-slate-200">
-              System Online
-            </span>
           </div>
-          <p className="text-[10px] text-slate-400 leading-relaxed">
-            Multi-tenant data isolation active across all connected pharmacies.
-          </p>
-        </div>
+        )}
+      </nav>
 
-        <div className="p-4 border-t border-slate-900 bg-slate-950">
-          <div className="flex items-center gap-3 px-2 py-1.5 mb-2.5">
-            <div className="w-8 h-8 rounded-full bg-slate-800 text-emerald-400 flex items-center justify-center font-bold text-xs ring-2 ring-slate-700/50">
-              <User size={15} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-white truncate">
-                {adminUser?.name || "Super Admin"}
-              </p>
-              <p className="text-[10px] text-slate-400 truncate">
-                {adminUser?.email}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg transition-colors border border-rose-900/40"
-          >
-            <LogOut size={13} />
-            <span>Sign Out</span>
-          </button>
+      <main className="w-full flex-1 overflow-y-auto bg-[var(--bg-main)]">
+        <div className="max-w-7xl mx-auto p-6 lg:p-8">
+          <Outlet />
         </div>
-      </aside>
-
-      <main className="flex-1 p-5 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
-        <Outlet />
       </main>
     </div>
   );

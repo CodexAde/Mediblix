@@ -30,7 +30,7 @@ const ChatWindow = ({ onClose }) => {
         id: 1,
         sender: 'agent',
         type: 'general',
-        content: "Hi! I'm MedAgent, your AI pharmacy assistant. I can help you:\n• Find medicines for customer symptoms\n• Suggest alternatives for out-of-stock items\n• Guide you through the Spren app\n\nWhat would you like help with?"
+        content: "Hi! I'm MedAgent, your AI pharmacy assistant. I can help you:\n• Find medicines for customer symptoms\n• Suggest alternatives for out-of-stock items\n• Guide you through the Mediblix app\n\nWhat would you like help with?"
       }
     ]);
     
@@ -250,7 +250,7 @@ const ChatWindow = ({ onClose }) => {
           <span style={{ fontSize: '20px' }}>🏥</span>
         </div>
         <div className="medagent-header-info">
-          <div className="medagent-header-title">Spren MedAgent</div>
+          <div className="medagent-header-title">Mediblix MedAgent</div>
           <div className="medagent-header-subtitle">Your AI Pharmacy Assistant</div>
         </div>
         <div className="medagent-header-actions">

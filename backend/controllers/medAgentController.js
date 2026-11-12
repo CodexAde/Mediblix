@@ -335,7 +335,7 @@ const handleChat = async (req, res) => {
 
       return res.json({
         type: "app_guidance",
-        message: parsed.message || "I can help you navigate the Spren app!",
+        message: parsed.message || "I can help you navigate the Mediblix app!",
         steps: parsed.steps || null,
         navigateTo: parsed.navigateTo || null,
         pageTitle: parsed.pageTitle || null,
@@ -349,7 +349,7 @@ const handleChat = async (req, res) => {
 
     return res.json({
       type: "general",
-      message: parsed.message || "Hi! I'm MedAgent, your AI pharmacy assistant. I can help you find medicines for symptoms, suggest alternatives, or guide you through the Spren app. What would you like help with?",
+      message: parsed.message || "Hi! I'm MedAgent, your AI pharmacy assistant. I can help you find medicines for symptoms, suggest alternatives, or guide you through the Mediblix app. What would you like help with?",
     });
   } catch (error) {
     console.error("MedAgent Error:", error.message);

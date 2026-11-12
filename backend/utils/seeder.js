@@ -14,8 +14,8 @@ dotenv.config();
 const users = [
   {
     name: "Admin User",
-    email: "admin@spren.com",
-    password: "SprenPassword123",
+    email: "admin@Mediblix.com",
+    password: "MediblixPassword123",
     isAdmin: true,
   },
 ];

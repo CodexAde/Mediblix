@@ -602,7 +602,7 @@ const Billing = () => {
     const updatedDrafts = drafts.filter(d => d.id !== activeInvoiceNumber);
     updatedDrafts.unshift(draft);
     setDrafts(updatedDrafts);
-    localStorage.setItem('spren_drafts', JSON.stringify(updatedDrafts));
+    localStorage.setItem('Mediblix_drafts', JSON.stringify(updatedDrafts));
     showToast("Draft saved successfully!", "success");
     clearAll();
   };
@@ -624,7 +624,7 @@ const Billing = () => {
   const deleteDraft = (draftId) => {
     const updatedDrafts = drafts.filter(d => d.id !== draftId);
     setDrafts(updatedDrafts);
-    localStorage.setItem('spren_drafts', JSON.stringify(updatedDrafts));
+    localStorage.setItem('Mediblix_drafts', JSON.stringify(updatedDrafts));
   };
 
   const fetchCustomerBills = async (customerId) => {
@@ -731,7 +731,7 @@ const Billing = () => {
   useEffect(() => {
     fetchProducts();
     generateNextInvoiceNumber();
-    const savedDrafts = localStorage.getItem('spren_drafts');
+    const savedDrafts = localStorage.getItem('Mediblix_drafts');
     if (savedDrafts) {
       setDrafts(JSON.parse(savedDrafts));
     }
@@ -1830,7 +1830,7 @@ const Billing = () => {
                 <div className="flex-1 flex flex-col min-h-0 animate-fade-in">
                   <div className="flex justify-between items-start mb-6">
                     <div>
-                      <h3 className="font-bold text-xl text-green-600">Spren Pharmacy</h3>
+                      <h3 className="font-bold text-xl text-green-600">Mediblix Pharmacy</h3>
                       <p className="text-xs text-[var(--text-secondary)] mt-1">Invoice Number: {selectedBill.invoiceNumber}</p>
                       <p className="text-xs text-[var(--text-secondary)]">Date: {new Date(selectedBill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
@@ -2823,7 +2823,7 @@ const Billing = () => {
                 <div className="animate-fade-in flex flex-col h-full">
                   <div className="flex justify-between items-start mb-4 bg-green-50/50 p-4 rounded-2xl border border-green-50">
                     <div>
-                      <h3 className="font-bold text-base text-green-700">Spren Pharmacy</h3>
+                      <h3 className="font-bold text-base text-green-700">Mediblix Pharmacy</h3>
                       <p className="text-[10px] text-gray-500 mt-1">Invoice Number: {selectedBill.invoiceNumber}</p>
                       <p className="text-[10px] text-gray-500">Date: {new Date(selectedBill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>

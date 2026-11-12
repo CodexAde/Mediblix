@@ -29,7 +29,7 @@ connectDB().then(async () => {
     let defaultOrg = await Organization.findOne({ code: "DEFAULT" });
     if (!defaultOrg) {
       defaultOrg = await Organization.create({
-        name: "Spren Master Pharmacy",
+        name: "Mediblix Master Pharmacy",
         code: "DEFAULT",
         contactPerson: "Adarsh Pandey",
         contactEmail: "adarshrpandey10@gmail.com",
@@ -44,7 +44,7 @@ connectDB().then(async () => {
       await User.create({
         name: "Super Admin",
         email: "adarshrpandey10@gmail.com",
-        password: "Admin@Spren2026",
+        password: "Admin@Mediblix2026",
         role: "superadmin",
         isAdmin: true,
         organization: null,
@@ -128,6 +128,14 @@ app.use("/api/import-history", importHistoryRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/suppliers", supplierRoutes);
 app.use("/api/medagent", medAgentRoutes);
+
+app.use((err, req, res, next) => {
+  const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
+  res.status(statusCode).json({
+    message: err.message || "An unexpected error occurred",
+    isFrozen: (err.message || "").toLowerCase().includes("frozen"),
+  });
+});
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date() });

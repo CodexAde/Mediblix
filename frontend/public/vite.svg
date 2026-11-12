@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
   <defs>
-    <linearGradient id="sprenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="MediblixGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#16a34a" />
       <stop offset="100%" stop-color="#15803d" />
     </linearGradient>
@@ -10,7 +10,7 @@
     </linearGradient>
   </defs>
   <!-- Background rounded squircle -->
-  <rect x="5" y="5" width="90" height="90" rx="26" fill="url(#sprenGrad)" />
+  <rect x="5" y="5" width="90" height="90" rx="26" fill="url(#MediblixGrad)" />
   
   <!-- Pill Capsule Shape with Green Leaf / Cross Accent -->
   <g transform="translate(50, 50)">

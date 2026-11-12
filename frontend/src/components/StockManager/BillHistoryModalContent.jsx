@@ -68,7 +68,7 @@ const BillHistoryModalContent = () => {
       <div className="flex flex-col h-full animate-in fade-in duration-200">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h3 className="font-bold text-xl text-green-600">Spren Pharmacy</h3>
+            <h3 className="font-bold text-xl text-green-600">Mediblix Pharmacy</h3>
             <p className="text-xs text-[var(--text-secondary)] mt-1">Invoice number: {selectedBill.invoiceNumber}</p>
             <p className="text-xs text-[var(--text-secondary)]">Date: {new Date(selectedBill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
           </div>

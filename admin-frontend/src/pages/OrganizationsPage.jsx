@@ -1,33 +1,40 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, RefreshCw, Filter, Snowflake, CheckCircle2, Building2, X } from "lucide-react";
+import { Search, Filter, Plus, RefreshCw } from "lucide-react";
 import OrganizationTable from "../components/OrganizationsPageComponent/OrganizationTable";
 import CreateOrganizationModal from "../components/OrganizationsPageComponent/CreateOrganizationModal";
 import FreezeConfirmModal from "../components/OrganizationsPageComponent/FreezeConfirmModal";
+import FreezeSuccessModal from "../components/OrganizationsPageComponent/FreezeSuccessModal";
 import adminOrgService from "../services/adminOrgService";
 
 const OrganizationsPage = () => {
   const [organizations, setOrganizations] = useState([]);
-  const [allOrgs, setAllOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("All");
 
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [freezeModalOpen, setFreezeModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isFreezeModalOpen, setIsFreezeModalOpen] = useState(false);
   const [selectedOrgForFreeze, setSelectedOrgForFreeze] = useState(null);
-  const [freezeActionLoading, setFreezeActionLoading] = useState(false);
+  const [freezeLoading, setFreezeLoading] = useState(false);
+
+  const [successModalData, setSuccessModalData] = useState({
+    isOpen: false,
+    organization: null,
+    actionType: "Frozen",
+  });
+
+  const statusOptions = ["All", "Active", "Frozen"];
 
   const fetchOrganizations = async () => {
     try {
       setLoading(true);
-      const [filteredData, baseData] = await Promise.all([
-        adminOrgService.getOrganizations({ search, status: statusFilter }),
-        adminOrgService.getOrganizations(),
-      ]);
-      setOrganizations(filteredData);
-      setAllOrgs(baseData);
-    } catch (err) {
-      console.error(err);
+      const data = await adminOrgService.getOrganizations({
+        search: searchTerm,
+        status: selectedStatus,
+      });
+      setOrganizations(data);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -36,47 +43,50 @@ const OrganizationsPage = () => {
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchOrganizations();
-    }, 250);
+    }, 200);
     return () => clearTimeout(delayDebounceFn);
-  }, [search, statusFilter]);
+  }, [searchTerm, selectedStatus]);
 
-  const activeCount = allOrgs.filter((o) => o.status === "Active").length;
-  const frozenCount = allOrgs.filter((o) => o.status === "Frozen").length;
-  const totalCount = allOrgs.length;
-
-  const handleOpenFreezeModal = (org) => {
+  const handleOpenFreeze = (org) => {
     setSelectedOrgForFreeze(org);
-    setFreezeModalOpen(true);
+    setIsFreezeModalOpen(true);
   };
 
   const handleConfirmFreeze = async (org) => {
     try {
-      setFreezeActionLoading(true);
-      const newStatus = org.status === "Active" ? "Frozen" : "Active";
-      await adminOrgService.toggleOrganizationStatus(org._id, newStatus);
-      setFreezeModalOpen(false);
+      setFreezeLoading(true);
+      const nextStatus = org.status === "Active" ? "Frozen" : "Active";
+      await adminOrgService.toggleOrganizationStatus(org._id, nextStatus);
+      setIsFreezeModalOpen(false);
       setSelectedOrgForFreeze(null);
+
+      setSuccessModalData({
+        isOpen: true,
+        organization: org,
+        actionType: nextStatus,
+      });
+
       await fetchOrganizations();
-    } catch (err) {
-      alert(err.message || "Failed to update status");
+    } catch (error) {
+      alert(error.message || "Failed to update status");
     } finally {
-      setFreezeActionLoading(false);
+      setFreezeLoading(false);
     }
   };
 
   const handleResetPassword = async (org) => {
     const confirm = window.confirm(
-      `Are you sure you want to generate a new password for ${org.name}'s administrator?`
+      `Generate new admin credentials for ${org.name}?`
     );
     if (!confirm) return;
 
     try {
-      const result = await adminOrgService.resetOrgPassword(org._id);
+      const res = await adminOrgService.resetOrgPassword(org._id);
       alert(
-        `Password reset successful!\n\nEmail: ${result.credentials.email}\nNew Password: ${result.credentials.password}`
+        `Credentials Generated:\n\nEmail: ${res.credentials.email}\nNew Password: ${res.credentials.password}`
       );
-    } catch (err) {
-      alert(err.message || "Failed to reset password");
+    } catch (error) {
+      alert(error.message || "Failed to reset password");
     }
   };
 
@@ -84,85 +94,63 @@ const OrganizationsPage = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Organizations
-            </h1>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-              {totalCount} Total
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Provision, monitor, and manage tenancy access for client pharmacies.
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">
+            Organizations
+          </h1>
+          <p className="text-[var(--text-secondary)] mt-1">
+            Manage your client pharmacy organizations and tenancy access
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={fetchOrganizations}
             disabled={loading}
-            className="btn-secondary"
-            title="Refresh List"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer text-sm font-medium"
           >
-            <RefreshCw size={14} className={loading ? "animate-spin text-slate-500" : ""} />
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             <span>Refresh</span>
           </button>
+
           <button
-            onClick={() => setCreateModalOpen(true)}
-            className="btn-primary"
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl hover:opacity-90 transition-all font-medium cursor-pointer text-sm"
           >
-            <Plus size={16} />
-            <span>New Organization</span>
+            <Plus size={18} />
+            <span>Add Organization</span>
           </button>
         </div>
       </div>
 
-      <div className="spren-card p-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-white shadow-2xs">
-        <div className="relative w-full md:w-96">
-          <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+      <div className="bg-[var(--bg-card)] rounded-2xl p-4 border border-[var(--border-soft)] flex items-center gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[250px]">
+          <Search
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+          />
           <input
             type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, code, contact or email..."
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-soft)] focus:border-[var(--accent)] text-[var(--text-primary)] focus:outline-none text-sm"
           />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
-            >
-              <X size={14} />
-            </button>
-          )}
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100/70 p-1">
-            {[
-              { id: "All", label: "All", count: totalCount },
-              { id: "Active", label: "Active", count: activeCount },
-              { id: "Frozen", label: "Frozen", count: frozenCount },
-            ].map((tab) => (
+        <div className="flex items-center gap-2">
+          <Filter size={18} className="text-[var(--text-secondary)]" />
+          <div className="flex items-center gap-2">
+            {statusOptions.map((st) => (
               <button
-                key={tab.id}
-                onClick={() => setStatusFilter(tab.id)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  statusFilter === tab.id
-                    ? "bg-white text-slate-900 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                key={st}
+                onClick={() => setSelectedStatus(st)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                  selectedStatus === st
+                    ? "bg-[var(--accent)] text-white shadow-xs"
+                    : "bg-[var(--bg-main)] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--accent)]"
                 }`}
               >
-                <span>{tab.label}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    statusFilter === tab.id
-                      ? "bg-slate-100 text-slate-800"
-                      : "bg-slate-200/60 text-slate-500"
-                  }`}
-                >
-                  {tab.count}
-                </span>
+                {st}
               </button>
             ))}
           </div>
@@ -172,27 +160,34 @@ const OrganizationsPage = () => {
       <OrganizationTable
         organizations={organizations}
         loading={loading}
-        onFreezeToggle={handleOpenFreezeModal}
+        onFreezeToggle={handleOpenFreeze}
         onResetPassword={handleResetPassword}
       />
 
       <CreateOrganizationModal
-        isOpen={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
         onCreated={() => {
           fetchOrganizations();
         }}
       />
 
       <FreezeConfirmModal
-        isOpen={freezeModalOpen}
+        isOpen={isFreezeModalOpen}
         organization={selectedOrgForFreeze}
-        loading={freezeActionLoading}
+        loading={freezeLoading}
         onClose={() => {
-          setFreezeModalOpen(false);
+          setIsFreezeModalOpen(false);
           setSelectedOrgForFreeze(null);
         }}
         onConfirm={handleConfirmFreeze}
+      />
+
+      <FreezeSuccessModal
+        isOpen={successModalData.isOpen}
+        organization={successModalData.organization}
+        actionType={successModalData.actionType}
+        onClose={() => setSuccessModalData({ isOpen: false, organization: null, actionType: "Frozen" })}
       />
     </div>
   );

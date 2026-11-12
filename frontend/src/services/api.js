@@ -25,4 +25,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 403) {
+      const msg = error.response.data?.message || "";
+      if (msg.toLowerCase().includes("frozen")) {
+        window.dispatchEvent(
+          new CustomEvent("Mediblix:account_frozen", {
+            detail: { message: msg },
+          })
+        );
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

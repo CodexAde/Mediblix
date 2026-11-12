@@ -340,7 +340,7 @@ const CustomerDetails = () => {
             <div className="flex-1 overflow-y-auto p-6 flex flex-col min-h-0">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="font-bold text-xl text-[var(--accent)]">Spren</h3>
+                  <h3 className="font-bold text-xl text-[var(--accent)]">Mediblix</h3>
                   <p className="text-xs text-gray-500 mt-1">Invoice Number: {selectedBill.invoiceNumber}</p>
                   <p className="text-xs text-gray-500">Date: {new Date(selectedBill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>

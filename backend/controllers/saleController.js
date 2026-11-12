@@ -116,10 +116,10 @@ const generateInvoice = async (req, res) => {
     }
 
     const org = sale.organization ? await Organization.findById(sale.organization) : null;
-    const orgName = org ? org.name : "Spren Pharmacy";
+    const orgName = org ? org.name : "Mediblix Pharmacy";
     const orgAddress = org && org.address ? org.address : "Main Street Hub";
     const orgPhone = org && org.contactPhone ? org.contactPhone : "+91 99999 88888";
-    const orgEmail = org && org.contactEmail ? org.contactEmail : "support@spren.com";
+    const orgEmail = org && org.contactEmail ? org.contactEmail : "support@Mediblix.com";
 
     const doc = new PDFDocument({ margin: 50 });
 

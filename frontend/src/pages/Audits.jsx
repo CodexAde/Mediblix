@@ -271,7 +271,7 @@ const Audits = () => {
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold text-[var(--text-primary)]">Audits & Reports</h1>
               <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200">
-                Spren Business Suite
+                Mediblix Business Suite
               </span>
             </div>
             <p className="text-[var(--text-secondary)] mt-1">

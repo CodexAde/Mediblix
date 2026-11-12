@@ -5,8 +5,8 @@ import { useNavigate } from 'react-router-dom';
 // Image used directly from public folder
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('admin@spren.com');
-  const [password, setPassword] = useState('SprenPassword123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
   const [error, setError] = useState('');
@@ -20,7 +20,7 @@ const LoginPage = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError('Invalid email or password');
+      setError(err.message || 'Invalid email or password');
     } finally {
       setIsSubmitting(false);
     }
@@ -32,7 +32,7 @@ const LoginPage = () => {
       <div className="flex flex-col justify-center items-center p-6 lg:p-12 relative bg-[#F8FAFF]">
         <div className="w-full max-w-[380px]">
           <div className="mb-8 text-left">
-            <img src="/spren-logo.png" alt="Spren Logo" className="w-16 h-16 object-contain mb-4" />
+            <img src="/Mediblix-logo.png" alt="Mediblix Logo" className="w-16 h-16 object-contain mb-4" />
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold mb-4 tracking-wider uppercase">
               <Package size={10} />
               Inventory System
@@ -62,7 +62,7 @@ const LoginPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@Spren.com"
+                  placeholder="admin@Mediblix.com"
                   className="w-full pl-10 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-gray-900 text-sm focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-600 transition-all placeholder:text-gray-300 shadow-sm"
                   required
                 />
@@ -107,7 +107,7 @@ const LoginPage = () => {
           {/* Simple Codevern Branding */}
           <div className="mt-12 text-center">
             <p className="text-[11px] font-medium text-gray-400 tracking-wide uppercase">
-              Powered by <span className="text-green-600 font-black">Spren</span>
+              Powered by <span className="text-green-600 font-black">Mediblix</span>
             </p>
           </div>
         </div>
@@ -115,7 +115,7 @@ const LoginPage = () => {
 
       {/* Right Column: Illustration (Hidden on mobile) */}
       <div className="hidden lg:block relative bg-[#16a34a] overflow-hidden">
-        {/* Wavy Patterns matching Spren Blue */}
+        {/* Wavy Patterns matching Mediblix Blue */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <path d="M0,40 Q25,20 50,40 T100,40 V100 H0 Z" fill="white" />
@@ -128,7 +128,7 @@ const LoginPage = () => {
           <div className="bg-white/10 backdrop-blur-3xl rounded-[3rem] p-10 w-full max-w-[500px] border border-white/20 shadow-2xl relative flex flex-col items-center">
 
             <h2 className="text-3xl font-black text-white leading-tight mb-8 text-center">
-              Scale your business with Spren <br />
+              Scale your business with Mediblix <br />
               <span className="text-green-200">Inventory management.</span> 🚀
             </h2>
 
@@ -136,7 +136,7 @@ const LoginPage = () => {
               <div className="bg-white/5 p-1.5 rounded-3xl">
                 <img
                   src="/login_illustration.png"
-                  alt="Spren Dashboard"
+                  alt="Mediblix Dashboard"
                   className="w-full rounded-[1.5rem] object-cover shadow-2xl border border-white/10"
                 />
               </div>

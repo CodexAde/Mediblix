@@ -48,8 +48,8 @@ const Navbar = () => {
 
       <div className="absolute left-1/2 -translate-x-1/2">
         <Link to="/billing" className="flex items-center gap-2 text-xl font-extrabold text-[var(--text-primary)] hover:opacity-80 transition-opacity">
-          <img src="/spren-logo.png" alt="Spren Logo" className="w-9 h-9 object-contain" />
-          <span>SPREN</span>
+          <img src="/Mediblix-logo.png" alt="Mediblix Logo" className="w-9 h-9 object-contain" />
+          <span>Mediblix</span>
         </Link>
       </div>
 

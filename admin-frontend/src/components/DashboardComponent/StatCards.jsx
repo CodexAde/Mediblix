@@ -8,48 +8,42 @@ const StatCards = ({ stats, loading }) => {
       value: stats?.totalOrgs || 0,
       sublabel: "Registered pharmacies",
       icon: Building2,
-      gradient: "from-blue-600 to-indigo-600",
-      bgLight: "bg-blue-50 text-blue-700 border-blue-100",
+      iconColor: "text-blue-700 bg-blue-100",
     },
     {
       label: "Active Tenancies",
       value: stats?.activeOrgs || 0,
-      sublabel: "Full portal access",
+      sublabel: "Active client portals",
       icon: CheckCircle2,
-      gradient: "from-emerald-600 to-teal-600",
-      bgLight: "bg-emerald-50 text-emerald-700 border-emerald-100",
+      iconColor: "text-green-700 bg-green-100",
     },
     {
       label: "Frozen Organizations",
       value: stats?.frozenOrgs || 0,
-      sublabel: "Suspended access",
+      sublabel: "Suspended tenancies",
       icon: Snowflake,
-      gradient: "from-cyan-600 to-sky-600",
-      bgLight: "bg-cyan-50 text-cyan-700 border-cyan-100",
+      iconColor: "text-cyan-700 bg-cyan-100",
     },
     {
       label: "System Products",
       value: stats?.totalProducts || 0,
-      sublabel: "Stock items tracked",
+      sublabel: "Across all pharmacies",
       icon: Package,
-      gradient: "from-purple-600 to-pink-600",
-      bgLight: "bg-purple-50 text-purple-700 border-purple-100",
+      iconColor: "text-purple-700 bg-purple-100",
     },
     {
-      label: "Completed Sales",
+      label: "Customer Invoices",
       value: stats?.totalSalesCount || 0,
-      sublabel: "Customer tax invoices",
+      sublabel: "Total completed sales",
       icon: ReceiptText,
-      gradient: "from-amber-600 to-orange-600",
-      bgLight: "bg-amber-50 text-amber-700 border-amber-100",
+      iconColor: "text-amber-700 bg-amber-100",
     },
     {
-      label: "Platform Revenue",
-      value: `Rs. ${(stats?.totalRevenue || 0).toLocaleString("en-IN")}`,
-      sublabel: "Total billed value",
+      label: "Billed Revenue",
+      value: `₹${(stats?.totalRevenue || 0).toLocaleString("en-IN")}`,
+      sublabel: "Gross platform volume",
       icon: Wallet,
-      gradient: "from-emerald-700 to-green-800",
-      bgLight: "bg-emerald-50 text-emerald-800 border-emerald-200",
+      iconColor: "text-emerald-800 bg-emerald-100",
     },
   ];
 
@@ -57,7 +51,7 @@ const StatCards = ({ stats, loading }) => {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-32 bg-white rounded-2xl border border-slate-200 animate-pulse p-5" />
+          <div key={i} className="h-28 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] animate-pulse" />
         ))}
       </div>
     );
@@ -70,24 +64,22 @@ const StatCards = ({ stats, loading }) => {
         return (
           <div
             key={card.label}
-            className="spren-card spren-card-hover p-5 relative overflow-hidden"
+            className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-soft)] hover:border-[var(--accent)] transition-all flex items-start justify-between"
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  {card.label}
-                </p>
-                <p className="text-2xl font-extrabold text-slate-900 mt-2 tracking-tight">
-                  {card.value}
-                </p>
-                <p className="text-[11px] font-medium text-slate-400 mt-1">
-                  {card.sublabel}
-                </p>
-              </div>
+            <div>
+              <p className="text-xs font-medium text-[var(--text-secondary)]">
+                {card.label}
+              </p>
+              <p className="text-2xl font-bold text-[var(--text-primary)] mt-1.5">
+                {card.value}
+              </p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                {card.sublabel}
+              </p>
+            </div>
 
-              <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shadow-2xs ${card.bgLight}`}>
-                <Icon size={20} />
-              </div>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.iconColor}`}>
+              <Icon size={19} />
             </div>
           </div>
         );

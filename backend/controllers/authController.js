@@ -10,8 +10,9 @@ const authUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: normalizedEmail }).populate("organization");
 
   if (!user || !(await user.matchPassword(password))) {
-    res.status(401);
-    throw new Error("Invalid email or password");
+    return res.status(401).json({
+      message: "Invalid email or password",
+    });
   }
 
   if (
@@ -19,8 +20,11 @@ const authUser = asyncHandler(async (req, res) => {
     user.organization &&
     user.organization.status === "Frozen"
   ) {
-    res.status(403);
-    throw new Error("This organization is frozen by administrator. Access restricted.");
+    return res.status(403).json({
+      message: "This organization is frozen by administrator. Access restricted.",
+      isFrozen: true,
+      organizationName: user.organization.name,
+    });
   }
 
   res.json({
@@ -37,8 +41,7 @@ const authUser = asyncHandler(async (req, res) => {
 const getMe = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select("-password").populate("organization");
   if (!user) {
-    res.status(404);
-    throw new Error("User not found");
+    return res.status(404).json({ message: "User not found" });
   }
   res.json(user);
 });

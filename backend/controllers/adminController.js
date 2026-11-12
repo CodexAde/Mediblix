@@ -189,7 +189,7 @@ const createOrganization = asyncHandler(async (req, res) => {
           .substring(0, 6)
           .toUpperCase() + Math.floor(100 + Math.random() * 900);
 
-  const initialPassword = password && password.trim() ? password.trim() : "Spren@" + crypto.randomBytes(4).toString("hex");
+  const initialPassword = password && password.trim() ? password.trim() : "Mediblix@" + crypto.randomBytes(4).toString("hex");
 
   const org = await Organization.create({
     name: name.trim(),
@@ -272,7 +272,7 @@ const resetOrgPassword = asyncHandler(async (req, res) => {
     throw new Error("Admin user for this organization not found");
   }
 
-  const generatedPassword = newPassword && newPassword.trim() ? newPassword.trim() : "Spren@" + crypto.randomBytes(4).toString("hex");
+  const generatedPassword = newPassword && newPassword.trim() ? newPassword.trim() : "Mediblix@" + crypto.randomBytes(4).toString("hex");
 
   orgAdmin.password = generatedPassword;
   await orgAdmin.save();

@@ -51,7 +51,7 @@ export const prepareReportData = ({
   dateTo = "",
   options = {},
 }) => {
-  let title = "Spren Business Report";
+  let title = "Mediblix Business Report";
   let columns = [];
   let rows = [];
   let summaryMetrics = [];
@@ -564,7 +564,7 @@ export const downloadPDFReport = ({ title, columns, rows, summaryMetrics, dateFr
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("SPREN PHARMACY MANAGEMENT", 14, 15);
+  doc.text("Mediblix PHARMACY MANAGEMENT", 14, 15);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
@@ -642,7 +642,7 @@ export const downloadPDFReport = ({ title, columns, rows, summaryMetrics, dateFr
   });
 
   const sanitizedTitle = title.replace(/[^a-zA-Z0-9]/g, "_");
-  const fileName = `Spren_${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.pdf`;
+  const fileName = `Mediblix_${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.pdf`;
   doc.save(fileName);
 };
 
@@ -678,10 +678,10 @@ export const downloadExcelReport = ({ title, columns, rows, summaryMetrics }) =>
 
   const worksheet = XLSX.utils.aoa_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Spren Report");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Mediblix Report");
 
   const sanitizedTitle = title.replace(/[^a-zA-Z0-9]/g, "_");
-  const fileName = `Spren_${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.xlsx`;
+  const fileName = `Mediblix_${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.xlsx`;
   XLSX.writeFile(workbook, fileName);
 };
 
@@ -712,7 +712,7 @@ export const downloadCSVReport = ({ title, columns, rows }) => {
   link.setAttribute("href", url);
 
   const sanitizedTitle = title.replace(/[^a-zA-Z0-9]/g, "_");
-  link.setAttribute("download", `Spren_${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.csv`);
+  link.setAttribute("download", `Mediblix_${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

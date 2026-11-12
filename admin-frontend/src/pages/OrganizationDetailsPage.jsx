@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import adminOrgService from "../services/adminOrgService";
 import FreezeConfirmModal from "../components/OrganizationsPageComponent/FreezeConfirmModal";
+import FreezeSuccessModal from "../components/OrganizationsPageComponent/FreezeSuccessModal";
 
 const OrganizationDetailsPage = () => {
   const { id } = useParams();
@@ -25,6 +26,12 @@ const OrganizationDetailsPage = () => {
   const [freezeModalOpen, setFreezeModalOpen] = useState(false);
   const [freezeActionLoading, setFreezeActionLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const [successModalData, setSuccessModalData] = useState({
+    isOpen: false,
+    organization: null,
+    actionType: "Frozen",
+  });
 
   const fetchDetails = async () => {
     try {
@@ -48,6 +55,13 @@ const OrganizationDetailsPage = () => {
       const newStatus = org.status === "Active" ? "Frozen" : "Active";
       await adminOrgService.toggleOrganizationStatus(org._id, newStatus);
       setFreezeModalOpen(false);
+
+      setSuccessModalData({
+        isOpen: true,
+        organization: org,
+        actionType: newStatus,
+      });
+
       await fetchDetails();
     } catch (err) {
       alert(err.message || "Failed to update status");
@@ -66,7 +80,7 @@ const OrganizationDetailsPage = () => {
     try {
       const result = await adminOrgService.resetOrgPassword(data.organization._id);
       alert(
-        `New Credentials Generated:\n\nEmail: ${result.credentials.email}\nNew Password: ${result.credentials.password}`
+        `Credentials Generated:\n\nEmail: ${result.credentials.email}\nNew Password: ${result.credentials.password}`
       );
     } catch (err) {
       alert(err.message || "Failed to reset password");
@@ -82,17 +96,22 @@ const OrganizationDetailsPage = () => {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
-        <div className="h-64 bg-white rounded-2xl border border-slate-200 animate-pulse" />
+        <div className="h-6 w-32 bg-[var(--bg-card)] rounded animate-pulse" />
+        <div className="h-64 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] animate-pulse" />
       </div>
     );
   }
 
   if (!data?.organization) {
     return (
-      <div className="spren-card p-14 text-center">
-        <p className="text-slate-600 text-sm font-semibold">Organization not found.</p>
-        <Link to="/organizations" className="btn-secondary text-xs mt-4 inline-flex">
+      <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] p-12 text-center">
+        <p className="text-[var(--text-secondary)] text-sm font-semibold">
+          Organization not found.
+        </p>
+        <Link
+          to="/organizations"
+          className="mt-4 inline-flex px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-medium"
+        >
           Back to Organizations
         </Link>
       </div>
@@ -107,69 +126,64 @@ const OrganizationDetailsPage = () => {
       <div className="flex items-center justify-between">
         <Link
           to="/organizations"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
         >
           <ArrowLeft size={16} />
           <span>Back to Organizations</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={handleResetPassword}
-            className="btn-secondary"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-[var(--accent)] transition-all text-[var(--text-primary)] cursor-pointer text-sm font-medium"
           >
-            <RotateCcw size={14} />
-            <span>Reset Admin Password</span>
+            <RotateCcw size={15} />
+            <span>Reset Password</span>
           </button>
           <button
             onClick={() => setFreezeModalOpen(true)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all ${
               isActive
-                ? "bg-cyan-50 text-cyan-800 border border-cyan-200 hover:bg-cyan-100"
-                : "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
+                ? "bg-cyan-100 text-cyan-800 hover:bg-cyan-200"
+                : "bg-green-100 text-green-800 hover:bg-green-200"
             }`}
           >
-            {isActive ? <Snowflake size={14} /> : <CheckCircle2 size={14} />}
+            {isActive ? <Snowflake size={15} /> : <CheckCircle2 size={15} />}
             <span>{isActive ? "Freeze Tenant" : "Unfreeze Tenant"}</span>
           </button>
         </div>
       </div>
 
-      <div className="spren-card p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+      <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-soft)]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border-soft)] pb-6">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white flex items-center justify-center font-bold text-xl shadow-md">
-              <Building2 size={26} />
+            <div className="w-12 h-12 rounded-2xl bg-green-100 text-green-700 flex items-center justify-center font-bold">
+              <Building2 size={24} />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                <h1 className="text-2xl font-bold text-[var(--text-primary)]">
                   {org.name}
                 </h1>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold ${
+                  className={`px-3 py-0.5 rounded-full text-xs font-semibold ${
                     isActive
-                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      : "bg-cyan-50 text-cyan-800 border border-cyan-200"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-cyan-100 text-cyan-700"
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isActive ? "bg-emerald-500 animate-pulse" : "bg-cyan-500"
-                    }`}
-                  />
                   {org.status}
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                <span className="text-xs font-mono px-2 py-0.5 rounded bg-[var(--bg-main)] border border-[var(--border-soft)] text-[var(--text-secondary)]">
                   {org.code}
                 </span>
                 <button
                   onClick={() => handleCopyCode(org.code)}
-                  className="text-[11px] text-slate-400 hover:text-slate-700 flex items-center gap-1"
+                  className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1 cursor-pointer"
                 >
-                  {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                  {copied ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
                   <span>{copied ? "Copied" : "Copy Code"}</span>
                 </button>
               </div>
@@ -177,110 +191,104 @@ const OrganizationDetailsPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 text-xs text-slate-600">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 text-sm text-[var(--text-secondary)]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
-              <Mail size={16} />
-            </div>
+            <Mail size={18} className="text-[var(--text-secondary)]" />
             <div>
-              <p className="font-bold text-slate-800">Admin Email</p>
-              <p className="font-mono text-slate-600 mt-0.5">{org.contactEmail}</p>
+              <p className="font-semibold text-[var(--text-primary)]">Admin Email</p>
+              <p className="font-mono text-xs mt-0.5">{org.contactEmail}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
-              <Phone size={16} />
-            </div>
+            <Phone size={18} className="text-[var(--text-secondary)]" />
             <div>
-              <p className="font-bold text-slate-800">Contact Person</p>
-              <p className="text-slate-600 mt-0.5">
+              <p className="font-semibold text-[var(--text-primary)]">Contact Person</p>
+              <p className="mt-0.5">
                 {org.contactPerson} {org.contactPhone ? `(${org.contactPhone})` : ""}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
-              <MapPin size={16} />
-            </div>
+            <MapPin size={18} className="text-[var(--text-secondary)]" />
             <div>
-              <p className="font-bold text-slate-800">Address</p>
-              <p className="text-slate-600 mt-0.5">{org.address || "No address entered"}</p>
+              <p className="font-semibold text-[var(--text-primary)]">Address</p>
+              <p className="mt-0.5">{org.address || "N/A"}</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="spren-card p-4">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Stock Items
-            </span>
+        <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-soft)]">
+          <div className="flex items-center justify-between text-[var(--text-secondary)] mb-2">
+            <span className="text-xs font-medium">Stock Items</span>
             <Package size={16} />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">{stats?.productCount || 0}</p>
+          <p className="text-2xl font-bold text-[var(--text-primary)]">
+            {stats?.productCount || 0}
+          </p>
         </div>
 
-        <div className="spren-card p-4">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Invoices
-            </span>
+        <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-soft)]">
+          <div className="flex items-center justify-between text-[var(--text-secondary)] mb-2">
+            <span className="text-xs font-medium">Invoices</span>
             <Receipt size={16} />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">{stats?.saleCount || 0}</p>
+          <p className="text-2xl font-bold text-[var(--text-primary)]">
+            {stats?.saleCount || 0}
+          </p>
         </div>
 
-        <div className="spren-card p-4">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Customers
-            </span>
+        <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-soft)]">
+          <div className="flex items-center justify-between text-[var(--text-secondary)] mb-2">
+            <span className="text-xs font-medium">Customers</span>
             <Users size={16} />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">{stats?.customerCount || 0}</p>
+          <p className="text-2xl font-bold text-[var(--text-primary)]">
+            {stats?.customerCount || 0}
+          </p>
         </div>
 
-        <div className="spren-card p-4">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Total Revenue
-            </span>
-            <span className="text-xs font-bold text-emerald-700">INR</span>
+        <div className="bg-[var(--bg-card)] rounded-2xl p-5 border border-[var(--border-soft)]">
+          <div className="flex items-center justify-between text-[var(--text-secondary)] mb-2">
+            <span className="text-xs font-medium">Total Revenue</span>
+            <span className="text-xs font-semibold text-[var(--accent)]">INR</span>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">
-            Rs. {(stats?.revenue || 0).toLocaleString("en-IN")}
+          <p className="text-2xl font-bold text-[var(--text-primary)]">
+            ₹{(stats?.revenue || 0).toLocaleString("en-IN")}
           </p>
         </div>
       </div>
 
-      <div className="spren-card p-6 shadow-sm">
-        <h2 className="text-sm font-bold text-slate-900 mb-4">
-          Provisioned Accounts & Staff
-        </h2>
+      <div className="bg-[var(--bg-main)] rounded-2xl border border-[var(--border-soft)] overflow-hidden shadow-xs">
+        <div className="p-4 bg-[var(--bg-card)] border-b border-[var(--border-soft)]">
+          <h2 className="text-sm font-bold text-[var(--text-primary)]">
+            Organization Staff Accounts
+          </h2>
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-              <tr>
-                <th className="py-3 px-4">Name</th>
-                <th className="py-3 px-4">Email</th>
-                <th className="py-3 px-4">Role</th>
-                <th className="py-3 px-4">Created Date</th>
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--border-soft)] text-xs text-[var(--text-secondary)]">
+                <th className="py-3 px-4 font-semibold">Name</th>
+                <th className="py-3 px-4 font-semibold">Email</th>
+                <th className="py-3 px-4 font-semibold">Role</th>
+                <th className="py-3 px-4 font-semibold">Created Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-[var(--border-soft)]">
               {users.map((u) => (
-                <tr key={u._id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-slate-900">{u.name}</td>
-                  <td className="py-3.5 px-4 font-mono text-slate-600">{u.email}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <tr key={u._id} className="hover:bg-[var(--bg-card)] transition-colors">
+                  <td className="py-3 px-4 font-medium text-[var(--text-primary)]">{u.name}</td>
+                  <td className="py-3 px-4 font-mono text-xs text-[var(--text-secondary)]">{u.email}</td>
+                  <td className="py-3 px-4">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                       {u.role}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-400">
+                  <td className="py-3 px-4 text-xs text-[var(--text-secondary)]">
                     {new Date(u.createdAt).toLocaleDateString("en-IN", {
                       day: "2-digit",
                       month: "short",
@@ -300,6 +308,13 @@ const OrganizationDetailsPage = () => {
         loading={freezeActionLoading}
         onClose={() => setFreezeModalOpen(false)}
         onConfirm={handleConfirmFreeze}
+      />
+
+      <FreezeSuccessModal
+        isOpen={successModalData.isOpen}
+        organization={successModalData.organization}
+        actionType={successModalData.actionType}
+        onClose={() => setSuccessModalData({ isOpen: false, organization: null, actionType: "Frozen" })}
       />
     </div>
   );
