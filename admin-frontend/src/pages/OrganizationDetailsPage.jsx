@@ -15,14 +15,13 @@ import {
   Copy,
   Check,
   Calendar,
-  Clock,
   Smartphone,
   ShieldAlert,
   ShieldCheck,
-  Plus,
   RefreshCw,
   AlertTriangle,
   History,
+  CalendarDays,
 } from "lucide-react";
 import adminOrgService from "../services/adminOrgService";
 import FreezeConfirmModal from "../components/OrganizationsPageComponent/FreezeConfirmModal";
@@ -39,6 +38,7 @@ const OrganizationDetailsPage = () => {
   const [resettingDevice, setResettingDevice] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("Monthly");
   const [customDays, setCustomDays] = useState(30);
+  const [expiryDateInput, setExpiryDateInput] = useState("");
 
   const [successModalData, setSuccessModalData] = useState({
     isOpen: false,
@@ -53,6 +53,13 @@ const OrganizationDetailsPage = () => {
       setData(res);
       if (res.organization?.plan) {
         setSelectedPlan(res.organization.plan);
+      }
+      if (res.organization?.subscriptionExpiresAt) {
+        const d = new Date(res.organization.subscriptionExpiresAt);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        setExpiryDateInput(`${yyyy}-${mm}-${dd}`);
       }
     } catch (err) {
       console.error(err);
@@ -100,6 +107,23 @@ const OrganizationDetailsPage = () => {
       );
     } catch (err) {
       alert(err.message || "Failed to reset password");
+    }
+  };
+
+  const handleSetExactDate = async () => {
+    if (!expiryDateInput) return;
+    try {
+      setExtendingSubscription(true);
+      await adminOrgService.updateSubscription(id, {
+        plan: selectedPlan,
+        subscriptionExpiresAt: new Date(expiryDateInput + "T23:59:59.999Z"),
+      });
+      await fetchDetails();
+      alert("Subscription expiry date updated successfully!");
+    } catch (err) {
+      alert(err.message || "Failed to update expiry date");
+    } finally {
+      setExtendingSubscription(false);
     }
   };
 
@@ -296,18 +320,26 @@ const OrganizationDetailsPage = () => {
                     Subscription & Expiry Management
                   </h2>
                   <p className="text-xs text-[var(--text-secondary)]">
-                    Control tenant billing cycle and access expiration
+                    Control tenant billing cycle and access expiration date
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
-                {org.plan || "Trial"} Plan
-              </span>
+              <select
+                value={selectedPlan}
+                onChange={(e) => setSelectedPlan(e.target.value)}
+                className="text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl focus:outline-none cursor-pointer"
+              >
+                <option value="Trial">Trial Plan</option>
+                <option value="Monthly">Monthly Plan</option>
+                <option value="Annual">Annual Plan</option>
+                <option value="Enterprise">Enterprise Plan</option>
+                <option value="Lifetime">Lifetime Plan</option>
+              </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 p-4 bg-white rounded-xl border border-[var(--border-soft)] mb-5">
+            <div className="grid grid-cols-2 gap-3 p-4 bg-white rounded-xl border border-[var(--border-soft)] mb-4">
               <div>
-                <p className="text-xs text-[var(--text-secondary)]">Subscription Expiry</p>
+                <p className="text-xs text-[var(--text-secondary)]">Current Expiry Date</p>
                 <p className="text-sm font-bold text-gray-900 mt-0.5">
                   {org.subscriptionExpiresAt
                     ? new Date(org.subscriptionExpiresAt).toLocaleDateString("en-IN", {
@@ -334,7 +366,30 @@ const OrganizationDetailsPage = () => {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="p-4 bg-white rounded-xl border border-[var(--border-soft)] mb-4">
+              <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5 mb-2">
+                <CalendarDays size={14} className="text-emerald-700" />
+                <span>Select & Change Expiry Date</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={expiryDateInput}
+                  onChange={(e) => setExpiryDateInput(e.target.value)}
+                  className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-gray-200 rounded-xl font-medium text-gray-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all cursor-pointer"
+                />
+                <button
+                  disabled={extendingSubscription || !expiryDateInput}
+                  onClick={handleSetExactDate}
+                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1"
+                >
+                  <Check size={13} />
+                  <span>{extendingSubscription ? "Saving..." : "Set Date"}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <p className="text-xs font-bold text-gray-700">Quick Validity Extension</p>
               <div className="grid grid-cols-4 gap-2">
                 {[
