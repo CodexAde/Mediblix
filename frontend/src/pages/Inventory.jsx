@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, History, MoreVertical, FileDown } from 'lucide-react';
+import { Package, Search, Filter, Plus, Edit2, Trash2, Eye, ArrowUpDown, ChevronLeft, ChevronRight, Download, Upload, History, MoreVertical, FileDown, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import productService from '../services/productService';
 import importHistoryService from '../services/importHistoryService';
-import { downloadPDFReport } from '../utils/reportGenerator'; // CHANGED: reuse the existing report PDF generator instead of raw jsPDF calls
+import { downloadPDFReport } from '../utils/reportGenerator';
 import AddProductDrawer from '../components/Inventory/AddProductDrawer';
 import ExportModal from '../components/Inventory/ExportModal';
 import ImportHistoryDrawer from '../components/Inventory/ImportHistoryDrawer';
@@ -19,6 +19,7 @@ const Inventory = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
+  const [seedingLoading, setSeedingLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
   const navigate = useNavigate();
@@ -28,6 +29,19 @@ const Inventory = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const handleSeedSampleData = async () => {
+    try {
+      setSeedingLoading(true);
+      const res = await productService.seedSampleProducts();
+      await fetchProducts();
+      alert(`Success! Loaded ${res.count || 12} sample Indian pharmacy medicines into your inventory.`);
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || "Failed to load sample stock");
+    } finally {
+      setSeedingLoading(false);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -127,7 +141,7 @@ const Inventory = () => {
     }
   };
 
-  const formatStock = (qty, tabletsPerStrip) => {
+  const formatStock = (qty) => {
     if (qty <= 0) return '0 Tablets';
     return `${qty} Tablets`;
   };
@@ -158,6 +172,16 @@ const Inventory = () => {
             <p className="text-[var(--text-secondary)] mt-1">Manage your products and stock levels</p>
           </div>
           <div className="flex items-center gap-3">
+            {products.length === 0 && (
+              <button
+                disabled={seedingLoading}
+                onClick={handleSeedSampleData}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                <Sparkles size={14} className={seedingLoading ? "animate-spin" : ""} />
+                <span>{seedingLoading ? "Loading..." : "⚡ Load Sample Stock"}</span>
+              </button>
+            )}
             <button 
               className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-purple-400 hover:text-purple-600 transition-all text-[var(--text-primary)] cursor-pointer"
               onClick={() => setIsHistoryDrawerOpen(true)}
@@ -336,6 +360,53 @@ const Inventory = () => {
                     </td>
                   </tr>
                 ))}
+                {filteredProducts.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="py-16 text-center">
+                      <div className="max-w-md mx-auto space-y-4">
+                        <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100 shadow-xs">
+                          <Package size={28} />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-gray-900">
+                            {searchTerm || selectedCategory !== 'All' ? 'No Matching Products' : 'No Medicines in Inventory Yet'}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto leading-relaxed">
+                            {searchTerm || selectedCategory !== 'All'
+                              ? 'Try searching with a different product name, SKU, or clear your category filter.'
+                              : 'Your pharmacy catalog is currently empty. Add your medicines manually, upload an invoice with AI, or load sample pharmacy stock in 1 click.'}
+                          </p>
+                        </div>
+                        {!(searchTerm || selectedCategory !== 'All') && (
+                          <div className="flex items-center justify-center gap-2.5 pt-2 flex-wrap">
+                            <button
+                              onClick={() => setIsAddDrawerOpen(true)}
+                              className="px-3.5 py-2 bg-[#166534] hover:bg-[#14532d] text-white rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Plus size={14} />
+                              <span>Add Medicine Manually</span>
+                            </button>
+                            <button
+                              onClick={() => navigate('/ai-import?type=inventory')}
+                              className="px-3.5 py-2 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Sparkles size={14} />
+                              <span>AI Invoice Upload</span>
+                            </button>
+                            <button
+                              disabled={seedingLoading}
+                              onClick={handleSeedSampleData}
+                              className="px-3.5 py-2 bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              <Sparkles size={14} className={seedingLoading ? 'animate-spin' : ''} />
+                              <span>{seedingLoading ? 'Loading...' : '⚡ Load Sample Indian Stock'}</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -394,6 +465,7 @@ const Inventory = () => {
         isOpen={isChoiceModalOpen}
         onClose={() => setIsChoiceModalOpen(false)}
         onManualSelect={() => setIsAddDrawerOpen(true)}
+        onProductAdded={fetchProducts}
       />
     </div>
   );

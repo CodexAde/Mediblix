@@ -41,6 +41,7 @@ const Billing = () => {
   const [activeInvoiceNumber, setActiveInvoiceNumber] = useState('');
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'new-bill');
+  const [isSeedingStock, setIsSeedingStock] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'history' || activeTab === 'returns') {
@@ -700,6 +701,19 @@ const Billing = () => {
     }
   };
 
+  const handleSeedFromBilling = async () => {
+    try {
+      setIsSeedingStock(true);
+      await productService.seedSampleProducts();
+      await fetchProducts();
+      showToast("Sample pharmacy stock loaded successfully!", "success");
+    } catch (err) {
+      showToast(err.response?.data?.message || err.message || "Failed to load sample stock", "error");
+    } finally {
+      setIsSeedingStock(false);
+    }
+  };
+
   const generateNextInvoiceNumber = async () => {
     try {
       const sales = await saleService.getSales({});
@@ -1228,6 +1242,24 @@ const Billing = () => {
                     </div>
                   )}
                 </div>
+
+                {!loadingProducts && products.length === 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-between gap-3 text-xs flex-shrink-0">
+                    <div className="flex items-center gap-2 text-amber-900">
+                      <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" />
+                      <span>Your inventory is currently empty. Add products or load sample Indian pharmacy stock to start billing.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSeedFromBilling}
+                      disabled={isSeedingStock}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md font-semibold transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1 flex-shrink-0 shadow-xs"
+                    >
+                      <Sparkles size={12} className={isSeedingStock ? "animate-spin" : ""} />
+                      <span>{isSeedingStock ? "Loading..." : "⚡ Load Sample Stock"}</span>
+                    </button>
+                  </div>
+                )}
 
                 <div className="bg-white rounded-lg border border-[var(--border-soft)] p-3 flex-shrink-0" ref={searchRef}>
                   <div className="relative">

@@ -117,6 +117,33 @@ const Orders = () => {
 
         {loading ? (
           <div className="p-8 text-center text-[var(--text-secondary)]">Loading purchase orders...</div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center border border-[var(--border-soft)] max-w-xl mx-auto space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-green-50 text-green-700 flex items-center justify-center border border-green-100 shadow-xs">
+              <ShoppingCart size={28} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">
+                {searchTerm ? 'No Matching Purchase Orders' : 'No Purchase Orders Yet'}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto leading-relaxed">
+                {searchTerm
+                  ? 'Try searching with a different supplier name or medicine keyword.'
+                  : 'Track your incoming pharmaceutical stock, purchase orders, and supplier deliveries in one place.'}
+              </p>
+            </div>
+            {!searchTerm && (
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <button
+                  onClick={() => setIsChoiceModalOpen(true)}
+                  className="px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Create Purchase Order</span>
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredOrders.map((order) => {

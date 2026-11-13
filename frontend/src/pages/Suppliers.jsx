@@ -124,6 +124,33 @@ const Suppliers = () => {
 
         {loading ? (
           <div className="p-8 text-center text-[var(--text-secondary)]">Loading suppliers...</div>
+        ) : filteredSuppliers.length === 0 ? (
+          <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center border border-[var(--border-soft)] max-w-xl mx-auto space-y-4 my-6">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-green-50 text-green-700 flex items-center justify-center border border-green-100 shadow-xs">
+              <Building size={28} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">
+                {searchTerm ? 'No Matching Suppliers' : 'No Suppliers in Directory Yet'}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto leading-relaxed">
+                {searchTerm
+                  ? 'Try searching with a different supplier company name or contact info.'
+                  : 'Add medicine distributors, pharmaceutical manufacturers, and vendors to manage stock shipments.'}
+              </p>
+            </div>
+            {!searchTerm && (
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <button
+                  onClick={() => setIsDrawerOpen(true)}
+                  className="px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Add New Supplier</span>
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {filteredSuppliers.map((supplier) => (

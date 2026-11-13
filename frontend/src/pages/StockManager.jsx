@@ -94,6 +94,7 @@ const StockManager = () => {
         isOpen={isChoiceOpen}
         onClose={() => setIsChoiceOpen(false)}
         onManualSelect={() => setActiveModal('add-product')}
+        onProductAdded={() => window.location.reload()}
       />
     </div>
   );
