@@ -52,36 +52,24 @@ const LowStockAlerts = () => {
     }
   };
 
-  const dbAlerts = products
-    .filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock' || p.quantity < 10)
+  const allAlerts = products
+    .filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock' || Number(p.quantity || 0) <= Number(p.minStockThreshold || 10))
     .map(p => {
-      const status = p.quantity === 0 ? 'critical' : 'warning';
+      const status = Number(p.quantity || 0) === 0 ? 'critical' : 'warning';
       return {
         id: p._id,
         productId: p._id,
         product: p.name,
-        current: p.quantity,
-        minimum: 10,
+        current: Number(p.quantity || 0),
+        minimum: Number(p.minStockThreshold || 10),
         status: status,
-        category: p.category,
-        supplier: 'Unknown Supplier',
-        lastOrdered: 'N/A',
+        category: p.category || 'General',
+        supplier: p.supplier || 'Primary Supplier',
+        lastOrdered: 'Recent',
         tabletsPerStrip: p.tabletsPerStrip || 10
       };
     });
 
-  const mockAlerts = [
-    { id: 'mock-a1', productId: '', product: 'Antiflu 75', current: 9, minimum: 10, status: 'warning', category: 'Tablet', supplier: 'Apex Labs', lastOrdered: '2 days ago', tabletsPerStrip: 10 },
-    { id: 'mock-a2', productId: '', product: 'Digene Gel', current: 0, minimum: 10, status: 'critical', category: 'Syrup', supplier: 'Abbott Healthcare', lastOrdered: 'Yesterday', tabletsPerStrip: 1 },
-    { id: 'mock-a3', productId: '', product: 'Azithral 500', current: 3, minimum: 10, status: 'warning', category: 'Tablet', supplier: 'Alembic Pharma', lastOrdered: '5 days ago', tabletsPerStrip: 5 },
-    { id: 'mock-a4', productId: '', product: 'Crocin Pain Relief', current: 0, minimum: 10, status: 'critical', category: 'Tablet', supplier: 'GlaxoSmithKline', lastOrdered: '3 days ago', tabletsPerStrip: 15 }
-  ];
-
-  const filteredMocks = mockAlerts.filter(mock =>
-    !dbAlerts.some(da => da.product.toLowerCase() === mock.product.toLowerCase())
-  );
-
-  const allAlerts = [...dbAlerts, ...filteredMocks];
   const lowStockAlerts = allAlerts.slice(0, 4);
 
   const filteredAlerts = allAlerts.filter(alert =>
