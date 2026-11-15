@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DeviceProvider } from './context/DeviceContext';
 import AuthState, { useAuth } from './context/AuthStates';
 import MainLayout from './layout/MainLayout';
-import LandingPage from './pages/LandingPage';
 import StockManager from './pages/StockManager';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
@@ -40,7 +39,7 @@ function App() {
                 <ProtectedRoute>
                   <MainLayout>
                     <Routes>
-                      <Route path="/" element={<LandingPage />} />
+                      <Route path="/" element={<Navigate to="/stock" replace />} />
                       <Route path="/stock" element={<StockManager />} />
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/audits" element={<Audits />} />

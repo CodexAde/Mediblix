@@ -17,7 +17,7 @@ const LoginPage = () => {
     setError('');
     try {
       await login(email, password);
-      navigate('/');
+      navigate('/stock');
     } catch (err) {
       const msg = err.message || 'Invalid email or password';
       if (!msg.toLowerCase().includes('expired') && !msg.toLowerCase().includes('frozen')) {
