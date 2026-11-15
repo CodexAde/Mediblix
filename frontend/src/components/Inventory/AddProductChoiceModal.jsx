@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Sparkles, Edit3, FileText, Table, FileSpreadsheet, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { X, Sparkles, Edit3, FileText, Table, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import productService from "../../services/productService";
 import {
@@ -10,14 +10,13 @@ import {
   REPORT_TYPES,
 } from "../../utils/reportGenerator";
 
-const AddProductChoiceModal = ({ isOpen, onClose, onManualSelect, onProductAdded }) => {
+const AddProductChoiceModal = ({ isOpen, onClose, onManualSelect }) => {
   const modalRef = useRef(null);
   const navigate = useNavigate();
   const [showReports, setShowReports] = useState(false);
   const [selectedReport, setSelectedReport] = useState("stock_summary");
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [seedingLoading, setSeedingLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -86,22 +85,6 @@ const AddProductChoiceModal = ({ isOpen, onClose, onManualSelect, onProductAdded
   }, [showReports, products.length]);
 
   if (!isOpen) return null;
-
-  const handleSeedSample = async () => {
-    try {
-      setSeedingLoading(true);
-      const res = await productService.seedSampleProducts();
-      alert(`Success! Loaded ${res.count || 12} sample Indian pharmacy medicines into your inventory.`);
-      if (onProductAdded) {
-        await onProductAdded();
-      }
-      onClose();
-    } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to load sample stock");
-    } finally {
-      setSeedingLoading(false);
-    }
-  };
 
   const handleQuickDownload = (format) => {
     const prepared = prepareReportData({
@@ -179,33 +162,6 @@ const AddProductChoiceModal = ({ isOpen, onClose, onManualSelect, onProductAdded
             </p>
             <span className="text-xs text-[var(--accent)] font-semibold mt-4 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
               Open Form →
-            </span>
-          </button>
-        </div>
-
-        <div className="mt-4">
-          <button
-            type="button"
-            disabled={seedingLoading}
-            onClick={handleSeedSample}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl hover:border-amber-400 hover:shadow-md transition-all text-left group cursor-pointer disabled:opacity-50"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform flex-shrink-0">
-                <Zap size={20} className={seedingLoading ? "animate-spin" : ""} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-gray-900 text-sm">⚡ Load Sample Indian Stock</h3>
-                  <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">1-Click</span>
-                </div>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  Populate 12 standard Indian medicines (Calpol, Dolo, Augmentin, etc.) with real batches & suppliers.
-                </p>
-              </div>
-            </div>
-            <span className="text-xs text-amber-800 font-semibold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1 flex-shrink-0 ml-2">
-              {seedingLoading ? "Loading..." : "Load Now →"}
             </span>
           </button>
         </div>

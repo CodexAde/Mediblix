@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   FileSpreadsheet, 
   Calendar as CalendarIcon, 
@@ -41,7 +41,7 @@ import {
 
 const Audits = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'reports');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -77,23 +77,16 @@ const Audits = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    fetchData();
-    window.addEventListener('focus', fetchData);
-    return () => window.removeEventListener('focus', fetchData);
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [historyData, salesData, poData, productsData, customersData, suppliersData] = await Promise.allSettled([
-        importHistoryService.getImportHistory(),
-        saleService.getSales(),
-        purchaseOrderService.getPurchaseOrders(),
-        productService.getProducts(),
-        customerService.getCustomers(),
-        supplierService.getSuppliers(),
-      ]);
-
+    let isMounted = true;
+    Promise.allSettled([
+      importHistoryService.getImportHistory(),
+      saleService.getSales(),
+      purchaseOrderService.getPurchaseOrders(),
+      productService.getProducts(),
+      customerService.getCustomers(),
+      supplierService.getSuppliers(),
+    ]).then(([historyData, salesData, poData, productsData, customersData, suppliersData]) => {
+      if (!isMounted) return;
       setDataset({
         importHistory: historyData.status === 'fulfilled' ? historyData.value || [] : [],
         sales: salesData.status === 'fulfilled' ? salesData.value || [] : [],
@@ -102,12 +95,36 @@ const Audits = () => {
         customers: customersData.status === 'fulfilled' ? customersData.value || [] : [],
         suppliers: suppliersData.status === 'fulfilled' ? suppliersData.value || [] : [],
       });
-    } catch (err) {
-      console.error('Error fetching audit data:', err);
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+
+    const handleFocus = () => {
+      Promise.allSettled([
+        importHistoryService.getImportHistory(),
+        saleService.getSales(),
+        purchaseOrderService.getPurchaseOrders(),
+        productService.getProducts(),
+        customerService.getCustomers(),
+        supplierService.getSuppliers(),
+      ]).then(([historyData, salesData, poData, productsData, customersData, suppliersData]) => {
+        if (!isMounted) return;
+        setDataset({
+          importHistory: historyData.status === 'fulfilled' ? historyData.value || [] : [],
+          sales: salesData.status === 'fulfilled' ? salesData.value || [] : [],
+          purchaseOrders: poData.status === 'fulfilled' ? poData.value || [] : [],
+          products: productsData.status === 'fulfilled' ? productsData.value || [] : [],
+          customers: customersData.status === 'fulfilled' ? customersData.value || [] : [],
+          suppliers: suppliersData.status === 'fulfilled' ? suppliersData.value || [] : [],
+        });
+      });
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -205,6 +222,56 @@ const Audits = () => {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
+  const setDatePreset = (preset) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    if (preset === 'all') {
+      setDateFrom('');
+      setDateTo('');
+    } else if (preset === 'today') {
+      setDateFrom(todayStr);
+      setDateTo(todayStr);
+    } else if (preset === 'last7') {
+      const past = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+      setDateFrom(past);
+      setDateTo(todayStr);
+    } else if (preset === 'thisMonth') {
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+      setDateFrom(monthStart);
+      setDateTo(todayStr);
+    }
+  };
+
+  const currentReportData = useMemo(() => {
+    try {
+      return prepareReportData({
+        reportType: selectedReportType,
+        products: dataset.products,
+        sales: dataset.sales,
+        customers: dataset.customers,
+        purchaseOrders: dataset.purchaseOrders,
+        suppliers: dataset.suppliers,
+        dateFrom,
+        dateTo,
+        options: includeOptions,
+      });
+    } catch {
+      return { title: 'Report', columns: [], rows: [], summaryMetrics: [] };
+    }
+  }, [
+    selectedReportType,
+    dataset,
+    dateFrom,
+    dateTo,
+    includeOptions,
+  ]);
+
+  const handleSelectPreset = (type, format) => {
+    setSelectedReportType(type);
+    setSelectedFormat(format);
+    handleGenerateReport(type, format);
+  };
 
   const handleGenerateReport = async (overrideType = null, overrideFormat = null) => {
     const typeToUse = overrideType || selectedReportType;
@@ -352,7 +419,7 @@ const Audits = () => {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <button
-                  onClick={() => handleGenerateReport('gst_tax', 'PDF')}
+                  onClick={() => handleSelectPreset('gst_tax', 'PDF')}
                   className="p-4 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 rounded-xl text-left transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -364,7 +431,7 @@ const Audits = () => {
                 </button>
 
                 <button
-                  onClick={() => handleGenerateReport('stock_summary', 'Excel')}
+                  onClick={() => handleSelectPreset('stock_summary', 'Excel')}
                   className="p-4 bg-blue-50 hover:bg-blue-100/70 border border-blue-200 rounded-xl text-left transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -376,7 +443,7 @@ const Audits = () => {
                 </button>
 
                 <button
-                  onClick={() => handleGenerateReport('low_stock', 'PDF')}
+                  onClick={() => handleSelectPreset('low_stock', 'PDF')}
                   className="p-4 bg-amber-50 hover:bg-amber-100/70 border border-amber-200 rounded-xl text-left transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -388,7 +455,7 @@ const Audits = () => {
                 </button>
 
                 <button
-                  onClick={() => handleGenerateReport('financial_sales', 'PDF')}
+                  onClick={() => handleSelectPreset('financial_sales', 'PDF')}
                   className="p-4 bg-purple-50 hover:bg-purple-100/70 border border-purple-200 rounded-xl text-left transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -469,7 +536,43 @@ const Audits = () => {
 
                 {/* 3. Date Range Filter */}
                 <div>
-                  <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">Date Range Filter (Optional)</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                    <label className="block text-sm font-bold text-[var(--text-primary)]">Date Range Filter (Optional)</label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('all')}
+                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer ${
+                          !dateFrom && !dateTo
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        All Time
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('today')}
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-all cursor-pointer"
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('last7')}
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-all cursor-pointer"
+                      >
+                        Last 7 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset('thisMonth')}
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-all cursor-pointer"
+                      >
+                        This Month
+                      </button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <span className="text-xs text-[var(--text-secondary)] font-medium block mb-1">From Date</span>
@@ -477,7 +580,7 @@ const Audits = () => {
                         type="date"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        className="w-full px-3 py-2 border border-[var(--border-soft)] rounded-xl text-sm focus:outline-none focus:border-[var(--accent)]"
+                        className="w-full px-3 py-2 border border-[var(--border-soft)] rounded-xl text-sm focus:outline-none focus:border-[var(--accent)] text-gray-800"
                       />
                     </div>
                     <div>
@@ -486,7 +589,7 @@ const Audits = () => {
                         type="date"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        className="w-full px-3 py-2 border border-[var(--border-soft)] rounded-xl text-sm focus:outline-none focus:border-[var(--accent)]"
+                        className="w-full px-3 py-2 border border-[var(--border-soft)] rounded-xl text-sm focus:outline-none focus:border-[var(--accent)] text-gray-800"
                       />
                     </div>
                   </div>
@@ -551,6 +654,96 @@ const Audits = () => {
                     <span className="text-[10px] text-amber-700 block mt-0.5">Requires immediate distributor reorder</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] shadow-xs overflow-hidden">
+              <div className="p-5 border-b border-[var(--border-soft)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gray-50/50">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-[var(--text-primary)]">
+                      {currentReportData.title}
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
+                      {currentReportData.rows.length} Records
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Live generated table preview before statutory download
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateReport(selectedReportType, 'PDF')}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  >
+                    <FileText size={14} />
+                    <span>Download PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateReport(selectedReportType, 'Excel')}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  >
+                    <Table size={14} />
+                    <span>Export Excel</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateReport(selectedReportType, 'CSV')}
+                    className="px-3.5 py-2 bg-gray-700 hover:bg-gray-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  >
+                    <FileSpreadsheet size={14} />
+                    <span>Download CSV</span>
+                  </button>
+                </div>
+              </div>
+
+              {currentReportData.summaryMetrics && currentReportData.summaryMetrics.length > 0 && (
+                <div className="p-4 bg-white border-b border-[var(--border-soft)] grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {currentReportData.summaryMetrics.map((m, i) => (
+                    <div key={i} className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 block">{m.label}</span>
+                      <span className="text-base font-bold text-gray-900 mt-0.5 block">{m.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="overflow-x-auto max-h-96">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-100 text-gray-700 font-bold uppercase sticky top-0 border-b border-gray-200 z-10">
+                    <tr>
+                      {currentReportData.columns.map((c, i) => (
+                        <th key={i} className="p-3 whitespace-nowrap">{c.header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {currentReportData.rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={Math.max(currentReportData.columns.length, 1)} className="py-12 text-center text-gray-400">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold text-sm text-gray-700">No records found for this report</p>
+                            <p className="text-xs text-gray-500">Try adjusting your date filters or clearing date range to see all records.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      currentReportData.rows.map((row, rIdx) => (
+                        <tr key={rIdx} className="hover:bg-gray-50 font-medium transition-colors">
+                          {currentReportData.columns.map((c, cIdx) => (
+                            <td key={cIdx} className="p-3 whitespace-nowrap text-gray-800">
+                              {row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -774,7 +967,7 @@ const Audits = () => {
 
                         return (
                           <tr key={i} className="hover:bg-gray-50 font-medium">
-                            <td className="p-3">{new Date(sale.createdAt || Date.now()).toLocaleDateString('en-IN')}</td>
+                            <td className="p-3">{sale.createdAt ? new Date(sale.createdAt).toLocaleDateString('en-IN') : 'N/A'}</td>
                             <td className="p-3 font-bold text-gray-900">{sale.invoiceNumber || `INV-${i+1001}`}</td>
                             <td className="p-3">{sale.paymentMethod || 'Cash'}</td>
                             <td className="p-3 font-bold">₹{total.toFixed(2)}</td>

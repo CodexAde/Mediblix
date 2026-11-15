@@ -14,34 +14,33 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [isAIMode, setIsAIMode] = useState(false);
+  const [isAIMode] = useState(false);
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
-  const [seedingLoading, setSeedingLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
   const categories = ['All', 'Analgesics', 'Antibiotics', 'Diabetes', 'Vitamins', 'Cardiology', 'Antihistamines', 'Antacids', 'Antivirals'];
 
+  const fetchProducts = () => {
+    productService
+      .getProducts()
+      .then((data) => {
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch products", error);
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
     fetchProducts();
   }, []);
-
-  const handleSeedSampleData = async () => {
-    try {
-      setSeedingLoading(true);
-      const res = await productService.seedSampleProducts();
-      await fetchProducts();
-      alert(`Success! Loaded ${res.count || 12} sample Indian pharmacy medicines into your inventory.`);
-    } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to load sample stock");
-    } finally {
-      setSeedingLoading(false);
-    }
-  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -54,17 +53,6 @@ const Inventory = () => {
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenuId]);
-
-  const fetchProducts = async () => {
-    try {
-      const data = await productService.getProducts();
-      setProducts(data);
-      setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch products", error);
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
@@ -172,16 +160,6 @@ const Inventory = () => {
             <p className="text-[var(--text-secondary)] mt-1">Manage your products and stock levels</p>
           </div>
           <div className="flex items-center gap-3">
-            {products.length === 0 && (
-              <button
-                disabled={seedingLoading}
-                onClick={handleSeedSampleData}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-              >
-                <Sparkles size={14} className={seedingLoading ? "animate-spin" : ""} />
-                <span>{seedingLoading ? "Loading..." : "⚡ Load Sample Stock"}</span>
-              </button>
-            )}
             <button 
               className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-soft)] rounded-xl hover:border-purple-400 hover:text-purple-600 transition-all text-[var(--text-primary)] cursor-pointer"
               onClick={() => setIsHistoryDrawerOpen(true)}
@@ -374,7 +352,7 @@ const Inventory = () => {
                           <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto leading-relaxed">
                             {searchTerm || selectedCategory !== 'All'
                               ? 'Try searching with a different product name, SKU, or clear your category filter.'
-                              : 'Your pharmacy catalog is currently empty. Add your medicines manually, upload an invoice with AI, or load sample pharmacy stock in 1 click.'}
+                              : 'Your pharmacy catalog is currently empty. Add your medicines manually or upload an invoice with AI.'}
                           </p>
                         </div>
                         {!(searchTerm || selectedCategory !== 'All') && (
@@ -392,14 +370,6 @@ const Inventory = () => {
                             >
                               <Sparkles size={14} />
                               <span>AI Invoice Upload</span>
-                            </button>
-                            <button
-                              disabled={seedingLoading}
-                              onClick={handleSeedSampleData}
-                              className="px-3.5 py-2 bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                            >
-                              <Sparkles size={14} className={seedingLoading ? 'animate-spin' : ''} />
-                              <span>{seedingLoading ? 'Loading...' : '⚡ Load Sample Indian Stock'}</span>
                             </button>
                           </div>
                         )}

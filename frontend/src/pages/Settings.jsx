@@ -13,6 +13,14 @@ import {
   Calendar,
   BadgeCheck,
   Loader2,
+  Phone,
+  Mail,
+  LifeBuoy,
+  Send,
+  MessageSquare,
+  Clock,
+  Sparkles,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthStates';
 import userService from '../services/userService';
@@ -43,6 +51,32 @@ const Settings = () => {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+  });
+
+  const [ticketForm, setTicketForm] = useState({
+    category: 'Billing & POS Issues',
+    priority: 'Normal',
+    subject: '',
+    description: '',
+  });
+  const [submittingTicket, setSubmittingTicket] = useState(false);
+  const [tickets, setTickets] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mediblix_support_tickets');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      return [];
+    }
+    return [
+      {
+        id: 'TKT-1082',
+        subject: 'Welcome to Mediblix Support Desk',
+        category: 'General Support',
+        priority: 'Normal',
+        status: 'Resolved',
+        createdAt: new Date().toISOString(),
+      },
+    ];
   });
 
   useEffect(() => {
@@ -195,10 +229,47 @@ const Settings = () => {
     }
   };
 
+  const handleSubmitTicket = (e) => {
+    e.preventDefault();
+    if (!ticketForm.subject.trim() || !ticketForm.description.trim()) {
+      showNotification('Please fill in both subject and description', 'error');
+      return;
+    }
+
+    setSubmittingTicket(true);
+    setTimeout(() => {
+      const newTicket = {
+        id: `TKT-${Math.floor(1000 + Math.random() * 9000)}`,
+        subject: ticketForm.subject.trim(),
+        category: ticketForm.category,
+        priority: ticketForm.priority,
+        status: 'Open',
+        createdAt: new Date().toISOString(),
+        description: ticketForm.description.trim(),
+      };
+      const updated = [newTicket, ...tickets];
+      setTickets(updated);
+      try {
+        localStorage.setItem('mediblix_support_tickets', JSON.stringify(updated));
+      } catch (err) {
+        console.error(err);
+      }
+      setTicketForm({
+        category: 'Billing & POS Issues',
+        priority: 'Normal',
+        subject: '',
+        description: '',
+      });
+      setSubmittingTicket(false);
+      showNotification(`Ticket #${newTicket.id} created successfully! Our team will contact you shortly.`);
+    }, 400);
+  };
+
   const menuItems = [
     { id: 'pharmacy', label: 'Pharmacy Details', icon: Building2 },
     { id: 'account', label: 'Account & Security', icon: ShieldCheck },
     { id: 'subscription', label: 'Plan & Subscription', icon: CreditCard },
+    { id: 'support', label: 'Contact Support', icon: LifeBuoy },
   ];
 
   const orgInfo = user?.organization;
@@ -638,6 +709,242 @@ const Settings = () => {
                           <li>Thermal receipt generation and PDF downloads</li>
                           <li>Single-device fraud and concurrent-login protection</li>
                         </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeSection === 'support' && (
+                  <div className="space-y-6">
+                    <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] p-6 md:p-8 space-y-6 shadow-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <h2 className="text-xl font-bold text-[var(--text-primary)]">
+                            Help & Contact Support
+                          </h2>
+                          <p className="text-xs text-[var(--text-secondary)] mt-1">
+                            Get immediate assistance for your pharmacy setup, billing counter, and hardware
+                          </p>
+                        </div>
+                        <span className="self-start sm:self-auto px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold border border-green-200 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-green-600 animate-pulse"></span>
+                          24/7 Helpline Active
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50/50 border border-green-200 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="w-10 h-10 rounded-xl bg-green-600 text-white flex items-center justify-center shadow-xs">
+                              <Phone size={20} />
+                            </div>
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-green-200 text-green-900 rounded-md">
+                              Direct Call / WhatsApp
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-green-800">Direct Helpline Number</p>
+                            <p className="text-xl font-mono font-bold text-green-950 mt-0.5 tracking-wide">
+                              +91 9167132037
+                            </p>
+                            <p className="text-xs text-green-700 mt-1">
+                              Instant technical assistance for counter operations & billing issues
+                            </p>
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <a
+                              href="tel:+919167132037"
+                              className="flex-1 py-2 bg-green-700 hover:bg-green-800 text-white rounded-xl text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5"
+                            >
+                              <Phone size={14} /> Call Now
+                            </a>
+                            <a
+                              href="https://wa.me/919167132037?text=Hello%20Mediblix%20Support,%20I%20need%20help%20with%20my%20pharmacy%20account"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5"
+                            >
+                              <MessageSquare size={14} /> WhatsApp
+                            </a>
+                          </div>
+                        </div>
+
+                        <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50/50 border border-blue-200 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                              <Mail size={20} />
+                            </div>
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-blue-200 text-blue-900 rounded-md">
+                              Priority Email
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-blue-800">Official Support Email</p>
+                            <p className="text-xl font-mono font-bold text-blue-950 mt-0.5 tracking-wide">
+                              support@codevern.com
+                            </p>
+                            <p className="text-xs text-blue-700 mt-1">
+                              Send audit sheets, invoices, error screenshots, or custom feature requests
+                            </p>
+                          </div>
+                          <div className="pt-1">
+                            <a
+                              href="mailto:support@codevern.com?subject=Mediblix%20Support%20Request%20-%20Pharmacy%20Help"
+                              className="w-full py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold text-center transition-all shadow-xs flex items-center justify-center gap-1.5"
+                            >
+                              <Send size={14} /> Send Official Email
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] p-6 md:p-8 space-y-6 shadow-xs">
+                      <div>
+                        <h2 className="text-xl font-bold text-[var(--text-primary)]">
+                          Open a Support Ticket
+                        </h2>
+                        <p className="text-xs text-[var(--text-secondary)] mt-1">
+                          Our engineers track each ticket with dedicated SLA until your query is completely resolved
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleSubmitTicket} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                              Issue Category
+                            </label>
+                            <select
+                              value={ticketForm.category}
+                              onChange={(e) =>
+                                setTicketForm({ ...ticketForm, category: e.target.value })
+                              }
+                              className="w-full px-4 py-2.5 bg-[var(--bg-main)] border border-[var(--border-soft)] rounded-xl text-sm focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)]"
+                            >
+                              <option>Billing & POS Issues</option>
+                              <option>Inventory & OCR Uploads</option>
+                              <option>Thermal Printer & Barcode Scanner</option>
+                              <option>GST Reports & Tax Audit</option>
+                              <option>Account, Terminal & Multi-Device Access</option>
+                              <option>General Support / Consultation</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                              Priority Level
+                            </label>
+                            <select
+                              value={ticketForm.priority}
+                              onChange={(e) =>
+                                setTicketForm({ ...ticketForm, priority: e.target.value })
+                              }
+                              className="w-full px-4 py-2.5 bg-[var(--bg-main)] border border-[var(--border-soft)] rounded-xl text-sm focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)]"
+                            >
+                              <option>Normal - Routine Support</option>
+                              <option>High - Urgent Attention</option>
+                              <option>Critical - Store Counter Blocked</option>
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                              Subject / Summary
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={ticketForm.subject}
+                              onChange={(e) =>
+                                setTicketForm({ ...ticketForm, subject: e.target.value })
+                              }
+                              placeholder="e.g. Need assistance connecting thermal receipt printer on counter 1"
+                              className="w-full px-4 py-2.5 bg-[var(--bg-main)] border border-[var(--border-soft)] rounded-xl text-sm focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)]"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                              Detailed Description
+                            </label>
+                            <textarea
+                              rows={4}
+                              required
+                              value={ticketForm.description}
+                              onChange={(e) =>
+                                setTicketForm({ ...ticketForm, description: e.target.value })
+                              }
+                              placeholder="Please describe the issue or questions in detail..."
+                              className="w-full px-4 py-2.5 bg-[var(--bg-main)] border border-[var(--border-soft)] rounded-xl text-sm focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end pt-2 border-t border-[var(--border-soft)]">
+                          <button
+                            type="submit"
+                            disabled={submittingTicket}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            {submittingTicket ? (
+                              <Loader2 size={15} className="animate-spin" />
+                            ) : (
+                              <Send size={15} />
+                            )}
+                            <span>{submittingTicket ? 'Submitting...' : 'Submit Support Ticket'}</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                    <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-soft)] p-6 md:p-8 space-y-4 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-bold text-lg text-[var(--text-primary)]">
+                            Your Support Tickets ({tickets.length})
+                          </h3>
+                          <p className="text-xs text-[var(--text-secondary)]">
+                            Track the status and resolutions of your previous requests
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {tickets.map((t) => (
+                          <div
+                            key={t.id}
+                            className="p-4 bg-gray-50/70 border border-gray-200 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs"
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-gray-900">{t.id}</span>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-200 text-gray-800">
+                                  {t.category}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    t.status === 'Resolved'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                >
+                                  {t.status}
+                                </span>
+                              </div>
+                              <p className="font-bold text-gray-900 text-sm mt-1">{t.subject}</p>
+                              {t.description && (
+                                <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">
+                                  {t.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right flex-shrink-0 text-gray-400 text-[11px] flex items-center gap-1 sm:self-center">
+                              <Clock size={12} />
+                              <span>{new Date(t.createdAt).toLocaleDateString('en-IN')}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>

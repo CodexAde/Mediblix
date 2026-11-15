@@ -30,11 +30,6 @@ const deleteProduct = async (id) => {
   return response.data;
 };
 
-const seedSampleProducts = async () => {
-  const response = await api.post("/products/seed-sample");
-  return response.data;
-};
-
 export default {
   getProducts,
   getProductById,
@@ -42,5 +37,4 @@ export default {
   createProduct,
   updateProduct,
   deleteProduct,
-  seedSampleProducts,
 };
