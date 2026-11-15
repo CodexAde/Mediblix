@@ -117,6 +117,9 @@ const getOrganizations = asyncHandler(async (req, res) => {
         revenue,
         isExpired,
         daysRemaining,
+        maxAllowedDevices: org.maxAllowedDevices || 1,
+        registeredDevicesCount: org.registeredDevices ? org.registeredDevices.length : 0,
+        registeredDevices: org.registeredDevices || [],
         activeDeviceName: orgAdmin?.activeDeviceInfo?.deviceName || null,
         hasActiveSession: !!orgAdmin?.activeSessionKey,
         conflictAttemptsCount: orgAdmin?.conflictAttemptsCount || 0,
@@ -340,6 +343,9 @@ const resetOrgDeviceSession = asyncHandler(async (req, res) => {
     throw new Error("Organization not found");
   }
 
+  org.registeredDevices = [];
+  await org.save();
+
   const users = await User.find({ organization: org._id });
 
   for (const user of users) {
@@ -353,7 +359,7 @@ const resetOrgDeviceSession = asyncHandler(async (req, res) => {
       userAgent: "Admin Console",
       deviceName: "Platform Administrator",
       status: "Session_Invalidated",
-      details: "Active session unlocked and conflict counter reset by Superadmin",
+      details: "Bound hardware devices unlinked and active session reset by Superadmin",
     });
     if (user.deviceAccessLogs.length > 50) {
       user.deviceAccessLogs = user.deviceAccessLogs.slice(0, 50);
@@ -362,7 +368,59 @@ const resetOrgDeviceSession = asyncHandler(async (req, res) => {
   }
 
   res.json({
-    message: `All device sessions unlocked and reset for ${org.name}. Users can now log in freely on a new device.`,
+    message: `All device bindings and sessions reset for ${org.name}. Users can now log in freely on a new device.`,
+    registeredDevices: [],
+  });
+});
+
+const updateOrgDeviceLimit = asyncHandler(async (req, res) => {
+  const org = await Organization.findById(req.params.id);
+
+  if (!org) {
+    res.status(404);
+    throw new Error("Organization not found");
+  }
+
+  const limit = parseInt(req.body.maxAllowedDevices, 10);
+  if (isNaN(limit) || limit < 1) {
+    res.status(400);
+    throw new Error("Device limit must be at least 1");
+  }
+
+  org.maxAllowedDevices = limit;
+  await org.save();
+
+  res.json({
+    message: `Allowed device limit updated to ${limit} for ${org.name}`,
+    maxAllowedDevices: org.maxAllowedDevices,
+    organization: org,
+  });
+});
+
+const revokeOrgDevice = asyncHandler(async (req, res) => {
+  const org = await Organization.findById(req.params.id);
+
+  if (!org) {
+    res.status(404);
+    throw new Error("Organization not found");
+  }
+
+  const { deviceId } = req.params;
+  org.registeredDevices = (org.registeredDevices || []).filter(
+    (d) => d.deviceId !== deviceId
+  );
+  await org.save();
+
+  const users = await User.find({ organization: org._id });
+  for (const user of users) {
+    user.activeSessionKey = null;
+    user.sessionVersion = (user.sessionVersion || 1) + 1;
+    await user.save();
+  }
+
+  res.json({
+    message: "Device unlinked and revoked successfully",
+    registeredDevices: org.registeredDevices,
   });
 });
 
@@ -464,4 +522,6 @@ export {
   resetOrgDeviceSession,
   toggleOrganizationStatus,
   resetOrgPassword,
+  updateOrgDeviceLimit,
+  revokeOrgDevice,
 };

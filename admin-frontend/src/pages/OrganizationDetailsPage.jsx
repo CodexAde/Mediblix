@@ -23,6 +23,9 @@ import {
   History,
   CalendarDays,
   KeyRound,
+  Trash2,
+  Plus,
+  Minus,
 } from "lucide-react";
 import adminOrgService from "../services/adminOrgService";
 import FreezeConfirmModal from "../components/OrganizationsPageComponent/FreezeConfirmModal";
@@ -43,6 +46,9 @@ const OrganizationDetailsPage = () => {
   const [selectedPlan, setSelectedPlan] = useState("Monthly");
   const [customDays, setCustomDays] = useState(30);
   const [expiryDateInput, setExpiryDateInput] = useState("");
+  const [deviceLimitInput, setDeviceLimitInput] = useState(1);
+  const [updatingLimit, setUpdatingLimit] = useState(false);
+  const [revokingDeviceId, setRevokingDeviceId] = useState(null);
 
   const [resetCredsModalOpen, setResetCredsModalOpen] = useState(false);
   const [resetCredsLoading, setResetCredsLoading] = useState(false);
@@ -66,6 +72,9 @@ const OrganizationDetailsPage = () => {
       setData(res);
       if (res.organization?.plan) {
         setSelectedPlan(res.organization.plan);
+      }
+      if (res.organization?.maxAllowedDevices) {
+        setDeviceLimitInput(res.organization.maxAllowedDevices);
       }
       if (res.organization?.subscriptionExpiresAt) {
         const d = new Date(res.organization.subscriptionExpiresAt);
@@ -168,6 +177,34 @@ const OrganizationDetailsPage = () => {
       alert(err.message || "Failed to reset device session");
     } finally {
       setResettingDevice(false);
+    }
+  };
+
+  const handleUpdateDeviceLimit = async (newLimit) => {
+    try {
+      setUpdatingLimit(true);
+      await adminOrgService.updateDeviceLimit(id, newLimit);
+      setDeviceLimitInput(newLimit);
+      await fetchDetails();
+    } catch (err) {
+      alert(err.message || "Failed to update device limit");
+    } finally {
+      setUpdatingLimit(false);
+    }
+  };
+
+  const handleRevokeDevice = async (deviceId) => {
+    if (!window.confirm("Are you sure you want to revoke and unbind this device?")) {
+      return;
+    }
+    try {
+      setRevokingDeviceId(deviceId);
+      await adminOrgService.revokeDevice(id, deviceId);
+      await fetchDetails();
+    } catch (err) {
+      alert(err.message || "Failed to revoke device");
+    } finally {
+      setRevokingDeviceId(null);
     }
   };
 
@@ -449,10 +486,10 @@ const OrganizationDetailsPage = () => {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-[var(--text-primary)]">
-                    Single-Device Access & Session Control
+                    Hardware Device Binding & Limits
                   </h2>
                   <p className="text-xs text-[var(--text-secondary)]">
-                    Multi-device login lock and unauthorized attempt logs
+                    Permanent device hardware binding & multi-device limit
                   </p>
                 </div>
               </div>
@@ -462,8 +499,127 @@ const OrganizationDetailsPage = () => {
                 className="text-xs font-bold px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-xl transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
               >
                 <RefreshCw size={12} className={resettingDevice ? "animate-spin" : ""} />
-                <span>Reset Device Session</span>
+                <span>Reset All Devices</span>
               </button>
+            </div>
+
+            <div className="p-4 bg-white rounded-xl border border-[var(--border-soft)] mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <span className="text-xs font-bold text-gray-800">Allowed Devices Limit</span>
+                  <p className="text-[11px] text-gray-500">Max physical devices permitted to bind</p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                  {(org.registeredDevices?.length || 0)} / {org.maxAllowedDevices || 1} Bound
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 pt-1">
+                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-slate-50">
+                  <button
+                    type="button"
+                    disabled={updatingLimit || (deviceLimitInput || 1) <= 1}
+                    onClick={() => {
+                      const next = Math.max(1, (deviceLimitInput || 1) - 1);
+                      setDeviceLimitInput(next);
+                      handleUpdateDeviceLimit(next);
+                    }}
+                    className="px-3 py-2 text-gray-600 hover:bg-gray-200 disabled:opacity-40 cursor-pointer transition-colors"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="px-4 py-2 text-sm font-bold text-gray-900 bg-white min-w-[40px] text-center">
+                    {deviceLimitInput || org.maxAllowedDevices || 1}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={updatingLimit}
+                    onClick={() => {
+                      const next = (deviceLimitInput || 1) + 1;
+                      setDeviceLimitInput(next);
+                      handleUpdateDeviceLimit(next);
+                    }}
+                    className="px-3 py-2 text-gray-600 hover:bg-gray-200 disabled:opacity-40 cursor-pointer transition-colors"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[1, 2, 3, 5].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      disabled={updatingLimit}
+                      onClick={() => {
+                        setDeviceLimitInput(preset);
+                        handleUpdateDeviceLimit(preset);
+                      }}
+                      className={`px-2.5 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        (org.maxAllowedDevices || 1) === preset
+                          ? "bg-teal-700 text-white border-teal-700 shadow-xs"
+                          : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      {preset} {preset === 1 ? "Device" : "Devices"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-white rounded-xl border border-[var(--border-soft)] mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <Smartphone size={14} className="text-teal-700" />
+                  <span>Bound Physical Devices ({(org.registeredDevices?.length || 0)})</span>
+                </span>
+                <span className="text-[11px] text-gray-400">
+                  Locked permanently until revoked
+                </span>
+              </div>
+
+              {!org.registeredDevices || org.registeredDevices.length === 0 ? (
+                <div className="text-center py-4 bg-slate-50/70 rounded-xl border border-dashed border-gray-200">
+                  <p className="text-xs font-medium text-gray-500">No hardware devices bound yet</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">The first device that logs in will bind automatically</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {org.registeredDevices.map((dev) => (
+                    <div
+                      key={dev.deviceId}
+                      className="p-3 bg-slate-50/70 border border-gray-200/80 rounded-xl flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-gray-900 truncate">
+                            {dev.deviceName || "Registered Terminal"}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-teal-100 text-teal-800 font-semibold">
+                            Bound
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-0.5 font-mono truncate">
+                          IP: {dev.ip || "Unknown"} • ID: {dev.deviceId.substring(0, 16)}...
+                        </p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          Registered: {new Date(dev.registeredAt || Date.now()).toLocaleDateString("en-IN")} • Last Active: {new Date(dev.lastActiveAt || Date.now()).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={revokingDeviceId === dev.deviceId}
+                        onClick={() => handleRevokeDevice(dev.deviceId)}
+                        className="p-2 text-rose-600 hover:bg-rose-100/70 rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                        title="Revoke and unbind this device"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 p-4 bg-white rounded-xl border border-[var(--border-soft)] mb-5">

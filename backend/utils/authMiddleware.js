@@ -50,6 +50,23 @@ const protect = asyncHandler(async (req, res, next) => {
       }
 
       const clientSession = req.headers["x-device-session"];
+      const clientDeviceId = req.headers["x-device-id"];
+
+      if (
+        req.user.role !== "superadmin" &&
+        req.user.organization?.registeredDevices &&
+        req.user.organization.registeredDevices.length > 0 &&
+        clientDeviceId
+      ) {
+        const isDeviceAllowed = req.user.organization.registeredDevices.some(
+          (d) => d.deviceId === clientDeviceId
+        );
+        if (!isDeviceAllowed) {
+          res.status(401);
+          throw new Error("This device is not registered or has been revoked by administrator.");
+        }
+      }
+
       if (
         req.user.role !== "superadmin" &&
         req.user.organization?.singleDeviceEnforced !== false

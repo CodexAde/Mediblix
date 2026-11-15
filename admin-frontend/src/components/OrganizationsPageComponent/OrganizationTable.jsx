@@ -143,14 +143,17 @@ const OrganizationTable = ({
 
                   <td className="py-4 px-4 text-center">
                     <div className="flex flex-col items-center gap-1">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                        <Smartphone size={10} /> {org.registeredDevicesCount || 0}/{org.maxAllowedDevices || 1} Bound
+                      </span>
                       {org.hasActiveSession ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                          <Smartphone size={11} /> 1 Active
+                          Online
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500">
-                          <Smartphone size={11} /> Offline
+                        <span className="text-[10px] text-gray-400">
+                          Offline
                         </span>
                       )}
                       {org.conflictAttemptsCount > 0 && (

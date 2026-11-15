@@ -1,40 +1,50 @@
 import React, { useState, useEffect } from "react";
 import AuthContext from "./AuthContext";
 import axios from "axios";
+import { getOrCreateDeviceId } from "../services/api";
 import FrozenAccountModal from "../components/FrozenAccountModal";
 import ExpiredSubscriptionModal from "../components/ExpiredSubscriptionModal";
 
 const AuthState = (props) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    const loggedInUser = localStorage.getItem("userInfo");
+    if (!loggedInUser) return null;
+    try {
+      return JSON.parse(loggedInUser);
+    } catch (err) {
+      console.error(err);
+      localStorage.removeItem("userInfo");
+      return null;
+    }
+  });
+  const [loading] = useState(false);
   const [error, setError] = useState(null);
   const [isFrozenModalOpen, setIsFrozenModalOpen] = useState(false);
-  const [frozenOrgName, setFrozenOrgName] = useState("");
+  const [frozenOrgName, setFrozenOrgName] = useState(() => {
+    const loggedInUser = localStorage.getItem("userInfo");
+    if (!loggedInUser) return "";
+    try {
+      return JSON.parse(loggedInUser)?.organization?.name || "";
+    } catch {
+      return "";
+    }
+  });
   const [isExpiredModalOpen, setIsExpiredModalOpen] = useState(false);
-  const [expiredInfo, setExpiredInfo] = useState({
-    organizationName: "",
-    expiresAt: null,
+  const [expiredInfo, setExpiredInfo] = useState(() => {
+    const loggedInUser = localStorage.getItem("userInfo");
+    if (!loggedInUser) return { organizationName: "", expiresAt: null };
+    try {
+      const parsed = JSON.parse(loggedInUser);
+      return {
+        organizationName: parsed?.organization?.name || "",
+        expiresAt: parsed?.organization?.subscriptionExpiresAt || null,
+      };
+    } catch {
+      return { organizationName: "", expiresAt: null };
+    }
   });
 
   useEffect(() => {
-    const loggedInUser = localStorage.getItem("userInfo");
-    if (loggedInUser) {
-      try {
-        const parsed = JSON.parse(loggedInUser);
-        setUser(parsed);
-        if (parsed.organization?.name) {
-          setFrozenOrgName(parsed.organization.name);
-          setExpiredInfo({
-            organizationName: parsed.organization.name,
-            expiresAt: parsed.organization.subscriptionExpiresAt,
-          });
-        }
-      } catch (e) {
-        localStorage.removeItem("userInfo");
-      }
-    }
-    setLoading(false);
-
     const handleFrozenEvent = (e) => {
       if (e.detail?.organizationName) {
         setFrozenOrgName(e.detail.organizationName);
@@ -52,7 +62,7 @@ const AuthState = (props) => {
       setIsExpiredModalOpen(true);
     };
 
-    const handleSessionRevokedEvent = (e) => {
+    const handleSessionRevokedEvent = () => {
       localStorage.removeItem("userInfo");
       localStorage.removeItem("active_device_session");
       setUser(null);
@@ -86,6 +96,7 @@ const AuthState = (props) => {
           headers: {
             Authorization: `Bearer ${parsed.token}`,
             "x-device-session": activeSession,
+            "x-device-id": getOrCreateDeviceId(),
           },
         });
       } catch (err) {
@@ -106,17 +117,19 @@ const AuthState = (props) => {
   const login = async (email, password) => {
     try {
       const activeSession = localStorage.getItem("active_device_session") || "";
+      const deviceId = getOrCreateDeviceId();
       const config = {
         headers: {
           "Content-Type": "application/json",
           "x-device-session": activeSession,
+          "x-device-id": deviceId,
         },
       };
 
       const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
       const { data } = await axios.post(
         `${backendUrl}/api/users/login`,
-        { email, password, activeSessionKey: activeSession },
+        { email, password, activeSessionKey: activeSession, deviceId },
         config
       );
 
@@ -189,11 +202,13 @@ const AuthState = (props) => {
             headers: {
               Authorization: `Bearer ${userInfo.token}`,
               "x-device-session": activeSession || "",
+              "x-device-id": getOrCreateDeviceId(),
             },
           }
         );
       }
-    } catch (e) {
+    } catch (err) {
+      console.error(err);
     } finally {
       localStorage.removeItem("userInfo");
       localStorage.removeItem("active_device_session");

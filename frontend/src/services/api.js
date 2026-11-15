@@ -1,5 +1,18 @@
 import axios from "axios";
 
+export const getOrCreateDeviceId = () => {
+  let deviceId = localStorage.getItem("mediblix_device_id");
+  if (!deviceId) {
+    deviceId =
+      "dev_" +
+      Math.random().toString(36).substring(2, 12) +
+      "_" +
+      Date.now().toString(36);
+    localStorage.setItem("mediblix_device_id", deviceId);
+  }
+  return deviceId;
+};
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : "/api",
   headers: {
@@ -27,6 +40,8 @@ api.interceptors.request.use((config) => {
   if (deviceSession) {
     config.headers["x-device-session"] = deviceSession;
   }
+
+  config.headers["x-device-id"] = getOrCreateDeviceId();
 
   return config;
 });

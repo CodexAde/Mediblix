@@ -66,6 +66,39 @@ const organizationSchema = mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    maxAllowedDevices: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    registeredDevices: [
+      {
+        deviceId: {
+          type: String,
+          required: true,
+        },
+        deviceName: {
+          type: String,
+          default: "",
+        },
+        ip: {
+          type: String,
+          default: "",
+        },
+        userAgent: {
+          type: String,
+          default: "",
+        },
+        registeredAt: {
+          type: Date,
+          default: Date.now,
+        },
+        lastActiveAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

@@ -43,6 +43,7 @@ const authUser = asyncHandler(async (req, res) => {
     "Unknown IP";
   const deviceName = parseDeviceName(rawUa);
   const clientSession = req.headers["x-device-session"] || req.body.activeSessionKey;
+  const rawDeviceId = req.headers["x-device-id"] || req.body.deviceId;
 
   if (
     user.role !== "superadmin" &&
@@ -72,38 +73,105 @@ const authUser = asyncHandler(async (req, res) => {
     });
   }
 
+  let orgDoc = null;
+  if (user.role !== "superadmin" && user.organization) {
+    const orgId = user.organization._id || user.organization;
+    orgDoc = await Organization.findById(orgId);
+
+    if (orgDoc) {
+      orgDoc.registeredDevices = orgDoc.registeredDevices || [];
+      const maxDevices = orgDoc.maxAllowedDevices && orgDoc.maxAllowedDevices > 0 ? orgDoc.maxAllowedDevices : 1;
+      const deviceId = rawDeviceId ? String(rawDeviceId).trim() : null;
+
+      if (deviceId) {
+        const existingDevice = orgDoc.registeredDevices.find((d) => d.deviceId === deviceId);
+
+        if (existingDevice) {
+          existingDevice.lastActiveAt = new Date();
+          existingDevice.ip = clientIp;
+          existingDevice.userAgent = rawUa;
+          existingDevice.deviceName = deviceName;
+          await orgDoc.save();
+        } else {
+          if (orgDoc.registeredDevices.length >= maxDevices) {
+            user.conflictAttemptsCount = (user.conflictAttemptsCount || 0) + 1;
+            user.deviceAccessLogs = user.deviceAccessLogs || [];
+            user.deviceAccessLogs.unshift({
+              attemptedAt: new Date(),
+              ip: clientIp,
+              userAgent: rawUa,
+              deviceName,
+              status: "Blocked_Device_Conflict",
+              details: `Device limit reached (${orgDoc.registeredDevices.length}/${maxDevices} bound). Login rejected from unregistered device.`,
+            });
+
+            if (user.deviceAccessLogs.length > 50) {
+              user.deviceAccessLogs = user.deviceAccessLogs.slice(0, 50);
+            }
+
+            await user.save();
+
+            return res.status(403).json({
+              message: `Device limit reached (${orgDoc.registeredDevices.length} of ${maxDevices} allowed). This pharmacy account is locked to its registered devices. Even after logging out, new devices cannot access this account. Contact your administrator to increase the device limit or reset registered devices.`,
+              isDeviceLimitReached: true,
+              maxAllowedDevices: maxDevices,
+              registeredCount: orgDoc.registeredDevices.length,
+            });
+          }
+
+          orgDoc.registeredDevices.push({
+            deviceId,
+            deviceName,
+            ip: clientIp,
+            userAgent: rawUa,
+            registeredAt: new Date(),
+            lastActiveAt: new Date(),
+          });
+          await orgDoc.save();
+        }
+      }
+    }
+  }
+
   if (
     user.role !== "superadmin" &&
     user.activeSessionKey &&
     clientSession !== user.activeSessionKey
   ) {
-    user.conflictAttemptsCount = (user.conflictAttemptsCount || 0) + 1;
-    user.deviceAccessLogs = user.deviceAccessLogs || [];
-    user.deviceAccessLogs.unshift({
-      attemptedAt: new Date(),
-      ip: clientIp,
-      userAgent: rawUa,
-      deviceName,
-      status: "Blocked_Device_Conflict",
-      details: `Concurrent login attempt blocked while active on ${
-        user.activeDeviceInfo?.deviceName || "Terminal"
-      }`,
-    });
+    const isSameRegisteredDevice =
+      orgDoc &&
+      rawDeviceId &&
+      orgDoc.registeredDevices?.some((d) => d.deviceId === String(rawDeviceId).trim());
 
-    if (user.deviceAccessLogs.length > 50) {
-      user.deviceAccessLogs = user.deviceAccessLogs.slice(0, 50);
+    if (!isSameRegisteredDevice) {
+      user.conflictAttemptsCount = (user.conflictAttemptsCount || 0) + 1;
+      user.deviceAccessLogs = user.deviceAccessLogs || [];
+      user.deviceAccessLogs.unshift({
+        attemptedAt: new Date(),
+        ip: clientIp,
+        userAgent: rawUa,
+        deviceName,
+        status: "Blocked_Device_Conflict",
+        details: `Concurrent login attempt blocked while active on ${
+          user.activeDeviceInfo?.deviceName || "Terminal"
+        }`,
+      });
+
+      if (user.deviceAccessLogs.length > 50) {
+        user.deviceAccessLogs = user.deviceAccessLogs.slice(0, 50);
+      }
+
+      await user.save();
+
+      return res.status(403).json({
+        message: `Account is currently logged in on another device (${
+          user.activeDeviceInfo?.deviceName || "Active Terminal"
+        }). Single-device policy is strictly enforced. Please log out from that device or contact your administrator to reset access.`,
+        isDeviceConflict: true,
+        activeDevice: user.activeDeviceInfo?.deviceName || "Active Terminal",
+        conflictCount: user.conflictAttemptsCount,
+      });
     }
-
-    await user.save();
-
-    return res.status(403).json({
-      message: `Account is currently logged in on another device (${
-        user.activeDeviceInfo?.deviceName || "Active Terminal"
-      }). Single-device policy is strictly enforced. Please log out from that device or contact your administrator to reset access.`,
-      isDeviceConflict: true,
-      activeDevice: user.activeDeviceInfo?.deviceName || "Active Terminal",
-      conflictCount: user.conflictAttemptsCount,
-    });
   }
 
   const sessionKey = crypto.randomBytes(24).toString("hex");

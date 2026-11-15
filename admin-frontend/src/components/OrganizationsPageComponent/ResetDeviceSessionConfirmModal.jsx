@@ -20,7 +20,7 @@ const ResetDeviceSessionConfirmModal = ({
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 text-lg tracking-tight">
-                Reset Device Session?
+                Reset Bound Devices & Sessions?
               </h3>
               <p className="text-[13px] text-gray-500 font-normal">
                 {organization.name}
@@ -40,15 +40,15 @@ const ResetDeviceSessionConfirmModal = ({
           <div className="flex items-start gap-2.5">
             <AlertTriangle size={16} className="text-rose-600 flex-shrink-0 mt-0.5" />
             <p>
-              This will immediately unlock device access and force logout any currently logged-in terminals.
+              This will unbind all registered hardware devices, clear hardware locks, and force logout active sessions.
             </p>
           </div>
           <div className="p-3 bg-rose-50/70 rounded-[14px] border border-rose-200/50 text-rose-900 text-[12px] space-y-1">
-            <p className="font-semibold">Session Versioning Enforcement:</p>
+            <p className="font-semibold">Device & Session Enforcement:</p>
             <ul className="list-disc list-inside space-y-1 text-rose-800">
-              <li>Session version number will be bumped in database.</li>
+              <li>All bound physical device IDs will be wiped from this organization.</li>
               <li>Active terminal sessions will receive an instant 401 revocation.</li>
-              <li>Pharmacy staff can immediately log in from a fresh authorized device.</li>
+              <li>Pharmacy staff can bind new hardware devices up to their allowed limit.</li>
             </ul>
           </div>
         </div>

@@ -45,6 +45,16 @@ const resetDeviceSession = async (id) => {
   return response.data;
 };
 
+const updateDeviceLimit = async (id, maxAllowedDevices) => {
+  const response = await adminApi.patch(`/organizations/${id}/device-limit`, { maxAllowedDevices });
+  return response.data;
+};
+
+const revokeDevice = async (id, deviceId) => {
+  const response = await adminApi.delete(`/organizations/${id}/devices/${deviceId}`);
+  return response.data;
+};
+
 export default {
   getStats,
   getOrganizations,
@@ -55,4 +65,6 @@ export default {
   resetOrgPassword,
   updateSubscription,
   resetDeviceSession,
+  updateDeviceLimit,
+  revokeDevice,
 };

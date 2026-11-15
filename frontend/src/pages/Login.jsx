@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthStates';
-import { Mail, Lock, Loader2, Package } from 'lucide-react';
+import { Mail, Lock, Loader2, Package, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-// Image used directly from public folder
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -49,8 +48,17 @@ const LoginPage = () => {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-              {error}
+            <div className={`mb-4 p-3.5 rounded-xl text-xs font-medium leading-relaxed border ${
+              error.toLowerCase().includes('device')
+                ? 'bg-amber-50 border-amber-200 text-amber-900'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              <div className="flex items-start gap-2">
+                {error.toLowerCase().includes('device') && (
+                  <ShieldAlert size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                )}
+                <span>{error}</span>
+              </div>
             </div>
           )}
 
