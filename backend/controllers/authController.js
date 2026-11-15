@@ -184,4 +184,93 @@ const getMe = asyncHandler(async (req, res) => {
   res.json(user);
 });
 
-export { authUser, logoutUser, getMe };
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).populate("organization");
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  if (req.body.name) {
+    user.name = req.body.name.trim();
+  }
+
+  if (req.body.email) {
+    const targetEmail = req.body.email.toLowerCase().trim();
+    if (targetEmail !== user.email) {
+      const existing = await User.findOne({ email: targetEmail });
+      if (existing) {
+        res.status(400);
+        throw new Error("Email address is already in use");
+      }
+      user.email = targetEmail;
+    }
+  }
+
+  await user.save();
+
+  if (user.organization) {
+    const org = await Organization.findById(user.organization._id || user.organization);
+    if (org) {
+      if (req.body.organizationName) {
+        org.name = req.body.organizationName.trim();
+      }
+      if (req.body.contactPerson) {
+        org.contactPerson = req.body.contactPerson.trim();
+      }
+      if (req.body.contactPhone !== undefined) {
+        org.contactPhone = req.body.contactPhone.trim();
+      }
+      if (req.body.address !== undefined) {
+        org.address = req.body.address.trim();
+      }
+      await org.save();
+    }
+  }
+
+  const updatedUser = await User.findById(user._id).select("-password").populate("organization");
+
+  res.json({
+    _id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    role: updatedUser.role,
+    isAdmin: updatedUser.isAdmin,
+    organization: updatedUser.organization,
+  });
+});
+
+const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400);
+    throw new Error("Please provide current and new password");
+  }
+
+  if (newPassword.length < 6) {
+    res.status(400);
+    throw new Error("New password must be at least 6 characters");
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  const isMatch = await user.matchPassword(currentPassword);
+  if (!isMatch) {
+    res.status(400);
+    throw new Error("Incorrect current password");
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  res.json({ message: "Password updated successfully" });
+});
+
+export { authUser, logoutUser, getMe, updateUserProfile, changePassword };

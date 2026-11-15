@@ -207,6 +207,7 @@ const AuthState = (props) => {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         login,
         logout,
         loading,
