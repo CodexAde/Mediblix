@@ -4,14 +4,17 @@
   "workspaces": [
     "frontend",
     "admin-frontend",
-    "backend"
+    "backend",
+    "landing-page"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix admin-frontend\" \"npm run dev --prefix backend\"",
+    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix admin-frontend\" \"npm run dev --prefix backend\" \"npm run dev --prefix landing-page\"",
+    "dev:landing": "npm run dev --prefix landing-page",
     "dev:admin": "npm run dev --prefix admin-frontend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
-    "install-all": "npm install && npm install --prefix frontend && npm install --prefix admin-frontend && npm install --prefix backend"
+    "install-all": "npm install && npm install --prefix frontend && npm install --prefix admin-frontend && npm install --prefix backend && npm install --prefix landing-page",
+    "install:all": "npm install && npm install --prefix frontend && npm install --prefix admin-frontend && npm install --prefix backend && npm install --prefix landing-page"
   },
   "keywords": [],
   "author": "",
