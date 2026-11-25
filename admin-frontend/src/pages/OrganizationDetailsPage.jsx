@@ -26,6 +26,7 @@ import {
   Trash2,
   Plus,
   Minus,
+  Pencil,
 } from "lucide-react";
 import adminOrgService from "../services/adminOrgService";
 import FreezeConfirmModal from "../components/OrganizationsPageComponent/FreezeConfirmModal";
@@ -33,6 +34,7 @@ import FreezeSuccessModal from "../components/OrganizationsPageComponent/FreezeS
 import ResetCredentialsConfirmModal from "../components/OrganizationsPageComponent/ResetCredentialsConfirmModal";
 import ResetCredentialsSuccessModal from "../components/OrganizationsPageComponent/ResetCredentialsSuccessModal";
 import ResetDeviceSessionConfirmModal from "../components/OrganizationsPageComponent/ResetDeviceSessionConfirmModal";
+import EditAdminEmailModal from "../components/OrganizationsPageComponent/EditAdminEmailModal";
 
 const OrganizationDetailsPage = () => {
   const { id } = useParams();
@@ -58,6 +60,7 @@ const OrganizationDetailsPage = () => {
     credentialsData: null,
   });
   const [resetDeviceModalOpen, setResetDeviceModalOpen] = useState(false);
+  const [editEmailModalOpen, setEditEmailModalOpen] = useState(false);
 
   const [successModalData, setSuccessModalData] = useState({
     isOpen: false,
@@ -326,12 +329,23 @@ const OrganizationDetailsPage = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 text-sm text-[var(--text-secondary)]">
-          <div className="flex items-center gap-3">
-            <Mail size={18} className="text-[var(--text-secondary)]" />
-            <div>
-              <p className="font-semibold text-[var(--text-primary)]">Admin Email</p>
-              <p className="font-mono text-xs mt-0.5">{org.contactEmail}</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Mail size={18} className="text-[var(--text-secondary)] flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="font-semibold text-[var(--text-primary)]">Admin Email</p>
+                <p className="font-mono text-xs mt-0.5 truncate">{org.contactEmail}</p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setEditEmailModalOpen(true)}
+              className="px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 flex-shrink-0"
+              title="Edit Admin Email"
+            >
+              <Pencil size={11} />
+              <span>Edit</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -931,6 +945,13 @@ const OrganizationDetailsPage = () => {
         loading={resettingDevice}
         onClose={() => setResetDeviceModalOpen(false)}
         onConfirm={handleConfirmResetDeviceSession}
+      />
+
+      <EditAdminEmailModal
+        isOpen={editEmailModalOpen}
+        organization={data?.organization}
+        onClose={() => setEditEmailModalOpen(false)}
+        onSuccess={() => fetchDetails()}
       />
     </div>
   );

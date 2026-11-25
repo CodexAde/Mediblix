@@ -12,6 +12,7 @@ import {
   resetOrgPassword,
   updateOrgDeviceLimit,
   revokeOrgDevice,
+  updateOrgAdminEmail,
 } from "../controllers/adminController.js";
 import { protect, superAdminOnly } from "../utils/authMiddleware.js";
 
@@ -25,6 +26,7 @@ router.get("/organizations/:id", protect, superAdminOnly, getOrganizationById);
 router.put("/organizations/:id", protect, superAdminOnly, updateOrganization);
 router.patch("/organizations/:id/status", protect, superAdminOnly, toggleOrganizationStatus);
 router.patch("/organizations/:id/subscription", protect, superAdminOnly, updateOrgSubscription);
+router.patch("/organizations/:id/email", protect, superAdminOnly, updateOrgAdminEmail);
 router.patch("/organizations/:id/device-limit", protect, superAdminOnly, updateOrgDeviceLimit);
 router.delete("/organizations/:id/devices/:deviceId", protect, superAdminOnly, revokeOrgDevice);
 router.post("/organizations/:id/reset-device-session", protect, superAdminOnly, resetOrgDeviceSession);

@@ -55,6 +55,11 @@ const revokeDevice = async (id, deviceId) => {
   return response.data;
 };
 
+const updateAdminEmail = async (id, email) => {
+  const response = await adminApi.patch(`/organizations/${id}/email`, { email });
+  return response.data;
+};
+
 export default {
   getStats,
   getOrganizations,
@@ -67,4 +72,5 @@ export default {
   resetDeviceSession,
   updateDeviceLimit,
   revokeDevice,
+  updateAdminEmail,
 };

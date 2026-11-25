@@ -278,14 +278,116 @@ const updateOrganization = asyncHandler(async (req, res) => {
     throw new Error("Organization not found");
   }
 
+  if (req.body.contactEmail) {
+    const targetEmail = req.body.contactEmail.toLowerCase().trim();
+    if (targetEmail !== org.contactEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(targetEmail)) {
+        res.status(400);
+        throw new Error("Invalid email format");
+      }
+
+      const existingOrg = await Organization.findOne({
+        contactEmail: targetEmail,
+        _id: { $ne: org._id },
+      });
+      if (existingOrg) {
+        res.status(400);
+        throw new Error("Another organization is already using this email");
+      }
+
+      const existingUser = await User.findOne({
+        email: targetEmail,
+        organization: { $ne: org._id },
+      });
+      if (existingUser) {
+        res.status(400);
+        throw new Error("A user account with this email already exists");
+      }
+
+      const orgAdmin =
+        (await User.findOne({ organization: org._id, role: "org_admin" })) ||
+        (await User.findOne({ organization: org._id }));
+
+      if (orgAdmin) {
+        orgAdmin.email = targetEmail;
+        await orgAdmin.save();
+      }
+
+      org.contactEmail = targetEmail;
+    }
+  }
+
   org.name = req.body.name || org.name;
   org.contactPerson = req.body.contactPerson || org.contactPerson;
-  org.contactEmail = req.body.contactEmail ? req.body.contactEmail.toLowerCase() : org.contactEmail;
   org.contactPhone = req.body.contactPhone !== undefined ? req.body.contactPhone : org.contactPhone;
   org.address = req.body.address !== undefined ? req.body.address : org.address;
 
   const updatedOrg = await org.save();
   res.json(updatedOrg);
+});
+
+const updateOrgAdminEmail = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.trim()) {
+    res.status(400);
+    throw new Error("Email address is required");
+  }
+
+  const targetEmail = email.toLowerCase().trim();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(targetEmail)) {
+    res.status(400);
+    throw new Error("Invalid email address format");
+  }
+
+  const org = await Organization.findById(req.params.id);
+  if (!org) {
+    res.status(404);
+    throw new Error("Organization not found");
+  }
+
+  if (targetEmail === org.contactEmail) {
+    return res.json({
+      message: "Admin email is unchanged",
+      organization: org,
+    });
+  }
+
+  const existingOrg = await Organization.findOne({
+    contactEmail: targetEmail,
+    _id: { $ne: org._id },
+  });
+  if (existingOrg) {
+    res.status(400);
+    throw new Error("Another organization is already using this email");
+  }
+
+  const existingUser = await User.findOne({
+    email: targetEmail,
+    organization: { $ne: org._id },
+  });
+  if (existingUser) {
+    res.status(400);
+    throw new Error("A user account with this email already exists");
+  }
+
+  const orgAdmin =
+    (await User.findOne({ organization: org._id, role: "org_admin" })) ||
+    (await User.findOne({ organization: org._id }));
+
+  if (orgAdmin) {
+    orgAdmin.email = targetEmail;
+    await orgAdmin.save();
+  }
+
+  org.contactEmail = targetEmail;
+  await org.save();
+
+  res.json({
+    message: `Admin email updated successfully to ${targetEmail}`,
+    organization: org,
+  });
 });
 
 const updateOrgSubscription = asyncHandler(async (req, res) => {
@@ -524,4 +626,5 @@ export {
   resetOrgPassword,
   updateOrgDeviceLimit,
   revokeOrgDevice,
+  updateOrgAdminEmail,
 };
